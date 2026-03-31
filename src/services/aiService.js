@@ -100,4 +100,33 @@ Output a JSON response exactly in this format (no markdown blocks, just raw JSON
     }
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer };
+async function generateMatchEmail(demandTitle, demandDesc, demandBudget, engName, engSkills, engRegion) {
+    let langInstruction = engRegion.includes('MX') || engRegion.toLowerCase().includes('mexico') 
+        ? "Write the email entirely in Spanish." 
+        : "Write the email entirely in English.";
+
+    const prompt = `You are the AI Matchmaker for an exclusive industrial automation platform called 'Talengineer'.
+You need to write a highly persuasive and professional cold-outreach email to an engineer.
+
+Engineer Details:
+- Name: ${engName}
+- Skills: ${engSkills}
+
+Project Details:
+- Title: ${demandTitle}
+- Budget: ${demandBudget}
+- Description snippet: ${demandDesc.substring(0, 200)}...
+
+Instructions:
+1. Address them by name.
+2. Tell them why they were selected (match their skills to the project).
+3. Mention the project title and budget to catch their attention.
+4. Keep it concise (under 150 words).
+5. End with a strong call-to-action to click a link to view the full project and accept it.
+${langInstruction}`;
+
+    const text = await callGemini(prompt, 0.7, 300);
+    return text.trim();
+}
+
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail };

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { parseDemand } = require('../services/aiService');
+const { runMatchmaker } = require('../services/matchmakerService');
 
 // Submit raw demand and get AI parsed SoW
 router.post('/parse', async (req, res) => {
@@ -48,6 +49,11 @@ router.post('/submit', async (req, res) => {
             });
             insertMany(milestones);
         }
+
+        // 3. Trigger Async Matchmaker Outreach
+        setTimeout(() => {
+            runMatchmaker(demand.id).catch(console.error);
+        }, 1000); // Slight delay to ensure DB transaction commits completely
 
         res.json({ status: 'ok', id: demand.id });
         
