@@ -16,6 +16,7 @@ function initDB() {
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
+            password TEXT,
             role TEXT NOT NULL,
             name TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -83,6 +84,16 @@ function initDB() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `);
+
+    // Migration to add password column if missing
+    try {
+        db.prepare("SELECT password FROM users LIMIT 1").get();
+    } catch(e) {
+        if(e.message.includes("no such column")) {
+            db.prepare("ALTER TABLE users ADD COLUMN password TEXT").run();
+            console.log("Migration: Added password column to users table.");
+        }
+    }
     
     return db;
 }

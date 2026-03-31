@@ -142,11 +142,19 @@
 
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
-      <h2 id="loginTitle">Access Dashboard</h2>
+      <div style="display:flex; gap:16px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+         <div id="tabSignIn" style="font-weight:bold; cursor:pointer; color:var(--primary);" onclick="toggleAuthMode('signin')">Sign In</div>
+         <div id="tabSignUp" style="font-weight:bold; cursor:pointer; color:var(--muted);" onclick="toggleAuthMode('signup')">Create Account</div>
+      </div>
+
       <form id="loginForm">
-        <div class="form-group">
+        <div class="form-group" id="groupName" style="display:none;">
+          <label id="lblName">Full Name</label>
+          <input type="text" id="userName" placeholder="Your Name" />
+        </div>
+        <div class="form-group" id="groupRole" style="display:none;">
           <label id="lblRole">I am a...</label>
-          <select id="userRole" required>
+          <select id="userRole">
             <option value="employer">Supplier / Project Owner</option>
             <option value="engineer">Automation Engineer</option>
           </select>
@@ -155,7 +163,11 @@
           <label id="lblEmail">Email Address</label>
           <input type="email" id="userEmail" placeholder="your@email.com" required />
         </div>
-        <button type="submit" class="btn-primary" id="btnLogin">Continue to Dashboard</button>
+        <div class="form-group">
+          <label id="lblPassword">Password</label>
+          <input type="password" id="userPassword" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-primary" id="btnLogin">Sign In to Dashboard</button>
       </form>
     </div>
   </div>
@@ -213,20 +225,43 @@
 
   <script>
     let currentUser = null;
+    let authMode = 'signin';
+
+    function toggleAuthMode(mode) {
+      authMode = mode;
+      document.getElementById('tabSignIn').style.color = mode === 'signin' ? 'var(--primary)' : 'var(--muted)';
+      document.getElementById('tabSignUp').style.color = mode === 'signup' ? 'var(--primary)' : 'var(--muted)';
+      
+      document.getElementById('groupName').style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('groupRole').style.display = mode === 'signup' ? 'block' : 'none';
+      
+      const btn = document.getElementById('btnLogin');
+      if(currentLang === 'zh') btn.textContent = mode === 'signin' ? '登 录' : '创建账号';
+      else if(currentLang === 'es') btn.textContent = mode === 'signin' ? 'Iniciar Sesión' : 'Crear Cuenta';
+      else btn.textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
+    }
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
       const role = document.getElementById('userRole').value;
+      const name = document.getElementById('userName').value || email.split('@')[0];
       
       try {
-        const res = await fetch('/api/auth/register', {
+        const endpoint = authMode === 'signin' ? '/api/auth/login' : '/api/auth/register';
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ email, role, name: email.split('@')[0] })
+          body: JSON.stringify({ email, password, role, name })
         });
         const data = await res.json();
         
+        if (!res.ok) {
+           alert(data.error || "Authentication failed");
+           return;
+        }
+
         currentUser = data;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('dashboardView').style.display = 'block';
@@ -416,7 +451,10 @@
       }
     };
 
+    let currentLang = 'en';
+
     function setLang(lang) {
+      currentLang = lang;
       localStorage.setItem('tal_lang', lang);
       document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('btn' + lang.charAt(0).toUpperCase() + lang.slice(1));
@@ -447,12 +485,12 @@
           roleSelect.options[1].text = "Automation Engineer";
       }
       
-      // Update login button text
+      // Update login button text based on mode
       const btnLogin = document.getElementById('btnLogin');
       if(btnLogin) {
-          if(lang === 'zh') btnLogin.textContent = "进入控制台";
-          else if(lang === 'es') btnLogin.textContent = "Continuar al Panel";
-          else btnLogin.textContent = "Continue to Dashboard";
+          if(lang === 'zh') btnLogin.textContent = authMode === 'signin' ? "登 录" : "创建账号";
+          else if(lang === 'es') btnLogin.textContent = authMode === 'signin' ? "Iniciar Sesión" : "Crear Cuenta";
+          else btnLogin.textContent = authMode === 'signin' ? "Sign In" : "Create Account";
       }
     }
     
