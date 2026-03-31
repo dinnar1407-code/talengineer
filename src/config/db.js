@@ -72,6 +72,16 @@ function initDB() {
             status TEXT DEFAULT 'pending',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+        
+        CREATE TABLE IF NOT EXISTS project_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            demand_id TEXT,
+            sender_role TEXT,
+            sender_name TEXT,
+            original_text TEXT,
+            translated_text TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     `);
     
     return db;

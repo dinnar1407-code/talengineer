@@ -142,4 +142,36 @@ Original message:
     return text.trim();
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage };
+async function generateDailyReport(chatHistoryText) {
+    const prompt = `You are Nexus-PM, an elite AI Project Manager for an industrial automation project.
+Below is the recent chat history between the Chinese Supplier (Employer) and the Local Engineer (in Mexico/NA).
+Based ONLY on this conversation, write a highly concise, professional Daily Progress Report IN CHINESE (简体中文) for the Chinese Employer.
+Format your response using Markdown:
+### 📊 今日现场进度简报 (Nexus-PM 自动生成)
+- **当前状态**: [Brief status]
+- **核心讨论点**: [1-2 bullet points]
+- **潜在风险/阻塞点**: [Any issues mentioned? If none, say "无明显异常"]
+- **下一步行动**: [What is happening next based on chat?]
+
+Do not invent facts. If the chat is too short, just summarize what was said.
+
+Chat History:
+"""
+${chatHistoryText}
+"""`;
+
+    const text = await callGemini(prompt, 0.2, 500);
+    return text.trim();
+}
+
+async function generateNudgeMessage() {
+    const prompt = `You are Nexus-PM, an AI Project Manager supervising a local automation engineer in Mexico.
+Write a polite, professional, but firm message IN SPANISH to the local engineer.
+Ask them for a brief daily status update on their current milestone tasks and if they are facing any blockers on-site today.
+Keep it under 40 words. Do not wrap in markdown or quotes.`;
+
+    const text = await callGemini(prompt, 0.7, 150);
+    return text.trim();
+}
+
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage };
