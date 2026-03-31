@@ -1,24 +1,96 @@
 require('dotenv').config();
 const apiKey = process.env.GEMINI_API_KEY;
 
+async function callGemini(prompt, temperature = 0.7, maxTokens = 800) {
+    if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+    
+    const fetch = (await import('node-fetch')).default;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature, maxOutputTokens: maxTokens }
+        })
+    });
+    
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+async function parseDemand(rawDemand) {
+    const prompt = `You are an expert AI Project Manager for an industrial automation service platform.
+A client (typically a Chinese equipment manufacturer) has submitted a raw, unstructured description of their needs.
+Your task is to analyze this raw text and convert it into a standardized, professional Statement of Work (SoW) in English.
+You also need to suggest 3-4 logical project milestones with appropriate payment percentages that total 100%.
+
+Raw Demand:
+"""
+${rawDemand}
+"""
+
+Output a JSON object EXACTLY in the following format (no markdown blocks, just raw JSON):
+{
+  "title": "A concise, professional title for the project in English",
+  "role_required": "Specific technical roles and skills required (e.g., Senior PLC Programmer, Siemens S7-1500, KUKA Robotics)",
+  "standardized_description": "A clear, professional description of the project scope, objectives, and requirements in English.",
+  "milestones": [
+    { "phase_name": "Name of Phase 1 (e.g., Site Survey & Setup)", "percentage": 0.20 },
+    { "phase_name": "Name of Phase 2 (e.g., PLC Logic Implementation)", "percentage": 0.40 },
+    { "phase_name": "Name of Phase 3 (e.g., Testing & Commissioning)", "percentage": 0.40 }
+  ]
+}`;
+
+    const resultText = await callGemini(prompt, 0.2, 1000);
+    const cleanedText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanedText);
+}
+
 async function generateTechQuestion(skills, level, lang) {
-    if (!apiKey) {
-        return `You are a ${level} engineer with ${skills}. A Siemens S7-1500 PLC is showing a red SF error while communicating with a G120C drive. What are your first 3 troubleshooting steps?`;
-    }
-    // API logic to be implemented
-    return "Mock Question";
+    let langInstruction = '';
+    if (lang === 'zh') langInstruction = 'You must output the question entirely in Chinese.';
+    else if (lang === 'es') langInstruction = 'You must output the question entirely in Spanish.';
+    else langInstruction = 'You must output the question entirely in English.';
+
+    const prompt = `You are a strict technical interviewer for Industrial Automation.
+The candidate claims the following skills: ${skills}
+Their claimed level is: ${level}
+
+Generate exactly ONE practical, highly-technical scenario question to test their knowledge.
+Do NOT output any greeting or introductory text. Just the question.
+${langInstruction}`;
+
+    const text = await callGemini(prompt, 0.7, 200);
+    return text.trim() || "Describe a complex automation project you successfully delivered.";
 }
 
 async function gradeTechAnswer(question, answer, lang) {
-    if (!apiKey) {
-        return {
-            passed: true,
-            score: 92,
-            feedback: "Excellent understanding of Profinet diagnostics and hardware configuration."
-        };
+    let langInstruction = '';
+    if (lang === 'zh') langInstruction = 'Provide your feedback in Chinese.';
+    else if (lang === 'es') langInstruction = 'Provide your feedback in Spanish.';
+    else langInstruction = 'Provide your feedback in English.';
+
+    const prompt = `You are grading a technical interview for an Industrial Automation Engineer.
+Question asked: ${question}
+Candidate's Answer: ${answer}
+
+Evaluate the answer. Does it show genuine field experience and technical competence?
+${langInstruction}
+Output a JSON response exactly in this format (no markdown blocks, just raw JSON):
+{"passed": true/false, "score": <0-100>, "feedback": "<one short sentence of feedback>"}
+`;
+
+    const text = await callGemini(prompt, 0.2, 150);
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    try {
+        return JSON.parse(cleanedText);
+    } catch (e) {
+         return { passed: true, score: 85, feedback: "Acceptable answer." };
     }
-    // API logic to be implemented
-    return { passed: true, score: 85, feedback: "Acceptable." };
 }
 
-module.exports = { generateTechQuestion, gradeTechAnswer };
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer };

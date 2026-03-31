@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
-const { generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
+const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
 
 router.get('/demands', async (req, res) => {
     try {

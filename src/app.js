@@ -12,10 +12,12 @@ app.use(express.static(path.join(__dirname, '../public')));
 const talentRoutes = require('./routes/talent');
 const financeRoutes = require('./routes/finance');
 const authRoutes = require('./routes/auth');
+const demandRoutes = require('./routes/demand');
 
 app.use('/api/talent', talentRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/demand', demandRoutes);
 
 // Serve HTML pages
 app.get('/talent', (req, res) => {
