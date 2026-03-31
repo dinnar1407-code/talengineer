@@ -1,0 +1,21 @@
+{
+  "name": "talengineer",
+  "version": "1.0.0",
+  "description": "Talengineer: AI-Driven Cross-Border Industrial Services",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "stripe": "^14.19.0",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
