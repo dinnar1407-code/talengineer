@@ -6,11 +6,12 @@
     <title>Talengineer | Global Industrial Automation Experts</title>
     <style>
         :root {
-            --primary: #0056b3; /* Deep, trust-inspiring blue */
-            --secondary: #f8f9fa; /* Light grey background */
+            --primary: #0056b3; 
+            --secondary: #f8f9fa;
             --text-dark: #333333;
             --text-light: #ffffff;
-            --accent: #ffc107; /* Action-oriented yellow/orange */
+            --accent: #ffc107;
+            --muted: #6b7280;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -22,99 +23,188 @@
         }
         header {
             background-color: #fff;
-            padding: 20px 40px;
+            padding: 15px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
         .logo {
             font-size: 24px;
             font-weight: 800;
             color: var(--primary);
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            background: #f1f5f9;
+        }
+        .btn-login {
+            background: var(--primary);
+            color: #fff !important;
+        }
+        .btn-login:hover {
+            background: #004494 !important;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
         .hero {
             background-color: var(--primary);
             color: var(--text-light);
             text-align: center;
             padding: 100px 20px;
         }
-        .hero h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        .hero p {
-            font-size: 20px;
-            max-width: 800px;
-            margin: 0 auto 40px auto;
-        }
-        .btn {
-            display: inline-block;
-            background-color: var(--accent);
-            color: #333;
-            padding: 15px 30px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 18px;
-            transition: transform 0.2s;
-        }
-        .btn:hover {
-            transform: scale(1.05);
-        }
-        .features {
-            display: flex;
-            justify-content: space-around;
-            padding: 60px 40px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .feature-card {
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            width: 30%;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .feature-card h3 {
-            color: var(--primary);
-            margin-bottom: 15px;
-        }
+        .hero h1 { font-size: 48px; margin-bottom: 20px; }
+        .hero p { font-size: 20px; max-width: 800px; margin: 0 auto 40px auto; }
+        .btn { display: inline-block; background-color: var(--accent); color: #333; padding: 15px 30px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 18px; transition: transform 0.2s; }
+        .btn:hover { transform: scale(1.05); }
+        .features { display: flex; justify-content: space-around; padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
+        .feature-card { background: #fff; padding: 30px; border-radius: 8px; width: 30%; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .feature-card h3 { color: var(--primary); margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <header>
-    <a href="#" class="logo">Talengineer</a>
-    <nav>
-        <a href="#about" style="margin-right: 20px; text-decoration: none; color: var(--text-dark); font-weight: bold;">How it Works</a>
-        <a href="#pricing" style="margin-right: 20px; text-decoration: none; color: var(--text-dark); font-weight: bold;">Pricing</a>
-        <a href="/login" style="text-decoration: none; color: var(--primary); font-weight: bold;">Sign In</a>
-    </nav>
+    <a href="/" class="logo"><span style="font-size:24px;">⚙️</span> Talengineer</a>
+    <div class="nav-links">
+        <a href="#how-it-works" id="navHow">How it Works</a>
+        <a href="/talent" id="navTalent">Find Engineers</a>
+        <a href="/finance" class="btn-login" id="navLogin">Sign In</a>
+        <div style="border-left: 1px solid #ccc; height: 24px; margin: 0 10px;"></div>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('zh')">ZH</button>
+        <button class="lang-btn" onclick="setLang('es')">ES</button>
+    </div>
 </header>
 
 <section class="hero">
-    <h1>The Last-Mile Infrastructure for Global Equipment Deployment</h1>
-    <p>We connect Chinese manufacturing equipment suppliers with AI-verified, local automation engineers in North America and Mexico. Eliminate visa headaches, slash travel costs, and deploy faster.</p>
-    <a href="#hire" class="btn">Hire a Local Expert</a>
+    <h1 id="heroTitle">The Last-Mile Infrastructure for Global Equipment Deployment</h1>
+    <p id="heroSub">We connect Chinese manufacturing equipment suppliers with AI-verified, local automation engineers in North America and Mexico. Eliminate visa headaches, slash travel costs, and deploy faster.</p>
+    <a href="/talent" class="btn" id="heroBtn">Hire a Local Expert</a>
 </section>
 
 <section class="features">
     <div class="feature-card">
-        <h3>🛡️ AI-Verified Talent</h3>
-        <p>Every engineer on our platform is rigorously tested by our proprietary AI Technical Screener for specific PLC and automation skills.</p>
+        <h3 id="feat1Title">🛡️ AI-Verified Talent</h3>
+        <p id="feat1Desc">Every engineer on our platform is rigorously tested by our proprietary AI Technical Screener for specific PLC and automation skills.</p>
     </div>
     <div class="feature-card">
-        <h3>💰 Milestone Escrow</h3>
-        <p>Zero risk for both parties. Funds are held securely and released only upon successful completion of predefined project milestones.</p>
+        <h3 id="feat2Title">💰 Milestone Escrow</h3>
+        <p id="feat2Desc">Zero risk for both parties. Funds are held securely and released only upon successful completion of predefined project milestones.</p>
     </div>
     <div class="feature-card">
-        <h3>🗣️ Seamless Translation</h3>
-        <p>Break the language barrier. Our AI Project Manager translates technical requirements and communication between Chinese suppliers and local engineers in real-time.</p>
+        <h3 id="feat3Title">🗣️ Seamless Translation</h3>
+        <p id="feat3Desc">Break the language barrier. Our AI Project Manager translates technical requirements and communication between Chinese suppliers and local engineers in real-time.</p>
     </div>
 </section>
 
+<script>
+  const DICT = {
+    en: {
+      navHow: "How it Works", navTalent: "Find Engineers", navLogin: "Sign In",
+      heroTitle: "The Last-Mile Infrastructure for Global Equipment Deployment",
+      heroSub: "We connect Chinese manufacturing equipment suppliers with AI-verified, local automation engineers in North America and Mexico. Eliminate visa headaches, slash travel costs, and deploy faster.",
+      heroBtn: "Hire a Local Expert",
+      feat1Title: "🛡️ AI-Verified Talent",
+      feat1Desc: "Every engineer on our platform is rigorously tested by our proprietary AI Technical Screener for specific PLC and automation skills.",
+      feat2Title: "💰 Milestone Escrow",
+      feat2Desc: "Zero risk for both parties. Funds are held securely and released only upon successful completion of predefined project milestones.",
+      feat3Title: "🗣️ Seamless Translation",
+      feat3Desc: "Break the language barrier. Our AI Project Manager translates technical requirements and communication between Chinese suppliers and local engineers in real-time."
+    },
+    zh: {
+      navHow: "运作模式", navTalent: "找当地工程师", navLogin: "登录控制台",
+      heroTitle: "中国智造出海的最后一公里基础设施",
+      heroSub: "连接中国设备出海企业与北美、墨西哥本地经AI认证的自动化工程师。免去签证烦恼，砍掉差旅成本，实现海外产线快速交付。",
+      heroBtn: "发布海外需求",
+      feat1Title: "🛡️ AI 技术面试官",
+      feat1Desc: "平台所有入驻工程师均通过自研 AI 考官进行的硬核 PLC 及自动化控制场景题测试，拒绝水分。",
+      feat2Title: "💰 里程碑资金托管",
+      feat2Desc: "买卖双方零风险。资金安全托管，仅在预设的工程节点（如接线、打点、试运行）成功验收后释放。",
+      feat3Title: "🗣️ 无缝跨国协同",
+      feat3Desc: "打破语言屏障。我们的 AI 项目经理实时同传中国供应商与海外本地工程师之间的技术文档与对话。"
+    },
+    es: {
+      navHow: "Cómo funciona", navTalent: "Encuentra Ingenieros", navLogin: "Iniciar sesión",
+      heroTitle: "La infraestructura de última milla para el despliegue global de equipos",
+      heroSub: "Conectamos a proveedores chinos de equipos de fabricación con ingenieros locales de automatización verificados por IA en Norteamérica y México.",
+      heroBtn: "Contrata a un experto local",
+      feat1Title: "🛡️ Talento verificado por IA",
+      feat1Desc: "Cada ingeniero en nuestra plataforma es evaluado rigurosamente por nuestro Evaluador Técnico de IA patentado para habilidades específicas de PLC.",
+      feat2Title: "💰 Depósito en garantía por hitos",
+      feat2Desc: "Cero riesgo para ambas partes. Los fondos se mantienen seguros y se liberan solo tras la finalización exitosa de hitos del proyecto predefinidos.",
+      feat3Title: "🗣️ Traducción fluida",
+      feat3Desc: "Rompa la barrera del idioma. Nuestro Gerente de Proyectos de IA traduce los requisitos técnicos y la comunicación en tiempo real."
+    }
+  };
+
+  let lang = localStorage.getItem('whc_lang') || 'en';
+
+  function setLang(l) {
+    lang = l;
+    localStorage.setItem('whc_lang', l);
+    
+    // Update button visual state
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.style.background = b.textContent.toLowerCase() === l ? 'var(--purple)' : 'transparent';
+      b.style.color = b.textContent.toLowerCase() === l ? '#fff' : 'var(--muted)';
+      b.style.borderColor = b.textContent.toLowerCase() === l ? 'var(--purple)' : 'var(--border)';
+    });
+
+    const d = DICT[l];
+    document.getElementById('navHow').textContent = d.navHow;
+    document.getElementById('navTalent').textContent = d.navTalent;
+    document.getElementById('navLogin').textContent = d.navLogin;
+    
+    document.getElementById('heroTitle').innerHTML = d.heroTitle;
+    document.getElementById('heroSub').textContent = d.heroSub;
+    document.getElementById('heroBtn').textContent = d.heroBtn;
+    
+    document.getElementById('feat1Title').textContent = d.feat1Title;
+    document.getElementById('feat1Desc').textContent = d.feat1Desc;
+    document.getElementById('feat2Title').textContent = d.feat2Title;
+    document.getElementById('feat2Desc').textContent = d.feat2Desc;
+    document.getElementById('feat3Title').textContent = d.feat3Title;
+    document.getElementById('feat3Desc').textContent = d.feat3Desc;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setLang(lang);
+  });
+</script>
 </body>
 </html>
