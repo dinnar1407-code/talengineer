@@ -129,6 +129,19 @@
     .ms-list { list-style:none; margin-bottom:24px; }
     .ms-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); align-items:center;}
     .ms-item:last-child { border-bottom:none; }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      header { flex-direction: column; gap: 16px; padding: 15px 20px; }
+      .nav-links { flex-wrap: wrap; justify-content: center; }
+      .metrics { grid-template-columns: 1fr; }
+      .dashboard > div:first-child { flex-direction: column; gap: 16px; align-items: flex-start; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .login-box { padding: 24px; margin: 20px; }
+      .modal-content { width: 95%; padding: 16px; }
+      .ms-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .ms-item > div:last-child { text-align: left; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+    }
   </style>
 </head>
 <body>

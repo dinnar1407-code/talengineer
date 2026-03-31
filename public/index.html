@@ -94,6 +94,15 @@
         .features { display: flex; justify-content: space-around; padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
         .feature-card { background: #fff; padding: 30px; border-radius: 8px; width: 30%; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .feature-card h3 { color: var(--primary); margin-bottom: 15px; }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 16px; padding: 15px 20px; }
+            .nav-links { flex-wrap: wrap; justify-content: center; }
+            .hero h1 { font-size: 32px; }
+            .hero p { font-size: 16px; }
+            .features { flex-direction: column; gap: 20px; padding: 40px 20px; }
+            .feature-card { width: 100%; }
+        }
     </style>
 </head>
 <body>

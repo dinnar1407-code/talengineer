@@ -124,6 +124,18 @@
     #parseBtn { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: bold; }
     #parseBtn:hover { background: #bae6fd; }
 
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      header { flex-direction: column; gap: 16px; padding: 15px 20px; }
+      .nav-links { flex-wrap: wrap; justify-content: center; }
+      .split-layout { flex-direction: column-reverse; gap: 24px; }
+      .main-col, .side-col { width: 100%; flex: auto; }
+      .tabs { flex-wrap: wrap; }
+      .tab { flex: 1 1 100%; text-align: center; }
+      .card-title { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .card > div:last-child { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .btn-action { width: 100%; text-align: center; }
+    }
   </style>
 </head>
 <body>
