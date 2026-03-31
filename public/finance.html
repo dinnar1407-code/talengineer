@@ -146,9 +146,12 @@
 
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
-      <div style="display:flex; gap:16px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:12px;">
-         <div id="tabSignIn" style="font-weight:bold; cursor:pointer; color:var(--primary);" onclick="toggleAuthMode('signin')">Sign In</div>
-         <div id="tabSignUp" style="font-weight:bold; cursor:pointer; color:var(--muted);" onclick="toggleAuthMode('signup')">Create Account</div>
+      <div style="display:flex; gap:16px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:12px; justify-content: space-between; align-items:center;">
+         <div style="display:flex; gap:16px;">
+           <div id="tabSignIn" style="font-weight:bold; cursor:pointer; color:var(--primary);" onclick="toggleAuthMode('signin')">Sign In</div>
+           <div id="tabSignUp" style="font-weight:bold; cursor:pointer; color:var(--muted);" onclick="toggleAuthMode('signup')">Create Account</div>
+         </div>
+         <button class="lang-btn" onclick="setLang(currentLang === 'en' ? 'zh' : (currentLang === 'zh' ? 'es' : 'en'))" id="modalLangBtn" style="padding:2px 6px; font-size:11px;">ZH / ES</button>
       </div>
 
       <form id="loginForm">
@@ -280,6 +283,9 @@
       document.getElementById('groupName').style.display = mode === 'signup' ? 'block' : 'none';
       document.getElementById('groupRole').style.display = mode === 'signup' ? 'block' : 'none';
       
+      document.getElementById('tabSignIn').textContent = currentLang === 'zh' ? '登 录' : (currentLang === 'es' ? 'Iniciar Sesión' : 'Sign In');
+      document.getElementById('tabSignUp').textContent = currentLang === 'zh' ? '创建账号' : (currentLang === 'es' ? 'Crear Cuenta' : 'Create Account');
+
       const btn = document.getElementById('btnLogin');
       if(currentLang === 'zh') btn.textContent = mode === 'signin' ? '登 录' : '创建账号';
       else if(currentLang === 'es') btn.textContent = mode === 'signin' ? 'Iniciar Sesión' : 'Crear Cuenta';
@@ -509,6 +515,11 @@
       document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('btn' + lang.charAt(0).toUpperCase() + lang.slice(1));
       if(activeBtn) activeBtn.classList.add('active');
+
+      const modalBtn = document.getElementById('modalLangBtn');
+      if (modalBtn) modalBtn.textContent = lang === 'zh' ? 'EN / ES' : (lang === 'es' ? 'EN / ZH' : 'ZH / ES');
+      
+      toggleAuthMode(authMode); // Refresh labels in auth box
 
       const strings = dict[lang] || dict['en'];
       for (const key in strings) {
