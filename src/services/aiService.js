@@ -12,6 +12,13 @@ async function callGemini(prompt, temperature = 0.7, maxTokens = 800) {
         generationConfig: { temperature, maxOutputTokens: maxTokens }
     };
 
+    // Use JSON schema for tools/structured output
+    if (prompt.includes('Output EXACTLY this JSON structure')) {
+        payload.generationConfig.responseMimeType = "application/json";
+        // Also force tokens to be larger for JSON to prevent truncation
+        payload.generationConfig.maxOutputTokens = 2000;
+    }
+
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,4 +230,58 @@ Output EXACTLY this JSON structure:
     }
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage };
+async function parseGhostProfile(rawResumeText) {
+    const prompt = `You are Nexus-HR, an AI talent scouter for an industrial automation platform.
+Extract and standardize the following raw resume/forum post into a structured JSON profile for our database.
+
+Raw Text:
+"""
+${rawResumeText}
+"""
+
+Output EXACTLY this JSON structure:
+{
+  "name": "Full Name",
+  "skills": "Comma-separated core technical skills (e.g., Siemens S7, KUKA, SCADA)",
+  "region": "Estimated region (e.g., Mexico (MX), United States (US), Canada (CA))",
+  "level": "Junior (1-3 yrs), Mid-Level (3-7 yrs), or Senior (7+ yrs)",
+  "rate": "Estimated hourly rate in USD based on experience (e.g., $65/hr)",
+  "bio": "A professional 2-sentence summary of their background",
+  "email": "Extracted or inferred email address"
+}`;
+
+    const text = await callGemini(prompt, 0.1, 800);
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    try {
+        return JSON.parse(cleanedText);
+    } catch (e) {
+        console.error("Parse Error on text:", cleanedText);
+        throw new Error("Failed to parse ghost profile JSON");
+    }
+}
+
+async function generateGhostOutreachEmail(profile) {
+    const isLatam = profile.region.includes('MX') || profile.region.includes('Mexico');
+    const langInstruction = isLatam ? "Write the email entirely in Spanish." : "Write the email entirely in English.";
+
+    const prompt = `You are a recruiter for Talengineer, an exclusive AI-driven cross-border marketplace connecting Chinese equipment suppliers with elite local engineers.
+Write a highly persuasive cold-outreach email to an engineer whose public profile we just scraped.
+
+Engineer Profile:
+- Name: ${profile.name}
+- Skills: ${profile.skills}
+
+Instructions:
+1. Address them by name.
+2. Flatter them. Tell them our AI analyzed their background in ${profile.skills} and ranked them in the top 5% of their region.
+3. Inform them we already created a pre-filled, VIP verified "Nexus Profile" for them.
+4. Mention we have high-paying clients (Chinese manufacturers) looking for their exact skills right now.
+5. Call to action: "Click here to claim your profile and view pending project invites."
+6. Keep it professional, urgent, and concise (under 150 words).
+${langInstruction}`;
+
+    const text = await callGemini(prompt, 0.7, 300);
+    return text.trim();
+}
+
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage, parseGhostProfile, generateGhostOutreachEmail };
