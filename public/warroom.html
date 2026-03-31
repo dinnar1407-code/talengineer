@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Babel War Room | Talengineer</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root {
+      --primary: #0056b3; 
+      --secondary: #f8f9fa;
+      --text-dark: #333333;
+      --text-light: #ffffff;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--secondary);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    header {
+      background-color: #fff;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 50;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 300px;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+    
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f1f5f9;
+    }
+    
+    .chat-header {
+      padding: 20px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .message {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      position: relative;
+    }
+    
+    .message.system {
+      align-self: center;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      max-width: 90%;
+    }
+    
+    .message.sent {
+      align-self: flex-end;
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 2px;
+    }
+    
+    .message.received {
+      align-self: flex-start;
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--text-dark);
+      border-bottom-left-radius: 2px;
+    }
+    
+    .translation {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255,255,255,0.3);
+      font-style: italic;
+      font-size: 13px;
+    }
+    
+    .message.received .translation {
+      border-top: 1px dashed var(--border);
+      color: var(--primary);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    .sender-name {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+    
+    .chat-input {
+      padding: 20px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+    
+    .chat-input input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      outline: none;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .chat-input input:focus {
+      border-color: var(--primary);
+    }
+    
+    .chat-input button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0 24px;
+      border-radius: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .chat-input button:hover {
+      background: #004494;
+    }
+    
+    /* Login Overlay for Demo */
+    .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px); }
+    .login-box { background: #fff; border: 1px solid var(--border); padding: 40px; border-radius: 12px; width:100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .login-box h2 { margin-bottom: 24px; color:var(--text-dark); text-align:center; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600;}
+    .form-group input, .form-group select { width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); color: var(--text-dark); border-radius: 6px; outline:none; }
+    .btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="/" class="logo"><span style="font-size:24px;">⚙️</span> Talengineer</a>
+    <div style="font-weight:bold; color:var(--muted);">Babel War Room™ - Real-time AI Translation</div>
+  </header>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>Enter War Room</h2>
+      <form id="joinForm">
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="text" id="joinProjectId" value="DEMO-1082" required />
+        </div>
+        <div class="form-group">
+          <label>I am the...</label>
+          <select id="joinRole" required>
+            <option value="employer">Supplier (Speaks Chinese)</option>
+            <option value="engineer">Engineer (Speaks Spanish)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>My Name</label>
+          <input type="text" id="joinName" placeholder="e.g. Terry or Juan" required />
+        </div>
+        <button type="submit" class="btn-primary">Join Encrypted Channel</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <h3 style="margin-bottom:16px; color:var(--primary);">Active Project</h3>
+      <div style="background:var(--secondary); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px;">
+        <div style="font-size:12px; color:var(--muted); font-weight:bold;">Project ID</div>
+        <div style="font-size:14px; font-weight:bold; margin-bottom:12px;" id="dispProjectId">DEMO-1082</div>
+        
+        <div style="font-size:12px; color:var(--muted); font-weight:bold;">Counterparty</div>
+        <div style="font-size:14px; font-weight:bold; display:flex; align-items:center; gap:8px;">
+           <span id="dispCounterparty">Waiting...</span>
+           <span style="display:inline-block; width:8px; height:8px; background:var(--success); border-radius:50%;"></span>
+        </div>
+      </div>
+      
+      <div style="flex:1;"></div>
+      
+      <div style="font-size:11px; color:var(--muted); text-align:center; padding:10px; border-top:1px solid var(--border);">
+        <p>🔒 End-to-End Encrypted</p>
+        <p>⚡ Powered by Gemini 2.5 Flash Industrial Translation Engine</p>
+      </div>
+    </div>
+    
+    <div class="chat-area">
+      <div class="chat-header">
+        <div>
+          <h2 style="font-size:18px; margin:0;" id="chatTitle">Engineering Collaboration Channel</h2>
+          <span style="font-size:12px; color:var(--success); font-weight:bold;">● Live Translation Active</span>
+        </div>
+        <button onclick="window.location.href='/finance'" style="background:transparent; border:1px solid var(--border); padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; color:var(--muted);">Exit to Dashboard</button>
+      </div>
+      
+      <div class="chat-messages" id="chatMessages">
+        <div class="message system">Welcome to the Babel War Room. All messages are translated in real-time.</div>
+      </div>
+      
+      <form class="chat-input" id="chatForm">
+        <input type="text" id="msgInput" placeholder="Type your message here..." autocomplete="off" required />
+        <button type="submit" id="sendBtn">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentRole = '';
+    let currentName = '';
+    let currentProjectId = '';
+
+    document.getElementById('joinForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      currentProjectId = document.getElementById('joinProjectId').value;
+      currentRole = document.getElementById('joinRole').value;
+      currentName = document.getElementById('joinName').value;
+      
+      document.getElementById('dispProjectId').textContent = currentProjectId;
+      document.getElementById('dispCounterparty').textContent = currentRole === 'employer' ? 'Local Engineer (MX)' : 'Project Manager (CN)';
+      
+      if(currentRole === 'employer') {
+          document.getElementById('msgInput').placeholder = "请输入中文...";
+      } else {
+          document.getElementById('msgInput').placeholder = "Escribe tu mensaje en español...";
+      }
+      
+      document.getElementById('loginOverlay').style.display = 'none';
+
+      // Join Socket Room
+      socket.emit('joinRoom', { projectId: currentProjectId, userRole: currentRole, userName: currentName });
+      appendMessage('system', null, null, `You joined the channel as ${currentName} (${currentRole})`);
+    });
+
+    document.getElementById('chatForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.textContent = 'Translating...';
+      input.disabled = true;
+
+      // Send to server
+      socket.emit('chatMessage', {
+          projectId: currentProjectId,
+          senderRole: currentRole,
+          senderName: currentName,
+          text: text
+      });
+
+      input.value = '';
+    });
+
+    // Receive message
+    socket.on('message', (data) => {
+      // Re-enable input if I sent it
+      if (data.senderRole === currentRole && data.senderName === currentName) {
+         document.getElementById('sendBtn').disabled = false;
+         document.getElementById('sendBtn').textContent = 'Send';
+         const inp = document.getElementById('msgInput');
+         inp.disabled = false;
+         inp.focus();
+      }
+
+      const isMine = (data.senderRole === currentRole && data.senderName === currentName);
+      
+      appendMessage(isMine ? 'sent' : 'received', data.senderName, data.originalText, data.translatedText);
+    });
+
+    socket.on('messageError', (data) => {
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('sendBtn').textContent = 'Send';
+      document.getElementById('msgInput').disabled = false;
+      appendMessage('system', null, null, `Error: ${data.error}`);
+    });
+
+    function appendMessage(type, senderName, originalText, translatedText) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = `message ${type}`;
+      
+      if (type === 'system') {
+        div.textContent = translatedText;
+      } else if (type === 'sent') {
+        div.innerHTML = `
+           <div class="sender-name">Me</div>
+           <div>${originalText}</div>
+           <div class="translation">Trans: ${translatedText}</div>
+        `;
+      } else if (type === 'received') {
+        div.innerHTML = `
+           <div class="sender-name">${senderName}</div>
+           <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">${originalText}</div>
+           <div class="translation">${translatedText}</div>
+        `;
+      }
+      
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+  </script>
+</body>
+</html>

@@ -28,6 +28,10 @@ app.get('/finance', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'finance.html'));
 });
 
+app.get('/warroom', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public', 'warroom.html'));
+});
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });

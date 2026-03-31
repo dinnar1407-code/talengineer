@@ -129,4 +129,17 @@ ${langInstruction}`;
     return text.trim();
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail };
+async function translateTechnicalMessage(msgText, sourceLang, targetLang) {
+    const prompt = `You are a professional technical translator for Industrial Automation and Engineering.
+Translate the following message from ${sourceLang} to ${targetLang}.
+Preserve technical accuracy for PLCs, robotics, electrical components, and software terms.
+Do not add any conversational filler or markdown wrapping; return ONLY the translated text.
+
+Original message:
+"${msgText}"`;
+
+    const text = await callGemini(prompt, 0.3, 300);
+    return text.trim();
+}
+
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage };
