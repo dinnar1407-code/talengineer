@@ -2,7 +2,7 @@ const app = require('./app');
 const http = require('http');
 const { Server } = require('socket.io');
 const { initDB, getClient } = require('./config/db');
-const { translateTechnicalMessage, generateDailyReport, generateNudgeMessage } = require('./services/aiService');
+const { translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage } = require('./services/aiService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -130,6 +130,54 @@ io.on('connection', (socket) => {
 
         } catch (error) {
             console.error('[Socket] AI-PM Nudge error:', error);
+        }
+    });
+
+    socket.on('uploadQualityImage', async (data) => {
+        try {
+            // Tell room that QC is analyzing
+            io.to(`project_${data.projectId}`).emit('message', {
+                senderId: 'nexus-qc',
+                senderRole: 'system-qc',
+                senderName: '🔍 AI-QC Inspector',
+                originalText: `Submitting image for AI QA Verification...`,
+                translatedText: `工程师提交了一张图片进行 AI 质检...`,
+                timestamp: new Date().toISOString(),
+                isAIPM: true
+            });
+
+            // Extract base64 and mime type (e.g. data:image/jpeg;base64,.....)
+            const parts = data.imageData.split(';');
+            const mimeType = parts[0].split(':')[1];
+            const base64Data = parts[1].split(',')[1];
+
+            const result = await analyzeQualityImage(base64Data, mimeType, data.context || '');
+
+            let qcMessageEn = `**Verdict: ${result.verdict}**\n${result.feedback_es}`;
+            let qcMessageZh = `**质检结果: ${result.verdict}**\n${result.feedback_zh}`;
+
+            // Save to DB
+            const db = getClient();
+            if (db) {
+                db.prepare(`
+                    INSERT INTO project_messages (demand_id, sender_role, sender_name, original_text, translated_text)
+                    VALUES (?, ?, ?, ?, ?)
+                `).run(data.projectId, 'system-qc', '🔍 AI-QC Inspector', qcMessageEn, qcMessageZh);
+            }
+
+            io.to(`project_${data.projectId}`).emit('message', {
+                senderId: 'nexus-qc',
+                senderRole: 'system-qc',
+                senderName: '🔍 AI-QC Inspector',
+                originalText: qcMessageEn.replace(/\n/g, '<br>'),
+                translatedText: qcMessageZh.replace(/\n/g, '<br>'),
+                timestamp: new Date().toISOString(),
+                isAIPM: true
+            });
+
+        } catch (error) {
+            console.error('[Socket] AI-QC Error:', error);
+            socket.emit('messageError', { error: 'Failed to run AI Quality Check.' });
         }
     });
 

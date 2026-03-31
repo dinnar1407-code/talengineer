@@ -174,4 +174,53 @@ Keep it under 40 words. Do not wrap in markdown or quotes.`;
     return text.trim();
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage };
+async function analyzeQualityImage(base64Data, mimeType, projectContext) {
+    if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+
+    const prompt = `You are Nexus-QC, a strict AI Quality Control Inspector for industrial automation.
+An engineer has uploaded a photo as proof of their on-site work completion for the milestone.
+Context: ${projectContext || 'General electrical/PLC automation panel'}
+
+Task: 
+1. Carefully inspect the image for technical correctness.
+2. Are there any visible red fault lights (like SF, BF on a Siemens PLC)?
+3. Is the wiring messy or dangerous? Are cables labeled?
+4. Output a strict PASS or REJECT verdict.
+
+Output EXACTLY this JSON structure:
+{"verdict": "PASS" or "REJECT", "feedback_es": "Technical explanation in Spanish for the engineer", "feedback_zh": "Technical explanation in Chinese for the employer"}
+`;
+
+    const payload = {
+        contents: [
+            { 
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType: mimeType, data: base64Data } }
+                ] 
+            }
+        ],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 300, responseMimeType: "application/json" }
+    };
+
+    const fetch = (await import('node-fetch')).default;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{"verdict": "REJECT", "feedback_es": "Error analyzing image", "feedback_zh": "解析图片出错"}';
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        return { verdict: "REJECT", feedback_es: "Error in QC", feedback_zh: "质检返回格式错误" };
+    }
+}
+
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage };

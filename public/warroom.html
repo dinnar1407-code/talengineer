@@ -177,6 +177,21 @@
     .chat-input button:hover {
       background: #004494;
     }
+
+    .btn-camera {
+      background: var(--secondary) !important;
+      color: var(--muted) !important;
+      border: 1px solid var(--border) !important;
+      padding: 0 16px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .btn-camera:hover {
+      background: #e2e8f0 !important;
+      color: var(--text-dark) !important;
+    }
     
     /* Login Overlay for Demo */
     .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px); }
@@ -262,6 +277,8 @@
       </div>
       
       <form class="chat-input" id="chatForm">
+        <label for="imgInput" class="btn-camera" title="Upload Proof of Work" style="cursor:pointer;">📷</label>
+        <input type="file" id="imgInput" accept="image/*" style="display:none;" />
         <input type="text" id="msgInput" placeholder="Type your message here..." autocomplete="off" required />
         <button type="submit" id="sendBtn">Send</button>
       </form>
@@ -316,7 +333,6 @@
       btn.textContent = 'Translating...';
       input.disabled = true;
 
-      // Send to server
       socket.emit('chatMessage', {
           projectId: currentProjectId,
           senderRole: currentRole,
@@ -325,6 +341,26 @@
       });
 
       input.value = '';
+    });
+
+    document.getElementById('imgInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const base64Data = evt.target.result;
+            
+            // Show image in my own chat locally first
+            appendMessage('sent', currentName, `<img src="${base64Data}" style="max-width:100%; border-radius:8px; margin-bottom:8px;"/><div>[Image Uploaded for QC]</div>`, '[Imagen subida para control de calidad]');
+
+            socket.emit('uploadQualityImage', {
+                projectId: currentProjectId,
+                imageData: base64Data,
+                context: "Verify this equipment panel/wiring."
+            });
+        };
+        reader.readAsDataURL(file);
     });
 
     // Receive message
