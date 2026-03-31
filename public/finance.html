@@ -101,6 +101,7 @@
     .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
     .btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
     .btn-primary:hover { background: #004494; }
+    .btn-verify:hover { background: var(--primary) !important; color: #fff !important; }
     
     .btn-social { width: 100%; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; display:flex; align-items:center; justify-content:center; transition: opacity 0.2s; font-size:14px; }
     .btn-social:hover { opacity: 0.8; }
@@ -204,7 +205,20 @@
   </div>
 
   <div class="container dashboard" id="dashboardView">
-    <div class="header-block">
+    <div style="background:var(--card); border:1px solid var(--border); padding:16px 24px; border-radius:12px; margin-bottom:32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+      <div>
+        <h2 style="font-size:18px; margin-bottom:4px; color:var(--text-dark);">Welcome back, <span id="dispUserName" style="color:var(--primary);"></span></h2>
+        <div style="font-size:13px; color:var(--muted);" id="dispUserRole"></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="kycBadge" style="background:rgba(244,196,48,0.1); color:#d97706; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; border:1px solid rgba(244,196,48,0.3); display:flex; align-items:center; gap:4px;">
+          ⚠️ KYC Verification Required
+        </span>
+        <button class="btn-verify" onclick="alert('Real-name verification (Stripe Identity / Onfido) will be required before you can accept orders or process payouts. KYC Flow integration pending.')" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:12px; transition:all 0.2s;">Verify Now</button>
+      </div>
+    </div>
+
+    <div class="header-block" style="text-align:left;">
       <h1 id="dashTitle">Finance & Invoices</h1>
       <p id="dashSub">Manage your active escrows, project milestones, and payout history.</p>
     </div>
@@ -295,6 +309,11 @@
 
         currentUser = data;
         document.getElementById('loginOverlay').style.display = 'none';
+        
+        // Update user info header
+        document.getElementById('dispUserName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('dispUserRole').textContent = currentUser.role === 'employer' ? 'Company Account / Supplier' : 'Engineering Contractor';
+        
         document.getElementById('dashboardView').style.display = 'block';
         loadLedger();
       } catch (err) {
