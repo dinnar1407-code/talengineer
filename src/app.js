@@ -14,12 +14,14 @@ const financeRoutes = require('./routes/finance');
 const authRoutes = require('./routes/auth');
 const demandRoutes = require('./routes/demand');
 const paymentRoutes = require('./routes/payment');
+const iotRoutes = require('./routes/iot');
 
 app.use('/api/talent', talentRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/demand', demandRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/iot', iotRoutes);
 
 // Serve HTML pages
 app.get('/talent', (req, res) => {

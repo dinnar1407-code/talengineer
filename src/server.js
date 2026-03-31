@@ -11,6 +11,7 @@ initDB();
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
+global.io = io; // attach to global for external routes (like IoT webhook)
 
 io.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);

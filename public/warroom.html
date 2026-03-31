@@ -378,6 +378,10 @@
           appendMessage('aipm', data.senderName, data.originalText, data.translatedText);
           return;
       }
+      if (data.isIOT) {
+          appendMessage('iot', data.senderName, data.originalText, data.translatedText);
+          return;
+      }
 
       const isMine = (data.senderRole === currentRole && data.senderName === currentName);
       appendMessage(isMine ? 'sent' : 'received', data.senderName, data.originalText, data.translatedText);
@@ -406,6 +410,18 @@
         div.innerHTML = `
            <div class="sender-name" style="color:#d97706;">${senderName}</div>
            <div>${currentRole === 'employer' ? originalText : translatedText}</div>
+        `;
+      } else if (type === 'iot') {
+        div.style.alignSelf = 'center';
+        div.style.background = 'rgba(239,68,68,0.1)';
+        div.style.border = '1px solid rgba(239,68,68,0.3)';
+        div.style.color = 'var(--text-dark)';
+        div.style.maxWidth = '90%';
+        // Simple regex to bold the labels
+        const formatted = (currentRole === 'employer' ? originalText : translatedText).replace(/\n/g, '<br/>');
+        div.innerHTML = `
+           <div class="sender-name" style="color:#ef4444; font-size:14px;">${senderName}</div>
+           <div style="font-family:monospace; margin-top:8px;">${formatted}</div>
         `;
       } else if (type === 'sent') {
         div.innerHTML = `
