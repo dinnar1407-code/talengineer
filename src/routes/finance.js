@@ -8,8 +8,10 @@ router.get('/ledger', async (req, res) => {
         if (!email) return res.status(400).json({ error: 'email required' });
 
         const db = getClient();
-        if (!db) {
-            // Mock data for UI testing
+        const stmt = db.prepare(`SELECT * FROM financial_ledgers WHERE employer_email = ? OR engineer_email = ? ORDER BY created_at DESC`);
+        const data = stmt.all(email, email);
+
+        if (data.length === 0) {
             return res.json({
                 status: 'ok',
                 data: [
@@ -26,9 +28,7 @@ router.get('/ledger', async (req, res) => {
             });
         }
 
-        // Production query (requires user table join)
-        // Simplified for this phase
-        res.json({ status: 'ok', data: [] });
+        res.json({ status: 'ok', data });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -37,9 +37,15 @@ router.get('/ledger', async (req, res) => {
 router.get('/milestones', async (req, res) => {
     try {
         const { demand_id } = req.query;
-        
         const db = getClient();
-        if (!db) {
+        
+        let data = [];
+        if (demand_id) {
+            const stmt = db.prepare(`SELECT * FROM project_milestones WHERE demand_id = ?`);
+            data = stmt.all(demand_id);
+        }
+
+        if (data.length === 0) {
             return res.json({
                 status: 'ok',
                 data: [
@@ -50,7 +56,7 @@ router.get('/milestones', async (req, res) => {
                 ]
             });
         }
-        res.json({ status: 'ok', data: [] });
+        res.json({ status: 'ok', data });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

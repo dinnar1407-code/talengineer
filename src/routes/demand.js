@@ -20,41 +20,39 @@ router.post('/parse', async (req, res) => {
 router.post('/submit', async (req, res) => {
     try {
         const db = getClient();
-        if (!db) {
-            // Mock
-            return res.json({ status: 'ok', id: 'mock-uuid-123' });
-        }
-        
         const { employer_id, title, role_required, region, project_type, location, budget, description, contact, milestones } = req.body;
         
+        // Extract budget number
+        const budgetAmount = parseFloat((budget || '0').toString().replace(/[^0-9.]/g, '')) || 1000;
+
         // 1. Insert Demand
-        const { data: demand, error: demandErr } = await db
-            .from('demands')
-            .insert([{
-                employer_id, title, role_required, region, project_type, location, budget, description, contact, status: 'open'
-            }])
-            .select()
-            .single();
-            
-        if (demandErr) throw demandErr;
+        const insertDemand = db.prepare(`
+            INSERT INTO demands (employer_id, title, role_required, region, project_type, location, budget, description, contact, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')
+            RETURNING id;
+        `);
+        const demand = insertDemand.get(
+            employer_id || 1, title, role_required, region, project_type, location, budget, description, contact
+        );
         
         // 2. Insert Milestones
         if (milestones && milestones.length > 0) {
-            const msData = milestones.map(m => ({
-                demand_id: demand.id,
-                phase_name: m.phase_name,
-                percentage: m.percentage,
-                amount: parseFloat(budget) * m.percentage, // Need clean budget parsing in reality
-                status: 'locked'
-            }));
-            
-            const { error: msErr } = await db.from('project_milestones').insert(msData);
-            if (msErr) throw msErr;
+            const insertMilestone = db.prepare(`
+                INSERT INTO project_milestones (demand_id, phase_name, percentage, amount, status)
+                VALUES (?, ?, ?, ?, 'locked')
+            `);
+            const insertMany = db.transaction((msList) => {
+                for (let m of msList) {
+                    insertMilestone.run(demand.id, m.phase_name, m.percentage, budgetAmount * m.percentage);
+                }
+            });
+            insertMany(milestones);
         }
 
         res.json({ status: 'ok', id: demand.id });
         
     } catch (err) {
+        console.error("Demand Submit Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

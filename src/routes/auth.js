@@ -8,48 +8,37 @@ router.post('/register', async (req, res) => {
         if (!email || !role) return res.status(400).json({ error: "Missing email or role" });
         
         const db = getClient();
-        if (!db) {
-            // Mock response
-            return res.json({ status: 'ok', email, role, name });
-        }
 
-        // 1. Insert into users table
-        const { data: user, error: userErr } = await db
-            .from('users')
-            .upsert([{ email, role, name: engName || name || '' }], { onConflict: 'email' })
-            .select()
-            .single();
-
-        if (userErr) throw userErr;
+        // 1. Insert/Update into users table
+        const insertUser = db.prepare(`
+            INSERT INTO users (email, role, name) 
+            VALUES (?, ?, ?) 
+            ON CONFLICT(email) DO UPDATE SET name=excluded.name 
+            RETURNING *;
+        `);
+        const user = insertUser.get(email, role, engName || name || '');
 
         // 2. If role is engineer, insert into talents table
         if (role === 'engineer' && engName) {
-            const { data: existingTalent, error: checkErr } = await db
-                .from('talents')
-                .select('id')
-                .eq('contact', email)
-                .maybeSingle();
+            const checkTalent = db.prepare(`SELECT id FROM talents WHERE contact = ?`);
+            const existingTalent = checkTalent.get(email);
 
             if (!existingTalent) {
-                const { error: talentErr } = await db.from('talents').insert([{
-                    user_id: user.id,
-                    name: engName,
-                    skills: engSkills || 'Automation Engineer',
-                    region: engRegion || 'US/CA/MX',
-                    rate: engRate || 'Open',
-                    pricing_model: engPricingModel || 'hourly',
-                    level: engLevel || 'Mid',
-                    verified_score: 0,
-                    bio: engBio || '',
-                    contact: email
-                }]);
-                
-                if (talentErr) throw talentErr;
+                const insertTalent = db.prepare(`
+                    INSERT INTO talents (user_id, name, skills, region, rate, pricing_model, level, verified_score, bio, contact)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+                insertTalent.run(
+                    user.id, engName, engSkills || 'Automation Engineer',
+                    engRegion || 'US/CA/MX', engRate || 'Open',
+                    engPricingModel || 'hourly', engLevel || 'Mid',
+                    0, engBio || '', email
+                );
                 console.log(`[Auth] Registered new engineer: ${engName}`);
             }
         }
 
-        res.json({ status: 'ok', email: data.email, role: data.role, name: data.name });
+        res.json({ status: 'ok', email: user.email, role: user.role, name: user.name });
     } catch (err) {
         console.error("Auth Error:", err);
         res.status(500).json({ error: err.message });

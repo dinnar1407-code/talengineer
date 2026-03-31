@@ -58,11 +58,11 @@
   <nav>
     <a href="/" class="nav-logo">Talengineer</a>
     <div class="nav-links">
-      <a href="/launch" class="nav-link">Launch</a>
+      <a href="#" class="nav-link">Launch</a>
       <a href="/talent" class="nav-link" style="color:var(--gold)">Nexus Talent</a>
-      <a href="/agent" class="nav-link" style="color:var(--gold)">AI Assistant</a>
+      <a href="#" class="nav-link" style="color:var(--gold)">AI Assistant</a>
       <a href="/finance" class="btn-login">Sign In / Dashboard</a>
-      <a href="/admin" class="nav-link" style="color:var(--muted)">Admin</a>
+      <a href="#" class="nav-link" style="color:var(--muted)">Admin</a>
       <button class="nav-link lang-btn" onclick="setLang('en')" style="margin-left:8px; padding:4px 8px;">EN</button>
       <button class="nav-link lang-btn" onclick="setLang('zh')" style="padding:4px 8px;">ZH</button>
       <button class="nav-link lang-btn" onclick="setLang('es')" style="padding:4px 8px;">ES</button>
@@ -89,32 +89,48 @@
       <div class="side-col">
         <form class="post-form" id="postJobForm">
           <h3>Post a Project (Supplier/Foreman)</h3>
-          <div class="form-group"><label>Project Title</label><input type="text" id="jTitle" placeholder="e.g. Siemens PLC Commissioning in Monterrey" required /></div>
-          
-          <div class="form-group"><label>Project Type</label><select id="jType" required>
-            <option value="Cross-Border Equipment Deployment" selected>Cross-Border Equipment Deployment (e.g., China -> MX)</option>
-            <option value="Local System Integration">Local System Integration</option>
-            <option value="Emergency Troubleshooting">Emergency Troubleshooting / Repair</option>
-            <option value="Routine Maintenance">Routine Maintenance & Support</option>
-          </select></div>
 
-          <div class="form-group"><label>Required Skills & Languages</label><input type="text" id="jRole" placeholder="e.g. Siemens TIA, Spanish/English, Basic Mandarin" required /></div>
-          <div class="form-group"><label>Country / Execution Site</label><select id="jRegion" required>
-            <option value="United States (US)" selected>United States (US)</option>
-            <option value="Canada (CA)">Canada (CA)</option>
-            <option value="Mexico (MX)">Mexico (MX)</option>
-            <option value="Remote / Anywhere">Remote / Anywhere</option>
-          </select></div>
-          <div class="form-group"><label>Talent Preference</label><select id="jPref" required>
-            <option value="No Preference" selected>No Preference (Local or Expat)</option>
-            <option value="Local Engineers Only">Local Engineers Only</option>
-            <option value="Chinese Expats Preferred">Chinese Expat Teams Preferred (华人出海团队优先)</option>
-          </select></div>
-          <div class="form-group"><label>Specific Location (City, State/Prov)</label><input type="text" id="jLocation" placeholder="e.g. Monterrey, Nuevo León" required /></div>
-          <div class="form-group"><label>Budget Range</label><input type="text" id="jBudget" placeholder="e.g. $5,000 Total or $80/hr" required /></div>
-          <div class="form-group"><label>Contact Email</label><input type="email" id="jContact" placeholder="Your work email" required /></div>
-          <div class="form-group"><label>Scope Description</label><textarea id="jDesc" rows="4" placeholder="Briefly describe the equipment, timeline, and what needs to be done on-site..." required></textarea></div>
-          <button type="submit" class="btn-submit" id="submitJobBtn">Post Project</button>
+          <div class="form-group" id="rawInputGroup">
+            <label>Describe your project (You can type in Chinese)</label>
+            <textarea id="jRaw" rows="4" placeholder="e.g. 我们有一批设备发到了墨西哥蒙特雷，需要一个懂西门子S7的工程师去现场帮忙接线和调试，大概需要3天，预算$1500。" required></textarea>
+            <button type="button" class="btn-submit" id="parseBtn" onclick="parseDemand()" style="margin-top:10px; background:var(--blue); color:#fff;">✨ AI Magic: Parse & Standardize</button>
+          </div>
+
+          <div id="structuredForm" style="display:none;">
+            <hr style="border:0; border-bottom:1px dashed var(--border); margin:20px 0;"/>
+            <div class="form-group"><label>Project Title (Auto-generated)</label><input type="text" id="jTitle" required /></div>
+            
+            <div class="form-group"><label>Project Type</label><select id="jType" required>
+              <option value="Cross-Border Equipment Deployment" selected>Cross-Border Equipment Deployment (e.g., China -> MX)</option>
+              <option value="Local System Integration">Local System Integration</option>
+              <option value="Emergency Troubleshooting">Emergency Troubleshooting / Repair</option>
+              <option value="Routine Maintenance">Routine Maintenance & Support</option>
+            </select></div>
+
+            <div class="form-group"><label>Required Skills & Languages</label><input type="text" id="jRole" required /></div>
+            <div class="form-group"><label>Country / Execution Site</label><select id="jRegion" required>
+              <option value="United States (US)" selected>United States (US)</option>
+              <option value="Canada (CA)">Canada (CA)</option>
+              <option value="Mexico (MX)">Mexico (MX)</option>
+              <option value="Remote / Anywhere">Remote / Anywhere</option>
+            </select></div>
+            <div class="form-group"><label>Talent Preference</label><select id="jPref" required>
+              <option value="No Preference" selected>No Preference (Local or Expat)</option>
+              <option value="Local Engineers Only">Local Engineers Only</option>
+              <option value="Chinese Expats Preferred">Chinese Expat Teams Preferred (华人出海团队优先)</option>
+            </select></div>
+            <div class="form-group"><label>Specific Location (City, State/Prov)</label><input type="text" id="jLocation" required /></div>
+            <div class="form-group"><label>Budget Range</label><input type="text" id="jBudget" required /></div>
+            <div class="form-group"><label>Contact Email</label><input type="email" id="jContact" placeholder="Your work email" required /></div>
+            <div class="form-group"><label>Standardized SoW (Statement of Work)</label><textarea id="jDesc" rows="6" required></textarea></div>
+            
+            <div id="milestonesPreview" style="background:#13131a; padding:12px; border-radius:6px; margin-bottom:16px; border:1px solid var(--border);">
+               <label style="display:block; font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;">Proposed Escrow Milestones</label>
+               <ul id="milestonesList" style="font-size:13px; color:#fff; padding-left:16px;"></ul>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitJobBtn" style="background:var(--green); color:#fff;">Confirm & Post Project</button>
+          </div>
         </form>
       </div>
     </div>
@@ -298,11 +314,63 @@
       } catch(e) { list.innerHTML = `<div style="color:var(--muted); font-size:14px;">Error loading profiles.</div>`; }
     }
 
+    let parsedMilestones = [];
+
+    async function parseDemand() {
+      const rawText = document.getElementById('jRaw').value;
+      if (!rawText.trim()) return alert('Please enter your project description first.');
+
+      const btn = document.getElementById('parseBtn');
+      const oldText = btn.textContent;
+      btn.textContent = '🧠 AI Analyzing & Formatting...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/demand/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_text: rawText })
+        });
+        const result = await res.json();
+        
+        if (result.status === 'ok') {
+          const data = result.data;
+          // Auto-fill form
+          document.getElementById('jTitle').value = data.title || '';
+          document.getElementById('jRole').value = data.role_required || '';
+          document.getElementById('jDesc').value = data.standardized_description || '';
+          
+          // Show structured form
+          document.getElementById('structuredForm').style.display = 'block';
+          
+          // Handle Milestones
+          parsedMilestones = data.milestones || [];
+          const msList = document.getElementById('milestonesList');
+          if (parsedMilestones.length > 0) {
+             msList.innerHTML = parsedMilestones.map(m => `<li>${m.phase_name}: ${(m.percentage*100).toFixed(0)}%</li>`).join('');
+          } else {
+             msList.innerHTML = `<li>Standard Escrow (To be negotiated)</li>`;
+          }
+
+          // Hide raw input
+          document.getElementById('rawInputGroup').style.display = 'none';
+
+        } else {
+          alert('Failed to parse demand: ' + (result.error || 'Unknown error'));
+        }
+      } catch(err) {
+        alert('Network error during parsing.');
+      }
+      
+      btn.textContent = oldText;
+      btn.disabled = false;
+    }
+
     // Submit Project (Foreman)
     document.getElementById('postJobForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('submitJobBtn');
-      btn.textContent = 'Analyzing & Posting...'; btn.disabled = true;
+      btn.textContent = 'Posting to Market...'; btn.disabled = true;
       const payload = {
         title: document.getElementById('jTitle').value,
         role: document.getElementById('jRole').value,
@@ -311,13 +379,14 @@
         location: document.getElementById('jLocation').value,
         budget: document.getElementById('jBudget').value,
         contact: document.getElementById('jContact').value,
-        description: document.getElementById('jDesc').value
+        description: document.getElementById('jDesc').value,
+        milestones: parsedMilestones
       };
       try {
-        const res = await fetch('/api/talent/submit', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        const res = await fetch('/api/demand/submit', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
         if(res.ok) { alert('Project posted! The Agent Nexus is scanning for matches.'); document.getElementById('postJobForm').reset(); loadDemands(); }
       } catch(e) { alert('Network error.'); }
-      btn.textContent = 'Post Project'; btn.disabled = false;
+      btn.textContent = 'Confirm & Post Project'; btn.disabled = false;
     });
 
     // Submit Profile (Engineer)

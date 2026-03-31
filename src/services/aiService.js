@@ -7,13 +7,15 @@ async function callGemini(prompt, temperature = 0.7, maxTokens = 800) {
     const fetch = (await import('node-fetch')).default;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
+    const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature, maxOutputTokens: maxTokens }
+    };
+
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, maxOutputTokens: maxTokens }
-        })
+        body: JSON.stringify(payload)
     });
     
     const data = await response.json();
@@ -45,9 +47,14 @@ Output a JSON object EXACTLY in the following format (no markdown blocks, just r
   ]
 }`;
 
-    const resultText = await callGemini(prompt, 0.2, 1000);
+    const resultText = await callGemini(prompt, 0.2, 2000);
     const cleanedText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanedText);
+    try {
+        return JSON.parse(cleanedText);
+    } catch(err) {
+        console.error("JSON parsing error on string: ", cleanedText);
+        throw err;
+    }
 }
 
 async function generateTechQuestion(skills, level, lang) {
