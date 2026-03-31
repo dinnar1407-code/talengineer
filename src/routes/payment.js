@@ -1,73 +1,85 @@
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
-const { createEscrowSession } = require('../config/stripe');
+require('dotenv').config();
 
-router.post('/create-escrow', async (req, res) => {
+// Since we don't have real Stripe keys locally yet, we will simulate the Stripe Connect flow
+// with local DB updates to represent Escrow Funding and Escrow Release.
+
+// 1. Employer Funds a Milestone (Money goes to Platform Escrow)
+router.post('/fund-milestone', async (req, res) => {
     try {
-        const { demandId, amountUSD, engineerId } = req.body;
-        
-        if (!demandId || !amountUSD || !engineerId) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
+        const { milestone_id, demand_id } = req.body;
+        if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
         const db = getClient();
         
-        let engineerStripeId = null;
-        
-        // Mock behavior if no DB or no Stripe
-        if (!db || !process.env.STRIPE_SECRET_KEY) {
-            return res.json({ 
-                status: 'ok', 
-                url: `${process.env.DOMAIN || 'http://localhost:4000'}/finance?session_id=mock_session_123&success=true`
-            });
+        // Simulate Stripe Checkout Success
+        const updateStmt = db.prepare(`
+            UPDATE project_milestones 
+            SET status = 'funded' 
+            WHERE id = ? AND demand_id = ?
+        `);
+        const info = updateStmt.run(milestone_id, demand_id);
+
+        if (info.changes > 0) {
+            console.log(`💳 [Stripe Connect Mock] Milestone ${milestone_id} FUNDED. Funds securely held in Escrow.`);
+            res.json({ status: 'ok', message: "Milestone funded successfully." });
+        } else {
+            res.status(404).json({ error: "Milestone not found." });
         }
-
-        // 1. Fetch Engineer's Stripe Account ID from Supabase
-        const { data: engineer, error: engError } = await db
-            .from('talents')
-            .select('stripe_account_id')
-            .eq('user_id', engineerId)
-            .single();
-            
-        if (engError || !engineer || !engineer.stripe_account_id) {
-            throw new Error("Engineer has not connected a Stripe account for payouts.");
-        }
-        
-        engineerStripeId = engineer.stripe_account_id;
-
-        // 2. Create Stripe Checkout Session (Escrow)
-        const session = await createEscrowSession(demandId, amountUSD, engineerStripeId);
-        
-        // 3. Update Milestone Status in DB to 'pending_payment'
-        // (Assuming client will handle the actual update upon success webhook, 
-        // but we could record the payment intent ID here)
-        
-        res.json({ status: 'ok', url: session.url });
-
     } catch (err) {
-        console.error("Escrow Creation Error:", err);
+        console.error("Fund Milestone Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Webhook endpoint to listen for successful payments and release funds
-router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-    // In a real app, you would verify the Stripe signature here
-    const event = req.body;
-    
-    // Handle the event
-    switch (event.type) {
-        case 'checkout.session.completed':
-            const session = event.data.object;
-            console.log(`Payment successful for session: ${session.id}`);
-            // Logic to update DB status to 'funded'
-            break;
-        default:
-            console.log(`Unhandled event type ${event.type}`);
-    }
+// 2. Employer Approves Work -> Platform Releases Funds (Minus 15% Commision) to Engineer's Connected Account
+router.post('/release-milestone', async (req, res) => {
+    try {
+        const { milestone_id, demand_id } = req.body;
+        if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
-    res.json({received: true});
+        const db = getClient();
+        
+        // Get Milestone Details
+        const ms = db.prepare(`SELECT * FROM project_milestones WHERE id = ? AND demand_id = ?`).get(milestone_id, demand_id);
+        if (!ms) return res.status(404).json({ error: "Milestone not found." });
+        if (ms.status !== 'funded') return res.status(400).json({ error: "Milestone must be 'funded' before release." });
+
+        const amount = parseFloat(ms.amount);
+        const platformFee = amount * 0.15;
+        const engineerPayout = amount - platformFee;
+
+        // Simulate Stripe Transfer to Connected Account
+        const updateStmt = db.prepare(`
+            UPDATE project_milestones 
+            SET status = 'released' 
+            WHERE id = ? AND demand_id = ?
+        `);
+        updateStmt.run(milestone_id, demand_id);
+
+        console.log(`\n💸 [Stripe Connect Mock - PAYOUT TRIGGERED]`);
+        console.log(`   Milestone: ${ms.phase_name}`);
+        console.log(`   Total Escrow Amount: $${amount.toFixed(2)}`);
+        console.log(`   Platform Fee (15%):  $${platformFee.toFixed(2)} -> Sent to Talengineer Treasury`);
+        console.log(`   Engineer Payout:     $${engineerPayout.toFixed(2)} -> Sent to Engineer's Local Bank`);
+        console.log(`---------------------------------------------------\n`);
+
+        res.json({ 
+            status: 'ok', 
+            message: "Funds released to engineer.",
+            payout_details: {
+                total: amount,
+                fee: platformFee,
+                payout: engineerPayout
+            }
+        });
+
+    } catch (err) {
+        console.error("Release Milestone Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

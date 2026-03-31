@@ -277,7 +277,19 @@
         const data = await res.json();
         
         if(data.data && data.data.length > 0) {
-          list.innerHTML = data.data.map(m => `
+          list.innerHTML = data.data.map(m => {
+            let actionBtn = '';
+            if (currentUser.role === 'employer' && m.status === 'locked') {
+               actionBtn = `<button class="btn-action" onclick="fundMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:#d97706;">Fund via Stripe</button>`;
+            } else if (currentUser.role === 'employer' && m.status === 'funded') {
+               actionBtn = `<button class="btn-action" onclick="releaseMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:var(--success);">Approve & Release</button>`;
+            } else if (currentUser.role === 'engineer' && m.status === 'funded') {
+               actionBtn = `<div style="font-size:11px; color:var(--success); margin-top:8px;">Ready to work</div>`;
+            } else if (m.status === 'released') {
+               actionBtn = `<div style="font-size:11px; color:var(--muted); margin-top:8px;">Platform Fee Deducted</div>`;
+            }
+            
+            return `
             <div class="ms-item">
               <div>
                 <div style="font-weight:600; color:var(--text-dark);">${m.phase_name}</div>
@@ -286,14 +298,56 @@
               <div style="text-align:right;">
                 <div style="font-weight:600; color:var(--text-dark);">$${m.amount.toLocaleString()}</div>
                 <div style="margin-top:4px;"><span class="status-badge status-${m.status || 'locked'}">${(m.status || 'Locked').toUpperCase()}</span></div>
+                ${actionBtn}
               </div>
             </div>
-          `).join('');
+          `}).join('');
         } else {
           list.innerHTML = `<li style="text-align:center; color:var(--muted);">No milestones defined.</li>`;
         }
       } catch(e) {
         list.innerHTML = `<li style="text-align:center; color:var(--muted);">Error loading data.</li>`;
+      }
+    }
+
+    async function fundMilestone(milestoneId, demandId) {
+      if(!confirm("Proceed to Stripe Checkout to deposit funds into Escrow?")) return;
+      try {
+        const res = await fetch('/api/payment/fund-milestone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId })
+        });
+        const result = await res.json();
+        if(res.ok) {
+          alert("Payment Successful! Funds are now locked in Escrow.");
+          viewMilestones(demandId);
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch(e) {
+        alert("Network error.");
+      }
+    }
+
+    async function releaseMilestone(milestoneId, demandId) {
+      if(!confirm("Approve work and release funds to engineer (minus platform fee)?")) return;
+      try {
+        const res = await fetch('/api/payment/release-milestone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId })
+        });
+        const result = await res.json();
+        if(res.ok) {
+          alert(`Funds Released!\nPayout: $${result.payout_details.payout}\nPlatform Fee: $${result.payout_details.fee}`);
+          viewMilestones(demandId);
+          loadLedger(); // Refresh totals
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch(e) {
+        alert("Network error.");
       }
     }
 

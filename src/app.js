@@ -13,11 +13,13 @@ const talentRoutes = require('./routes/talent');
 const financeRoutes = require('./routes/finance');
 const authRoutes = require('./routes/auth');
 const demandRoutes = require('./routes/demand');
+const paymentRoutes = require('./routes/payment');
 
 app.use('/api/talent', talentRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/demand', demandRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Serve HTML pages
 app.get('/talent', (req, res) => {
