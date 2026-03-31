@@ -363,6 +363,7 @@
     };
 
     function setLang(lang) {
+      localStorage.setItem('tal_lang', lang);
       document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('btn' + lang.charAt(0).toUpperCase() + lang.slice(1));
       if(activeBtn) activeBtn.classList.add('active');
@@ -400,6 +401,11 @@
           else btnLogin.textContent = "Continue to Dashboard";
       }
     }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('tal_lang') || 'en';
+      setLang(savedLang);
+    });
   </script>
 </body>
 </html>
