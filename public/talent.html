@@ -70,6 +70,22 @@
     .btn-login:hover {
       background: #004494 !important;
     }
+    .lang-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    .lang-btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
 
     .container { flex:1; max-width: 1100px; margin: 40px auto; width: 100%; padding: 0 20px;}
     
@@ -116,6 +132,10 @@
     <div class="nav-links">
         <a href="/talent" id="navTalent">Find Engineers</a>
         <a href="/finance" class="btn-login" id="navLogin">Sign In / Dashboard</a>
+        <div style="border-left: 1px solid #ccc; height: 24px; margin: 0 10px;"></div>
+        <button class="lang-btn active" onclick="setLang('en')" id="btnEn">EN</button>
+        <button class="lang-btn" onclick="setLang('zh')" id="btnZh">ZH</button>
+        <button class="lang-btn" onclick="setLang('es')" id="btnEs">ES</button>
     </div>
   </header>
 
@@ -403,6 +423,71 @@
     window.addEventListener('DOMContentLoaded', () => {
       loadDemands();
     });
-  </script>
 </body>
 </html>
+
+  <script>
+    // --- Simple i18n logic ---
+    const dict = {
+      en: {
+        navTalent: "Find Engineers",
+        navLogin: "Sign In / Dashboard",
+        hubTitle: "Industrial Automation Service Hub",
+        hubSub: "AI-driven cross-border marketplace connecting Chinese equipment suppliers with elite local engineers in North America & Mexico.",
+        tabProjects: "Browse Projects (For Engineers)",
+        tabTalent: "Browse Engineers (For Foremen)",
+        formTitleProjects: "Post a Project (Supplier/Foreman)",
+        lblDescribe: "Describe your project (You can type in Chinese)",
+        parseBtn: "✨ AI Magic: Parse & Standardize",
+        formTitleTalent: "Create Profile (Engineer)",
+        submitJobBtn: "Confirm & Post Project",
+        submitProfileBtn: "Publish Profile"
+      },
+      zh: {
+        navTalent: "寻找工程师",
+        navLogin: "登录 / 控制台",
+        hubTitle: "工业自动化服务大厅",
+        hubSub: "AI 驱动的跨境撮合平台，连接中国出海设备供应商与北美/墨西哥顶尖本土工程师。",
+        tabProjects: "浏览项目 (我是工程师)",
+        tabTalent: "寻找工程师 (我是发包方)",
+        formTitleProjects: "发布项目 (发包方入口)",
+        lblDescribe: "用大白话描述您的项目需求",
+        parseBtn: "✨ AI 魔法：自动解析并生成英文标书",
+        formTitleTalent: "创建工程师档案",
+        submitJobBtn: "确认发布项目",
+        submitProfileBtn: "发布档案 (接受 AI 审核)"
+      },
+      es: {
+        navTalent: "Buscar Ingenieros",
+        navLogin: "Iniciar sesión",
+        hubTitle: "Centro de Servicios de Automatización",
+        hubSub: "Mercado transfronterizo impulsado por IA que conecta proveedores chinos con ingenieros locales en Norteamérica y México.",
+        tabProjects: "Ver Proyectos (Para Ingenieros)",
+        tabTalent: "Ver Ingenieros (Para Gerentes)",
+        formTitleProjects: "Publicar un Proyecto",
+        lblDescribe: "Describe tu proyecto",
+        parseBtn: "✨ Magia IA: Analizar y Estandarizar",
+        formTitleTalent: "Crear Perfil (Ingeniero)",
+        submitJobBtn: "Confirmar y Publicar",
+        submitProfileBtn: "Publicar Perfil"
+      }
+    };
+
+    function setLang(lang) {
+      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn' + lang.charAt(0).toUpperCase() + lang.slice(1));
+      if(activeBtn) activeBtn.classList.add('active');
+
+      const strings = dict[lang] || dict['en'];
+      for (const key in strings) {
+        const el = document.getElementById(key);
+        if (el) {
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = strings[key];
+          } else {
+            el.textContent = strings[key];
+          }
+        }
+      }
+    }
+</script></body></html>

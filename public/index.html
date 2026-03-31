@@ -176,13 +176,13 @@
 
   function setLang(l) {
     lang = l;
-    localStorage.setItem('whc_lang', l);
+    localStorage.setItem('tal_lang', l);
     
     // Update button visual state
     document.querySelectorAll('.lang-btn').forEach(b => {
-      b.style.background = b.textContent.toLowerCase() === l ? 'var(--purple)' : 'transparent';
+      b.style.background = b.textContent.toLowerCase() === l ? 'var(--primary)' : 'transparent';
       b.style.color = b.textContent.toLowerCase() === l ? '#fff' : 'var(--muted)';
-      b.style.borderColor = b.textContent.toLowerCase() === l ? 'var(--purple)' : 'var(--border)';
+      b.style.borderColor = b.textContent.toLowerCase() === l ? 'var(--primary)' : 'var(--border)';
     });
 
     const d = DICT[l];
