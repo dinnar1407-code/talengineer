@@ -150,7 +150,7 @@ io.on('connection', (socket) => {
 
     socket.on('uploadQualityImage', async (data) => {
         try {
-            // Tell room that QC is analyzing
+            // 1. Tell room that QC is analyzing
             io.to(`project_${data.projectId}`).emit('message', {
                 senderId: 'nexus-qc',
                 senderRole: 'system-qc',
@@ -161,18 +161,46 @@ io.on('connection', (socket) => {
                 isAIPM: true
             });
 
-            // Extract base64 and mime type (e.g. data:image/jpeg;base64,.....)
+            // Extract base64 and mime type
             const parts = data.imageData.split(';');
             const mimeType = parts[0].split(':')[1];
             const base64Data = parts[1].split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            const fileExt = mimeType.split('/')[1] || 'jpg';
+            const fileName = `qc_${data.projectId}_${Date.now()}.${fileExt}`;
+            
+            const supabase = getClient();
+            let publicUrl = data.imageData; // Fallback to base64 if upload fails
 
+            if (supabase) {
+                // 2. Upload raw buffer to Supabase Storage Bucket 'project_files'
+                const { data: uploadData, error: uploadErr } = await supabase.storage
+                    .from('project_files')
+                    .upload(`${data.projectId}/${fileName}`, buffer, {
+                        contentType: mimeType,
+                        upsert: false
+                    });
+                
+                if (!uploadErr) {
+                    const { data: publicData } = supabase.storage
+                        .from('project_files')
+                        .getPublicUrl(`${data.projectId}/${fileName}`);
+                    if (publicData && publicData.publicUrl) {
+                        publicUrl = publicData.publicUrl;
+                        console.log(`☁️ [S3 Storage] Image uploaded: ${publicUrl}`);
+                    }
+                } else {
+                    console.error("Storage upload error:", uploadErr.message);
+                }
+            }
+
+            // 3. Send to Gemini for Visual QC (using base64 inline is faster for the AI than passing a URL)
             const result = await analyzeQualityImage(base64Data, mimeType, data.context || '');
 
-            let qcMessageEn = `**Verdict: ${result.verdict}**\n${result.feedback_es}`;
-            let qcMessageZh = `**质检结果: ${result.verdict}**\n${result.feedback_zh}`;
+            let qcMessageEn = `**Verdict: ${result.verdict}**\n${result.feedback_es}\n\n[Cloud Proof Link](${publicUrl})`;
+            let qcMessageZh = `**质检结果: ${result.verdict}**\n${result.feedback_zh}\n\n[云端现场留证](${publicUrl})`;
 
-            // Save to DB
-            const supabase = getClient();
+            // 4. Save verdict and cloud URL to DB
             if (supabase) {
                 await supabase.from('project_messages').insert([{
                     demand_id: data.projectId,
@@ -183,12 +211,13 @@ io.on('connection', (socket) => {
                 }]);
             }
 
+            // 5. Broadcast final verdict with the Cloud URL
             io.to(`project_${data.projectId}`).emit('message', {
                 senderId: 'nexus-qc',
                 senderRole: 'system-qc',
                 senderName: '🔍 AI-QC Inspector',
-                originalText: qcMessageEn.replace(/\n/g, '<br>'),
-                translatedText: qcMessageZh.replace(/\n/g, '<br>'),
+                originalText: qcMessageEn.replace(/\n/g, '<br>').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--primary);">$1</a>'),
+                translatedText: qcMessageZh.replace(/\n/g, '<br>').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--primary);">$1</a>'),
                 timestamp: new Date().toISOString(),
                 isAIPM: true
             });
