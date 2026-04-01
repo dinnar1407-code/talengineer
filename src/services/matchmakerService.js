@@ -1,5 +1,6 @@
 const { getClient } = require('../config/db');
 const { generateMatchEmail } = require('./aiService');
+const { sendOutreachEmail } = require('../config/email');
 
 async function runMatchmaker(demandId) {
     console.log(`\n🔍 [Matchmaker] Waking up to process Demand #${demandId}...`);
@@ -57,14 +58,14 @@ async function runMatchmaker(demandId) {
                 engineer.region
             );
 
-            console.log(`[Email Draft - Ready to Send]`);
-            console.log(`To: ${engineer.contact}`);
-            console.log(`Subject: Talengineer Match: ${demand.title}`);
-            console.log(`Body:\n${emailBody}`);
-            console.log(`---------------------------------------------------\n`);
+            // Format the text into HTML
+            const htmlBody = emailBody.split('\n').map(line => `<p>${line}</p>`).join('');
+
+            // Actually fire the email via Resend
+            const subject = `Talengineer Match: ${demand.title}`;
+            await sendOutreachEmail(engineer.contact, subject, htmlBody);
             
-            // Real implementation would use SendGrid or Nodemailer here
-            // e.g. await sendEmail(engineer.contact, "Talengineer Match", emailBody);
+            console.log(`---------------------------------------------------\n`);
         }
 
         console.log(`✅ [Matchmaker] Finished outreach for Demand #${demandId}.`);

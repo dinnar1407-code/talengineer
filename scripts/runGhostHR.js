@@ -1,6 +1,7 @@
 require('dotenv').config({ path: __dirname + '/../.env' });
 const { initDB, getClient } = require('../src/config/db');
 const { parseGhostProfile, generateGhostOutreachEmail } = require('../src/services/aiService');
+const { sendOutreachEmail } = require('../src/config/email');
 
 // Initialize DB connection
 initDB();
@@ -81,12 +82,12 @@ async function runGhostHR() {
         // Step 3: Generate Cold Email
         console.log("\n✉️  [Ghost HR Agent] Drafting highly persuasive cold-outreach email...");
         const emailBody = await generateGhostOutreachEmail(profile);
+        const htmlBody = emailBody.split('\n').map(line => `<p>${line}</p>`).join('');
+        const subject = `${profile.name}, You've been pre-approved as an Elite Engineer on Talengineer!`;
 
         console.log("\n========================================================");
-        console.log(`📧 TO: ${user.email}`);
-        console.log(`✨ SUBJECT: ${profile.name}, You've been pre-approved as an Elite Engineer on Talengineer!`);
-        console.log("--------------------------------------------------------");
-        console.log(emailBody);
+        console.log(`🚀 Sending email payload to Resend API...`);
+        await sendOutreachEmail(user.email, subject, htmlBody);
         console.log("========================================================\n");
         console.log("🚀 [Ghost HR Agent] Action completed. Back to sleep.");
 
