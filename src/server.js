@@ -32,12 +32,15 @@ io.on('connection', (socket) => {
             console.log(`[Socket] Translated to ${targetLang}: ${translatedText}`);
 
             // Save to DB
-            const db = getClient();
-            if (db) {
-                db.prepare(`
-                    INSERT INTO project_messages (demand_id, sender_role, sender_name, original_text, translated_text)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(data.projectId, data.senderRole, data.senderName, data.text, translatedText);
+            const supabase = getClient();
+            if (supabase) {
+                await supabase.from('project_messages').insert([{
+                    demand_id: data.projectId,
+                    sender_role: data.senderRole,
+                    sender_name: data.senderName,
+                    original_text: data.text,
+                    translated_text: translatedText
+                }]);
             }
 
             io.to(`project_${data.projectId}`).emit('message', {
@@ -58,13 +61,21 @@ io.on('connection', (socket) => {
     // Handle AI-PM specific commands
     socket.on('requestDailyReport', async (data) => {
         try {
-            const db = getClient();
-            if (!db) throw new Error("DB not ready");
+            const supabase = getClient();
+            if (!supabase) throw new Error("DB not ready");
 
-            const messages = db.prepare(`SELECT sender_name, original_text FROM project_messages WHERE demand_id = ? ORDER BY created_at ASC LIMIT 100`).all(data.projectId);
+            const { data: messages, error } = await supabase
+                .from('project_messages')
+                .select('sender_name, original_text')
+                .eq('demand_id', data.projectId)
+                .order('created_at', { ascending: true })
+                .limit(100);
             
-            let historyText = messages.map(m => `[${m.sender_name}]: ${m.original_text}`).join('\n');
-            if (!historyText) historyText = "(No recent chat history found. Provide general status assuming project just started.)";
+            if (error) throw error;
+            
+            let historyText = messages && messages.length > 0 
+                ? messages.map(m => `[${m.sender_name}]: ${m.original_text}`).join('\n')
+                : "(No recent chat history found. Provide general status assuming project just started.)";
 
             socket.emit('message', {
                 senderId: 'nexus-pm',
@@ -111,12 +122,15 @@ io.on('connection', (socket) => {
             const nudgeMsg = await generateNudgeMessage();
 
             // Save to DB so it has context
-            const db = getClient();
-            if (db) {
-                db.prepare(`
-                    INSERT INTO project_messages (demand_id, sender_role, sender_name, original_text, translated_text)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(data.projectId, 'system-pm', '🤖 Nexus-PM', nudgeMsg, '请报告今天的现场进度和遇到的阻碍。');
+            const supabase = getClient();
+            if (supabase) {
+                await supabase.from('project_messages').insert([{
+                    demand_id: data.projectId,
+                    sender_role: 'system-pm',
+                    sender_name: '🤖 Nexus-PM',
+                    original_text: nudgeMsg,
+                    translated_text: '请报告今天的现场进度和遇到的阻碍。'
+                }]);
             }
 
             io.to(`project_${data.projectId}`).emit('message', {
@@ -158,12 +172,15 @@ io.on('connection', (socket) => {
             let qcMessageZh = `**质检结果: ${result.verdict}**\n${result.feedback_zh}`;
 
             // Save to DB
-            const db = getClient();
-            if (db) {
-                db.prepare(`
-                    INSERT INTO project_messages (demand_id, sender_role, sender_name, original_text, translated_text)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(data.projectId, 'system-qc', '🔍 AI-QC Inspector', qcMessageEn, qcMessageZh);
+            const supabase = getClient();
+            if (supabase) {
+                await supabase.from('project_messages').insert([{
+                    demand_id: data.projectId,
+                    sender_role: 'system-qc',
+                    sender_name: '🔍 AI-QC Inspector',
+                    original_text: qcMessageEn,
+                    translated_text: qcMessageZh
+                }]);
             }
 
             io.to(`project_${data.projectId}`).emit('message', {

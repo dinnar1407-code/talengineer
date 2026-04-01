@@ -7,11 +7,16 @@ router.get('/ledger', async (req, res) => {
         const { email } = req.query;
         if (!email) return res.status(400).json({ error: 'email required' });
 
-        const db = getClient();
-        const stmt = db.prepare(`SELECT * FROM financial_ledgers WHERE employer_email = ? OR engineer_email = ? ORDER BY created_at DESC`);
-        const data = stmt.all(email, email);
+        const supabase = getClient();
+        const { data, error } = await supabase
+            .from('financial_ledgers')
+            .select('*')
+            .or(`employer_email.eq.${email},engineer_email.eq.${email}`)
+            .order('created_at', { ascending: false });
+            
+        if (error) throw error;
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             return res.json({
                 status: 'ok',
                 data: [
@@ -37,22 +42,26 @@ router.get('/ledger', async (req, res) => {
 router.get('/milestones', async (req, res) => {
     try {
         const { demand_id } = req.query;
-        const db = getClient();
+        const supabase = getClient();
         
         let data = [];
         if (demand_id) {
-            const stmt = db.prepare(`SELECT * FROM project_milestones WHERE demand_id = ?`);
-            data = stmt.all(demand_id);
+            const { data: msData, error } = await supabase
+                .from('project_milestones')
+                .select('*')
+                .eq('demand_id', demand_id);
+            if (error) throw error;
+            data = msData;
         }
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             return res.json({
                 status: 'ok',
                 data: [
-                    { phase_name: "Site Survey / Design Review", percentage: 0.10, amount: 800, status: "funded" },
-                    { phase_name: "Cabinet Wiring & Basic IO", percentage: 0.30, amount: 2400, status: "locked" },
-                    { phase_name: "PLC Logic & Dry Run", percentage: 0.40, amount: 3200, status: "locked" },
-                    { phase_name: "Trial Run & Handoff", percentage: 0.20, amount: 1600, status: "locked" }
+                    { id: 991, demand_id: demand_id || 1, phase_name: "Site Survey / Design Review", percentage: 0.10, amount: 800, status: "funded" },
+                    { id: 992, demand_id: demand_id || 1, phase_name: "Cabinet Wiring & Basic IO", percentage: 0.30, amount: 2400, status: "locked" },
+                    { id: 993, demand_id: demand_id || 1, phase_name: "PLC Logic & Dry Run", percentage: 0.40, amount: 3200, status: "locked" },
+                    { id: 994, demand_id: demand_id || 1, phase_name: "Trial Run & Handoff", percentage: 0.20, amount: 1600, status: "locked" }
                 ]
             });
         }

@@ -28,37 +28,50 @@ async function runGhostHR() {
         console.log(JSON.stringify(profile, null, 2));
 
         // Step 2: Create "Ghost" Profile in DB
-        const db = getClient();
-        if (!db) {
+        const supabase = getClient();
+        if (!supabase) {
             throw new Error("DB connection failed.");
         }
 
+        const mockEmail = profile.email || `ghost_${Date.now()}@temp.com`;
+
         // Create User (Role: Engineer)
-        const insertUser = db.prepare(`
-            INSERT INTO users (email, role, name) 
-            VALUES (?, 'engineer', ?) 
-            ON CONFLICT(email) DO UPDATE SET name=excluded.name 
-            RETURNING *;
-        `);
-        const user = insertUser.get(profile.email || `ghost_${Date.now()}@temp.com`, profile.name);
+        const { data: user, error: userErr } = await supabase
+            .from('users')
+            .upsert([{ email: mockEmail, role: 'engineer', name: profile.name, password: 'GHOST_NO_LOGIN' }], { onConflict: 'email' })
+            .select()
+            .single();
+            
+        if (userErr) throw userErr;
 
         // Check if Talent exists
-        const checkTalent = db.prepare(`SELECT id FROM talents WHERE contact = ?`).get(user.email);
+        const { data: existingTalent } = await supabase
+            .from('talents')
+            .select('id')
+            .eq('contact', user.email)
+            .maybeSingle();
         
         let talentId;
-        if (!checkTalent) {
-            const insertTalent = db.prepare(`
-                INSERT INTO talents (user_id, name, skills, region, rate, pricing_model, level, verified_score, bio, contact)
-                VALUES (?, ?, ?, ?, ?, 'hourly', ?, ?, ?, ?)
-            `);
-            const info = insertTalent.run(
-                user.id, profile.name, profile.skills, 
-                profile.region || 'Mexico (MX)', profile.rate || '$50/hr', 
-                profile.level || 'Senior (7+ yrs)', 
-                95, // Ghost profiles get artificially high verified score to attract them
-                profile.bio, user.email
-            );
-            talentId = info.lastInsertRowid;
+        if (!existingTalent) {
+            const { data: newTalent, error: talentErr } = await supabase
+                .from('talents')
+                .insert([{
+                    user_id: user.id,
+                    name: profile.name,
+                    skills: profile.skills,
+                    region: profile.region || 'Mexico (MX)',
+                    rate: profile.rate || '$50/hr',
+                    pricing_model: 'hourly',
+                    level: profile.level || 'Senior (7+ yrs)',
+                    verified_score: 95,
+                    bio: profile.bio,
+                    contact: user.email
+                }])
+                .select()
+                .single();
+                
+            if (talentErr) throw talentErr;
+            talentId = newTalent.id;
             console.log(`\n✅ [DB Injection] Created Ghost Profile for ${profile.name} (Talent ID: ${talentId})`);
         } else {
             console.log(`\n⚠️ [DB Injection] Profile for ${user.email} already exists. Skip creation.`);

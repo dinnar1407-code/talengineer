@@ -3,26 +3,23 @@ const router = express.Router();
 const { getClient } = require('../config/db');
 require('dotenv').config();
 
-// Since we don't have real Stripe keys locally yet, we will simulate the Stripe Connect flow
-// with local DB updates to represent Escrow Funding and Escrow Release.
-
-// 1. Employer Funds a Milestone (Money goes to Platform Escrow)
 router.post('/fund-milestone', async (req, res) => {
     try {
         const { milestone_id, demand_id } = req.body;
         if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
-        const db = getClient();
+        const supabase = getClient();
         
-        // Simulate Stripe Checkout Success
-        const updateStmt = db.prepare(`
-            UPDATE project_milestones 
-            SET status = 'funded' 
-            WHERE id = ? AND demand_id = ?
-        `);
-        const info = updateStmt.run(milestone_id, demand_id);
+        const { data, error } = await supabase
+            .from('project_milestones')
+            .update({ status: 'funded' })
+            .eq('id', milestone_id)
+            .eq('demand_id', demand_id)
+            .select();
 
-        if (info.changes > 0) {
+        if (error) throw error;
+
+        if (data && data.length > 0) {
             console.log(`💳 [Stripe Connect Mock] Milestone ${milestone_id} FUNDED. Funds securely held in Escrow.`);
             res.json({ status: 'ok', message: "Milestone funded successfully." });
         } else {
@@ -34,30 +31,34 @@ router.post('/fund-milestone', async (req, res) => {
     }
 });
 
-// 2. Employer Approves Work -> Platform Releases Funds (Minus 15% Commision) to Engineer's Connected Account
 router.post('/release-milestone', async (req, res) => {
     try {
         const { milestone_id, demand_id } = req.body;
         if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
-        const db = getClient();
+        const supabase = getClient();
         
-        // Get Milestone Details
-        const ms = db.prepare(`SELECT * FROM project_milestones WHERE id = ? AND demand_id = ?`).get(milestone_id, demand_id);
-        if (!ms) return res.status(404).json({ error: "Milestone not found." });
+        const { data: ms, error: msErr } = await supabase
+            .from('project_milestones')
+            .select('*')
+            .eq('id', milestone_id)
+            .eq('demand_id', demand_id)
+            .single();
+
+        if (msErr || !ms) return res.status(404).json({ error: "Milestone not found." });
         if (ms.status !== 'funded') return res.status(400).json({ error: "Milestone must be 'funded' before release." });
 
         const amount = parseFloat(ms.amount);
         const platformFee = amount * 0.15;
         const engineerPayout = amount - platformFee;
 
-        // Simulate Stripe Transfer to Connected Account
-        const updateStmt = db.prepare(`
-            UPDATE project_milestones 
-            SET status = 'released' 
-            WHERE id = ? AND demand_id = ?
-        `);
-        updateStmt.run(milestone_id, demand_id);
+        const { error: updateErr } = await supabase
+            .from('project_milestones')
+            .update({ status: 'released' })
+            .eq('id', milestone_id)
+            .eq('demand_id', demand_id);
+
+        if (updateErr) throw updateErr;
 
         console.log(`\n💸 [Stripe Connect Mock - PAYOUT TRIGGERED]`);
         console.log(`   Milestone: ${ms.phase_name}`);
@@ -69,11 +70,7 @@ router.post('/release-milestone', async (req, res) => {
         res.json({ 
             status: 'ok', 
             message: "Funds released to engineer.",
-            payout_details: {
-                total: amount,
-                fee: platformFee,
-                payout: engineerPayout
-            }
+            payout_details: { total: amount, fee: platformFee, payout: engineerPayout }
         });
 
     } catch (err) {

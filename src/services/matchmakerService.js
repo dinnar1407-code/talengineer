@@ -4,14 +4,17 @@ const { generateMatchEmail } = require('./aiService');
 async function runMatchmaker(demandId) {
     console.log(`\n🔍 [Matchmaker] Waking up to process Demand #${demandId}...`);
     try {
-        const db = getClient();
-        if (!db) return;
+        const supabase = getClient();
+        if (!supabase) return;
 
         // 1. Fetch the new demand
-        const demandStmt = db.prepare(`SELECT * FROM demands WHERE id = ?`);
-        const demand = demandStmt.get(demandId);
+        const { data: demand, error: demandErr } = await supabase
+            .from('demands')
+            .select('*')
+            .eq('id', demandId)
+            .single();
         
-        if (!demand) {
+        if (demandErr || !demand) {
             console.log(`❌ [Matchmaker] Demand #${demandId} not found.`);
             return;
         }
@@ -19,22 +22,18 @@ async function runMatchmaker(demandId) {
         console.log(`📍 [Matchmaker] Project Title: "${demand.title}"`);
         console.log(`📍 [Matchmaker] Required Skills: "${demand.role_required}"`);
 
-        // 2. Query talents based on region (simplistic match for now)
-        // In a real scenario, we'd use pgvector or complex SQL to rank skills.
-        const talentStmt = db.prepare(`
-            SELECT * FROM talents 
-            WHERE region LIKE '%' || ? || '%'
-            ORDER BY verified_score DESC, created_at DESC
-            LIMIT 3
-        `);
-        
-        // Extract country from region (e.g. "Mexico (MX)" -> "MX")
         const regionHint = demand.region.includes('MX') || demand.region.includes('Mexico') ? 'MX' : 
                            demand.region.includes('CA') ? 'CA' : 'US';
                            
-        const matches = talentStmt.all(regionHint);
+        const { data: matches, error: talentErr } = await supabase
+            .from('talents')
+            .select('*')
+            .ilike('region', `%${regionHint}%`)
+            .order('verified_score', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(3);
 
-        if (matches.length === 0) {
+        if (talentErr || !matches || matches.length === 0) {
             console.log(`⚠️ [Matchmaker] No engineers found in region ${regionHint}. Will expand search later.`);
             return;
         }

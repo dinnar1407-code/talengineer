@@ -20,40 +20,41 @@ router.post('/parse', async (req, res) => {
 // Save parsed demand to DB
 router.post('/submit', async (req, res) => {
     try {
-        const db = getClient();
+        const supabase = getClient();
         const { employer_id, title, role_required, region, project_type, location, budget, description, contact, milestones } = req.body;
         
         // Extract budget number
         const budgetAmount = parseFloat((budget || '0').toString().replace(/[^0-9.]/g, '')) || 1000;
 
         // 1. Insert Demand
-        const insertDemand = db.prepare(`
-            INSERT INTO demands (employer_id, title, role_required, region, project_type, location, budget, description, contact, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')
-            RETURNING id;
-        `);
-        const demand = insertDemand.get(
-            employer_id || 1, title, role_required, region, project_type, location, budget, description, contact
-        );
+        const { data: demand, error: demandErr } = await supabase
+            .from('demands')
+            .insert([{
+                employer_id: employer_id || 1, 
+                title, role_required, region, project_type, location, budget, description, contact, status: 'open'
+            }])
+            .select()
+            .single();
+            
+        if (demandErr) throw demandErr;
         
         // 2. Insert Milestones
         if (milestones && milestones.length > 0) {
-            const insertMilestone = db.prepare(`
-                INSERT INTO project_milestones (demand_id, phase_name, percentage, amount, status)
-                VALUES (?, ?, ?, ?, 'locked')
-            `);
-            const insertMany = db.transaction((msList) => {
-                for (let m of msList) {
-                    insertMilestone.run(demand.id, m.phase_name, m.percentage, budgetAmount * m.percentage);
-                }
-            });
-            insertMany(milestones);
+            const msData = milestones.map(m => ({
+                demand_id: demand.id,
+                phase_name: m.phase_name,
+                percentage: m.percentage,
+                amount: budgetAmount * m.percentage,
+                status: 'locked'
+            }));
+            const { error: msErr } = await supabase.from('project_milestones').insert(msData);
+            if (msErr) throw msErr;
         }
 
         // 3. Trigger Async Matchmaker Outreach
         setTimeout(() => {
             runMatchmaker(demand.id).catch(console.error);
-        }, 1000); // Slight delay to ensure DB transaction commits completely
+        }, 1000);
 
         res.json({ status: 'ok', id: demand.id });
         

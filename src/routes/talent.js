@@ -5,9 +5,9 @@ const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../servi
 
 router.get('/demands', async (req, res) => {
     try {
-        const db = getClient();
-        const stmt = db.prepare(`SELECT * FROM demands ORDER BY created_at DESC LIMIT 50`);
-        const data = stmt.all();
+        const supabase = getClient();
+        const { data, error } = await supabase.from('demands').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
         res.json({ status: 'ok', data });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -36,9 +36,9 @@ router.post('/screen_verify', async (req, res) => {
 
 router.get('/list', async (req, res) => {
     try {
-        const db = getClient();
-        const stmt = db.prepare(`SELECT * FROM talents ORDER BY created_at DESC LIMIT 50`);
-        const data = stmt.all();
+        const supabase = getClient();
+        const { data, error } = await supabase.from('talents').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
         res.json({ status: 'ok', data });
     } catch (err) {
         res.status(500).json({ error: err.message });
