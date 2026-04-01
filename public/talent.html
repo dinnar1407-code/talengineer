@@ -229,8 +229,9 @@
         <form class="post-form" id="postProfileForm">
           <h3 id="formTitleTalent">Create Profile (Engineer)</h3>
           
-          <div class="form-group"><label>Full Name</label><input type="text" id="pName" placeholder="e.g. Juan Perez" required /></div>
-          <div class="form-group"><label>Contact Email</label><input type="email" id="pEmail" placeholder="your@email.com" required /></div>
+          <div class="form-group"><label id="lblFullName">Full Name</label><input type="text" id="pName" placeholder="e.g. Juan Perez" required /></div>
+          <div class="form-group"><label id="lblEmail">Contact Email</label><input type="email" id="pEmail" placeholder="your@email.com" required /></div>
+          <div class="form-group"><label id="lblPassword">Password</label><input type="password" id="pPassword" placeholder="••••••••" required /></div>
           
           <div class="form-group"><label>Primary Skills & PLCs</label><input type="text" id="pSkills" placeholder="e.g. Siemens S7, Rockwell, TIA Portal" required /></div>
           <div class="form-group"><label>Service Region</label><select id="pRegion" required>
@@ -413,6 +414,7 @@
       
       const payload = {
         email: document.getElementById('pEmail').value,
+        password: document.getElementById('pPassword').value,
         role: 'engineer',
         engName: document.getElementById('pName').value,
         engSkills: document.getElementById('pSkills').value,
@@ -423,9 +425,15 @@
       };
 
       try {
-        // Just mock screen pass for now, or call the actual endpoint if configured
         const res = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-        if(res.ok) { alert('Profile published successfully! (Nexus Verified score added)'); document.getElementById('postProfileForm').reset(); loadTalent(); }
+        const result = await res.json();
+        if(res.ok) { 
+           alert('Profile published successfully! (Nexus Verified score added)'); 
+           document.getElementById('postProfileForm').reset(); 
+           loadTalent(); 
+        } else {
+           alert('Failed to publish profile: ' + result.error);
+        }
       } catch(e) { alert('Network error.'); }
       
       btn.textContent = 'Publish Profile'; btn.disabled = false;
