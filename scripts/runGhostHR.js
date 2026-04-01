@@ -1,7 +1,8 @@
+require('dotenv').config({ path: __dirname + '/../.env' });
 const { initDB, getClient } = require('../src/config/db');
 const { parseGhostProfile, generateGhostOutreachEmail } = require('../src/services/aiService');
 
-// Initialize local DB connection
+// Initialize DB connection
 initDB();
 
 // Mock raw forum post or LinkedIn summary
