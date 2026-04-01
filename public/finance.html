@@ -384,7 +384,7 @@
           list.innerHTML = data.data.map(m => {
             let actionBtn = '';
             if (currentUser.role === 'employer' && m.status === 'locked') {
-               actionBtn = `<button class="btn-action" onclick="fundMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:#d97706;">Fund via Stripe</button>`;
+               actionBtn = `<button class="btn-action" onclick="fundMilestone(${m.id}, ${demandId}, ${m.amount}, '${m.phase_name}')" style="margin-top:8px; background:#d97706;">Fund via Stripe</button>`;
             } else if (currentUser.role === 'employer' && m.status === 'funded') {
                actionBtn = `<button class="btn-action" onclick="releaseMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:var(--success);">Approve & Release</button>`;
             } else if (currentUser.role === 'engineer' && m.status === 'funded') {
@@ -414,17 +414,27 @@
       }
     }
 
-    async function fundMilestone(milestoneId, demandId) {
-      if(!confirm("Proceed to Stripe Checkout to deposit funds into Escrow?")) return;
+    async function fundMilestone(milestoneId, demandId, amount, phaseName) {
+      if(!confirm(`Proceed to Stripe Checkout to deposit $${amount} into Escrow for this milestone?`)) return;
       try {
         const res = await fetch('/api/payment/fund-milestone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId })
+          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId, amount: amount, phase_name: phaseName })
         });
         const result = await res.json();
-        if(res.ok) {
-          alert("Payment Successful! Funds are now locked in Escrow.");
+        
+        if (res.ok) {
+           if (result.url) {
+               // Redirect to real Stripe Checkout
+               window.location.href = result.url;
+           } else {
+               alert(result.message);
+               viewMilestones(demandId);
+           }
+        } else {
+          alert("Error: " + result.error);
+        }
           viewMilestones(demandId);
         } else {
           alert("Error: " + result.error);
@@ -452,6 +462,29 @@
         }
       } catch(e) {
         alert("Network error.");
+      }
+    }
+
+    // Handle Stripe redirectbacks via query parameters
+    async function checkStripeRedirect() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const msId = urlParams.get('milestone_id');
+      const demandId = urlParams.get('demand_id');
+      
+      if (sessionId && msId) {
+          try {
+             // In a real app, the webhook handles the DB update. 
+             // We do a temporary client-side confirmation for this prototype.
+             await fetch('/api/payment/confirm-funding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId, milestone_id: msId, demand_id: demandId })
+             });
+             alert("Payment Confirmed! Funds are securely locked in Escrow.");
+             // Clean URL
+             window.history.replaceState({}, document.title, "/finance");
+          } catch(e) {}
       }
     }
 
@@ -584,6 +617,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       const savedLang = localStorage.getItem('tal_lang') || 'en';
       setLang(savedLang);
+      checkStripeRedirect();
     });
   </script>
 </body>
