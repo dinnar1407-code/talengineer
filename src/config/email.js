@@ -18,8 +18,7 @@ async function sendOutreachEmail(toEmail, subject, htmlBody) {
     
     try {
         const data = await resendClient.emails.send({
-            // Fallback to onboarding@resend.dev if domain not yet verified
-            from: process.env.EMAIL_FROM || 'Talengineer <onboarding@resend.dev>',
+            from: process.env.EMAIL_FROM || 'Talengineer <hello@talengineer.us>',
             to: [toEmail],
             subject: subject,
             html: htmlBody,
