@@ -1,0 +1,18 @@
+
+> talengineer@1.0.0 start
+> node src/server.js
+
+🚀 [V13 Architecture] Connecting to Supabase Cloud PostgreSQL...
+🚀 Talengineer Core Services running on http://localhost:4000
+   WebSockets enabled for Babel War Room
+   Domain binding ready: www.talengineer.us
+[Socket] Client connected: BOkZ41yNw4o4Bn2kAAAB
+
+🔍 [Matchmaker] Waking up to process Demand #1...
+📍 [Matchmaker] Project Title: "Supabase Test project"
+📍 [Matchmaker] Required Skills: "null"
+🚨 [Matchmaker Error] TypeError: Cannot read properties of null (reading 'includes')
+    at runMatchmaker (/Users/terry-surface-pro/.openclaw/workspace/talengineer/src/services/matchmakerService.js:25:42)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[Socket] Client disconnected: BOkZ41yNw4o4Bn2kAAAB
+[Socket] Client connected: iMSotNvmnCqBFtDpAAAD

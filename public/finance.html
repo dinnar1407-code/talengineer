@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard & Finance | Talengineer</title>
+  <style>
+    :root {
+      --primary: #0056b3; 
+      --secondary: #f8f9fa;
+      --text-dark: #333333;
+      --text-light: #ffffff;
+      --accent: #ffc107;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--secondary);
+      color: var(--text-dark);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      background-color: #fff;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover {
+      background: #f1f5f9;
+    }
+    .btn-login {
+      background: var(--primary);
+      color: #fff !important;
+    }
+    .btn-login:hover {
+      background: #004494 !important;
+    }
+    .lang-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    .lang-btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+    .container { flex:1; max-width: 1000px; margin: 40px auto; width: 100%; padding: 0 20px;}
+    .header-block { margin-bottom: 32px; text-align:center;}
+    .header-block h1 { font-size: 28px; margin-bottom: 8px; color:var(--text-dark);}
+    .header-block p { color: var(--muted); font-size: 15px; line-height: 1.5; max-width: 600px; margin: 0 auto;}
+
+    .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px); }
+    .login-box { background: #fff; border: 1px solid var(--border); padding: 40px; border-radius: 12px; width:100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .login-box h2 { margin-bottom: 24px; color:var(--text-dark); text-align:center; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600;}
+    .form-group input, .form-group select { width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); color: var(--text-dark); border-radius: 6px; outline:none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+    .btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: #004494; }
+    .btn-verify:hover { background: var(--primary) !important; color: #fff !important; }
+    
+    .btn-social { width: 100%; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; display:flex; align-items:center; justify-content:center; transition: opacity 0.2s; font-size:14px; }
+    .btn-social:hover { opacity: 0.8; }
+
+    .dashboard { display:none; }
+    .metrics { display:grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
+    .metric-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
+    .metric-val { font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+    .metric-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow:hidden; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    th, td { padding: 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--secondary); color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:last-child td { border-bottom: none; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .status-pending { background: rgba(244,196,48,0.1); color: #d97706; }
+    .status-funded { background: rgba(16,185,129,0.1); color: var(--success); }
+    .status-locked { background: var(--secondary); color: var(--muted); border: 1px solid var(--border); }
+
+    /* Modal */
+    .modal { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
+    .modal-content { background:#fff; width:600px; border-radius:12px; padding:24px; border:1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+    .modal-header { font-size:18px; font-weight:bold; margin-bottom:16px; display:flex; justify-content:space-between; color:var(--text-dark);}
+    .modal-close { cursor:pointer; color:var(--muted); font-size:20px; }
+    .ms-list { list-style:none; margin-bottom:24px; }
+    .ms-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); align-items:center;}
+    .ms-item:last-child { border-bottom:none; }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      header { flex-direction: column; gap: 16px; padding: 15px 20px; }
+      .nav-links { flex-wrap: wrap; justify-content: center; }
+      .metrics { grid-template-columns: 1fr; }
+      .dashboard > div:first-child { flex-direction: column; gap: 16px; align-items: flex-start; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .login-box { padding: 24px; margin: 20px; }
+      .modal-content { width: 95%; padding: 16px; }
+      .ms-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .ms-item > div:last-child { text-align: left; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo"><span style="font-size:24px;">⚙️</span> Talengineer</a>
+    <div class="nav-links">
+        <a href="/talent" id="navTalent">Find Engineers</a>
+        <a href="/finance" class="btn-login" id="navLogin">Sign In / Dashboard</a>
+        <div style="border-left: 1px solid #ccc; height: 24px; margin: 0 10px;"></div>
+        <button class="lang-btn active" onclick="setLang('en')" id="btnEn">EN</button>
+        <button class="lang-btn" onclick="setLang('zh')" id="btnZh">ZH</button>
+        <button class="lang-btn" onclick="setLang('es')" id="btnEs">ES</button>
+    </div>
+  </header>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <div style="display:flex; gap:16px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:12px; justify-content: space-between; align-items:center;">
+         <div style="display:flex; gap:16px;">
+           <div id="tabSignIn" style="font-weight:bold; cursor:pointer; color:var(--primary);" onclick="toggleAuthMode('signin')">Sign In</div>
+           <div id="tabSignUp" style="font-weight:bold; cursor:pointer; color:var(--muted);" onclick="toggleAuthMode('signup')">Create Account</div>
+         </div>
+         <button class="lang-btn" onclick="setLang(currentLang === 'en' ? 'zh' : (currentLang === 'zh' ? 'es' : 'en'))" id="modalLangBtn" style="padding:2px 6px; font-size:11px;">ZH / ES</button>
+      </div>
+
+      <form id="loginForm">
+        <div class="form-group" id="groupName" style="display:none;">
+          <label id="lblName">Full Name</label>
+          <input type="text" id="userName" placeholder="Your Name" />
+        </div>
+        <div class="form-group" id="groupRole" style="display:none;">
+          <label id="lblRole">I am a...</label>
+          <select id="userRole">
+            <option value="employer">Supplier / Project Owner</option>
+            <option value="engineer">Automation Engineer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="lblEmail">Email Address</label>
+          <input type="email" id="userEmail" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label id="lblPassword">Password</label>
+          <input type="password" id="userPassword" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-primary" id="btnLogin">Sign In to Dashboard</button>
+        
+        <div style="text-align:center; margin:20px 0; color:var(--muted); font-size:12px; position:relative;">
+          <div style="border-top:1px solid var(--border); position:absolute; top:50%; width:100%; z-index:1;"></div>
+          <span style="background:#fff; padding:0 10px; position:relative; z-index:2;" id="lblOr">or continue with</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;" id="socialAuthGroup">
+          <button type="button" class="btn-social" onclick="alert('Google OAuth integration pending in next phase (Supabase Auth).')" style="background:#fff; color:var(--text-dark); border:1px solid var(--border);">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="16" height="16" style="margin-right:8px;" /> <span id="btnGoogle">Google</span>
+          </button>
+          <button type="button" class="btn-social" onclick="alert('LinkedIn OAuth integration pending in next phase (Supabase Auth).')" style="background:#0a66c2; color:#fff; border:none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right:8px;">
+              <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/>
+            </svg> <span id="btnLinkedIn">LinkedIn</span>
+          </button>
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn-social" onclick="alert('Apple Sign In integration pending in next phase.')" style="flex:1; background:#000; color:#fff; border:none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right:8px;">
+                <path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-1.082-.031-2.242.708-2.733.708-.49 0-1.428-.709-2.351-.708-.923.001-1.78.435-2.246 1.157-.927 1.432-1.396 3.926-.464 6.305.463 1.182 1.034 2.414 2.152 2.381 1.118-.033 1.533-.709 2.873-.709 1.34 0 1.71.709 2.873.709 1.163 0 1.77-.996 2.246-2.157.476-.762.686-1.55.709-1.584z"/>
+              </svg> <span id="btnApple">Apple</span>
+            </button>
+            <button type="button" class="btn-social" onclick="alert('WeChat Login integration pending for Chinese users.')" style="flex:1; background:#07c160; color:#fff; border:none;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right:8px;">
+                <path d="M11.136 6.551c-.183 0-.329-.146-.329-.33 0-.182.146-.328.329-.328.182 0 .328.146.328.328 0 .184-.146.33-.328.33zm-2.882 0c-.183 0-.329-.146-.329-.33 0-.182.146-.328.329-.328.182 0 .329.146.329.328 0 .184-.147.33-.329.33zm-4.316-2.52c-.22 0-.397-.175-.397-.397 0-.22.177-.397.397-.397.22 0 .398.177.398.397 0 .222-.178.397-.398.397zm-2.775 0c-.22 0-.397-.175-.397-.397 0-.22.177-.397.397-.397.22 0 .398.177.398.397 0 .222-.178.397-.398.397zM8.114 4.542c0-2.115-2.073-3.83-4.63-3.83C.926.712 0 2.427 0 4.542c0 1.218.666 2.302 1.704 3.018-.115.344-.368 1.05-.368 1.05s.745-.04 1.34-.23c.571.212 1.206.332 1.874.332.222 0 .438-.016.65-.043-.112-.3-.172-.622-.172-.958 0-1.748 1.378-3.169 3.086-3.169.213 0 .421.025.621.072-.187-2.116-2.261-3.83-4.63-3.83zM16 9.878c0-1.747-1.68-3.168-3.75-3.168s-3.75 1.421-3.75 3.168c0 1.748 1.68 3.169 3.75 3.169.574 0 1.114-.105 1.597-.287.512.164 1.15.201 1.15.201s-.217-.604-.316-.902c.89-.613 1.32-1.542 1.32-2.181z"/>
+              </svg> <span id="btnWeChat">WeChat</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="container dashboard" id="dashboardView">
+    <div style="background:var(--card); border:1px solid var(--border); padding:16px 24px; border-radius:12px; margin-bottom:32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+      <div>
+        <h2 style="font-size:18px; margin-bottom:4px; color:var(--text-dark);">Welcome back, <span id="dispUserName" style="color:var(--primary);"></span></h2>
+        <div style="font-size:13px; color:var(--muted);" id="dispUserRole"></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="kycBadge" style="background:rgba(244,196,48,0.1); color:#d97706; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; border:1px solid rgba(244,196,48,0.3); display:flex; align-items:center; gap:4px;">
+          ⚠️ KYC Verification Required
+        </span>
+        <button class="btn-verify" onclick="alert('Real-name verification (Stripe Identity / Onfido) will be required before you can accept orders or process payouts. KYC Flow integration pending.')" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:12px; transition:all 0.2s;">Verify Now</button>
+      </div>
+    </div>
+
+    <div class="header-block" style="text-align:left;">
+      <h1 id="dashTitle">Finance & Invoices</h1>
+      <p id="dashSub">Manage your active escrows, project milestones, and payout history.</p>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="metric-val" id="valEscrow">$0.00</div>
+        <div class="metric-label" id="lblEscrow">Funds in Escrow</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="valReleased">$0.00</div>
+        <div class="metric-label" id="lblReleased">Total Released</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="valPending">0</div>
+        <div class="metric-label" id="lblPending">Active Projects</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th id="thProject">Project / Order ID</th>
+          <th id="thCounterparty">Counterparty</th>
+          <th id="thAmount">Total Amount</th>
+          <th id="thStatus">Status</th>
+          <th id="thAction">Action</th>
+        </tr>
+      </thead>
+      <tbody id="ledgerBody">
+        <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--muted);">Loading records...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Milestone Modal -->
+  <div class="modal" id="msModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span id="modalTitle">Project Milestones</span>
+        <span class="modal-close" onclick="closeModal()">×</span>
+      </div>
+      <ul class="ms-list" id="msList">
+        <li style="text-align:center; color:var(--muted);">Loading milestones...</li>
+      </ul>
+      <button class="btn-primary" onclick="closeModal()" id="btnModalClose">Close</button>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let authMode = 'signin';
+
+    function toggleAuthMode(mode) {
+      authMode = mode;
+      document.getElementById('tabSignIn').style.color = mode === 'signin' ? 'var(--primary)' : 'var(--muted)';
+      document.getElementById('tabSignUp').style.color = mode === 'signup' ? 'var(--primary)' : 'var(--muted)';
+      
+      document.getElementById('groupName').style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('groupRole').style.display = mode === 'signup' ? 'block' : 'none';
+      
+      document.getElementById('tabSignIn').textContent = currentLang === 'zh' ? '登 录' : (currentLang === 'es' ? 'Iniciar Sesión' : 'Sign In');
+      document.getElementById('tabSignUp').textContent = currentLang === 'zh' ? '创建账号' : (currentLang === 'es' ? 'Crear Cuenta' : 'Create Account');
+
+      const btn = document.getElementById('btnLogin');
+      if(currentLang === 'zh') btn.textContent = mode === 'signin' ? '登 录' : '创建账号';
+      else if(currentLang === 'es') btn.textContent = mode === 'signin' ? 'Iniciar Sesión' : 'Crear Cuenta';
+      else btn.textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+      const name = document.getElementById('userName').value || email.split('@')[0];
+      
+      try {
+        const endpoint = authMode === 'signin' ? '/api/auth/login' : '/api/auth/register';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password, role, name })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+           alert(data.error || "Authentication failed");
+           return;
+        }
+
+        currentUser = data;
+        document.getElementById('loginOverlay').style.display = 'none';
+        
+        // Update user info header
+        document.getElementById('dispUserName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('dispUserRole').textContent = currentUser.role === 'employer' ? 'Company Account / Supplier' : 'Engineering Contractor';
+        
+        document.getElementById('dashboardView').style.display = 'block';
+        loadLedger();
+      } catch (err) {
+        alert("Login failed");
+      }
+    });
+
+    async function loadLedger() {
+      if(!currentUser) return;
+      
+      const res = await fetch(`/api/finance/ledger?email=${encodeURIComponent(currentUser.email)}`);
+      const data = await res.json();
+      
+      const tbody = document.getElementById('ledgerBody');
+      if(data.data && data.data.length > 0) {
+        document.getElementById('valPending').textContent = data.data.length;
+        let total = 0;
+        
+        tbody.innerHTML = data.data.map(item => {
+          total += (item.total_amount || 0);
+          const counterparty = currentUser.role === 'employer' ? item.engineer_email : item.employer_email;
+          return `
+            <tr>
+              <td style="font-weight:600; color:var(--text-dark);">#${item.demand_id || item.id}</td>
+              <td style="color:var(--muted);">${counterparty || 'Pending Match'}</td>
+              <td style="font-weight:600;">$${item.total_amount.toLocaleString()}</td>
+              <td><span class="status-badge status-${item.status}">${item.status.toUpperCase()}</span></td>
+              <td><button class="btn-action" onclick="viewMilestones(${item.demand_id})" style="background:var(--primary); color:#fff; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px;">View Milestones</button></td>
+            </tr>
+          `;
+        }).join('');
+        
+        document.getElementById('valEscrow').textContent = '$' + total.toLocaleString();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--muted);">No active projects found.</td></tr>`;
+      }
+    }
+
+    async function viewMilestones(demandId) {
+      document.getElementById('msModal').style.display = 'flex';
+      const list = document.getElementById('msList');
+      list.innerHTML = `<li style="text-align:center; color:var(--muted);">Loading milestones...</li>`;
+      
+      try {
+        const res = await fetch(`/api/finance/milestones?demand_id=${demandId}`);
+        const data = await res.json();
+        
+        if(data.data && data.data.length > 0) {
+          list.innerHTML = data.data.map(m => {
+            let actionBtn = '';
+            if (currentUser.role === 'employer' && m.status === 'locked') {
+               actionBtn = `<button class="btn-action" onclick="fundMilestone(${m.id}, ${demandId}, ${m.amount}, '${m.phase_name}')" style="margin-top:8px; background:#d97706;">Fund via Stripe</button>`;
+            } else if (currentUser.role === 'employer' && m.status === 'funded') {
+               actionBtn = `<button class="btn-action" onclick="releaseMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:var(--success);">Approve & Release</button>`;
+            } else if (currentUser.role === 'engineer' && m.status === 'funded') {
+               actionBtn = `<div style="font-size:11px; color:var(--success); margin-top:8px;">Ready to work</div>`;
+            } else if (m.status === 'released') {
+               actionBtn = `<div style="font-size:11px; color:var(--muted); margin-top:8px;">Platform Fee Deducted</div>`;
+            }
+            
+            return `
+            <div class="ms-item">
+              <div>
+                <div style="font-weight:600; color:var(--text-dark);">${m.phase_name}</div>
+                <div style="font-size:12px; color:var(--muted);">${(m.percentage * 100).toFixed(0)}% of total</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:600; color:var(--text-dark);">$${m.amount.toLocaleString()}</div>
+                <div style="margin-top:4px;"><span class="status-badge status-${m.status || 'locked'}">${(m.status || 'Locked').toUpperCase()}</span></div>
+                ${actionBtn}
+              </div>
+            </div>
+          `}).join('');
+        } else {
+          list.innerHTML = `<li style="text-align:center; color:var(--muted);">No milestones defined.</li>`;
+        }
+      } catch(e) {
+        list.innerHTML = `<li style="text-align:center; color:var(--muted);">Error loading data.</li>`;
+      }
+    }
+
+    async function fundMilestone(milestoneId, demandId, amount, phaseName) {
+      if(!confirm(`Proceed to Stripe Checkout to deposit $${amount} into Escrow for this milestone?`)) return;
+      try {
+        const res = await fetch('/api/payment/fund-milestone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId, amount: amount, phase_name: phaseName })
+        });
+        const result = await res.json();
+        
+        if (res.ok) {
+           if (result.url) {
+               // Redirect to real Stripe Checkout
+               window.location.href = result.url;
+           } else {
+               alert(result.message);
+               viewMilestones(demandId);
+           }
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch(e) {
+        alert("Network error.");
+      }
+    }
+
+    async function releaseMilestone(milestoneId, demandId) {
+      if(!confirm("Approve work and release funds to engineer (minus platform fee)?")) return;
+      try {
+        const res = await fetch('/api/payment/release-milestone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId })
+        });
+        const result = await res.json();
+        if(res.ok) {
+          alert(`Funds Released!\nPayout: $${result.payout_details.payout}\nPlatform Fee: $${result.payout_details.fee}`);
+          viewMilestones(demandId);
+          loadLedger(); // Refresh totals
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch(e) {
+        alert("Network error.");
+      }
+    }
+
+    // Handle Stripe redirectbacks via query parameters
+    async function checkStripeRedirect() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const msId = urlParams.get('milestone_id');
+      const demandId = urlParams.get('demand_id');
+      
+      if (sessionId && msId) {
+          try {
+             // In a real app, the webhook handles the DB update. 
+             // We do a temporary client-side confirmation for this prototype.
+             await fetch('/api/payment/confirm-funding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId, milestone_id: msId, demand_id: demandId })
+             });
+             alert("Payment Confirmed! Funds are securely locked in Escrow.");
+             // Clean URL
+             window.history.replaceState({}, document.title, "/finance");
+          } catch(e) {}
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('msModal').style.display = 'none';
+    }
+
+    // --- Simple i18n logic ---
+    const dict = {
+      en: {
+        navTalent: "Find Engineers",
+        navLogin: "Sign In / Dashboard",
+        loginTitle: "Access Dashboard",
+        lblRole: "I am a...",
+        lblName: "Full Name",
+        lblEmail: "Email Address",
+        lblPassword: "Password",
+        lblOr: "or continue with",
+        dashTitle: "Finance & Invoices",
+        dashSub: "Manage your active escrows, project milestones, and payout history.",
+        lblEscrow: "Funds in Escrow",
+        lblReleased: "Total Released",
+        lblPending: "Active Projects",
+        thProject: "Project / Order ID",
+        thCounterparty: "Counterparty",
+        thAmount: "Total Amount",
+        thStatus: "Status",
+        thAction: "Action",
+        modalTitle: "Project Milestones",
+        btnModalClose: "Close"
+      },
+      zh: {
+        navTalent: "寻找工程师",
+        navLogin: "登录 / 控制台",
+        loginTitle: "访问控制台",
+        lblRole: "我是...",
+        lblName: "全名",
+        lblEmail: "邮箱地址",
+        lblPassword: "密码",
+        lblOr: "或者通过以下方式继续",
+        dashTitle: "财务与账单",
+        dashSub: "管理您的活跃资金托管、项目里程碑及支付历史。",
+        lblEscrow: "托管中资金",
+        lblReleased: "已释放总额",
+        lblPending: "活跃项目",
+        thProject: "项目 / 订单 ID",
+        thCounterparty: "交易方",
+        thAmount: "总金额",
+        thStatus: "状态",
+        thAction: "操作",
+        modalTitle: "项目里程碑",
+        btnModalClose: "关闭"
+      },
+      es: {
+        navTalent: "Buscar Ingenieros",
+        navLogin: "Iniciar sesión",
+        loginTitle: "Acceso al Panel",
+        lblRole: "Yo soy un...",
+        lblName: "Nombre completo",
+        lblEmail: "Correo Electrónico",
+        lblPassword: "Contraseña",
+        lblOr: "o continuar con",
+        dashTitle: "Finanzas y Facturas",
+        dashSub: "Gestione sus depósitos en garantía, hitos del proyecto e historial de pagos.",
+        lblEscrow: "Fondos en Garantía",
+        lblReleased: "Total Liberado",
+        lblPending: "Proyectos Activos",
+        thProject: "Proyecto / ID Pedido",
+        thCounterparty: "Contraparte",
+        thAmount: "Monto Total",
+        thStatus: "Estado",
+        thAction: "Acción",
+        modalTitle: "Hitos del Proyecto",
+        btnModalClose: "Cerrar"
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('tal_lang', lang);
+      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn' + lang.charAt(0).toUpperCase() + lang.slice(1));
+      if(activeBtn) activeBtn.classList.add('active');
+
+      const modalBtn = document.getElementById('modalLangBtn');
+      if (modalBtn) {
+         if (lang === 'zh') modalBtn.textContent = 'EN / ES';
+         else if (lang === 'es') modalBtn.textContent = 'EN / ZH';
+         else modalBtn.textContent = 'ZH / ES';
+      }
+      
+      toggleAuthMode(authMode); // Refresh labels in auth box
+
+      const strings = dict[lang] || dict['en'];
+      for (const key in strings) {
+        const el = document.getElementById(key);
+        if (el) {
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = strings[key];
+          } else {
+            el.textContent = strings[key];
+          }
+        }
+      }
+      
+      // Update role select options if they exist
+      const roleSelect = document.getElementById('userRole');
+      if(roleSelect && lang === 'zh') {
+          roleSelect.options[0].text = "设备出海商 / 包工头";
+          roleSelect.options[1].text = "海外自动化工程师";
+      } else if (roleSelect && lang === 'es') {
+          roleSelect.options[0].text = "Proveedor / Gerente";
+          roleSelect.options[1].text = "Ingeniero de Automatización";
+      } else if (roleSelect) {
+          roleSelect.options[0].text = "Supplier / Project Owner";
+          roleSelect.options[1].text = "Automation Engineer";
+      }
+      
+      // Update login button text based on mode
+      const btnLogin = document.getElementById('btnLogin');
+      if(btnLogin) {
+          if(lang === 'zh') btnLogin.textContent = authMode === 'signin' ? "登 录" : "创建账号";
+          else if(lang === 'es') btnLogin.textContent = authMode === 'signin' ? "Iniciar Sesión" : "Crear Cuenta";
+          else btnLogin.textContent = authMode === 'signin' ? "Sign In" : "Create Account";
+      }
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('tal_lang') || 'en';
+      setLang(savedLang);
+      checkStripeRedirect();
+    });
+  </script>
+</body>
+</html>
