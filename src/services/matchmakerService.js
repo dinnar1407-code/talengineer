@@ -61,6 +61,23 @@ async function runMatchmaker(demandId) {
             // Format the text into HTML
             const htmlBody = emailBody.split('\n').map(line => `<p>${line}</p>`).join('');
 
+            // Automatically create a pending ledger entry (Escrow tracking)
+            const { data: ledgerEntry, error: ledgerErr } = await supabase
+                .from('ledgers')
+                .insert([{
+                    demand_id: demand.id,
+                    employer_id: demand.employer_id || 1,
+                    employer_email: demand.contact,
+                    engineer_id: engineer.id,
+                    engineer_email: engineer.contact,
+                    total_amount: parseFloat((demand.budget || '0').toString().replace(/[^0-9.]/g, '')) || 1000,
+                    status: 'pending'
+                }]);
+
+            if (ledgerErr) {
+                 console.log(`⚠️ [Matchmaker] Failed to create ledger entry for ${engineer.name}:`, ledgerErr.message);
+            }
+
             // Actually fire the email via Resend
             const subject = `Talengineer Match: ${demand.title}`;
             await sendOutreachEmail(engineer.contact, subject, htmlBody);
