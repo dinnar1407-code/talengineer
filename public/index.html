@@ -47,14 +47,14 @@
 <body>
 
 <div id="agentAvatar" onclick="toggleChat()">
-  <img src="https://i.imgur.com/rM1iCqV.jpeg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" />
+  <img src="/img/avatar.jpg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" onerror="this.src='https://i.imgur.com/rM1iCqV.jpeg'" />
   <div id="agentBadge">1</div>
 </div>
 
 <div id="agentChatbox">
   <div class="chat-header">
     <div style="display:flex; align-items:center; gap:8px;">
-      <img src="https://i.imgur.com/rM1iCqV.jpeg" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" /> 
+      <img src="/img/avatar.jpg" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" onerror="this.src='https://i.imgur.com/rM1iCqV.jpeg'" /> 
       小麦穗 (Platform Owner)
     </div>
     <span class="chat-close" onclick="toggleChat()">×</span>
@@ -152,11 +152,7 @@
          return;
       }
 
-      const res = await fetch('/api/demand/quick_launch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' })
-      });
+      const res = await fetch('/api/demand/quick_launch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' }) });
       const result = await res.json();
       document.getElementById(loadingId).remove();
       if(res.ok && result.parsed_summary) {
