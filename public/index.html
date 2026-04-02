@@ -5,88 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Talengineer | Global Industrial Automation Experts</title>
     <style>
-        :root {
-            --primary: #0056b3; 
-            --secondary: #f8f9fa;
-            --text-dark: #333333;
-            --text-light: #ffffff;
-            --accent: #ffc107;
-            --muted: #6b7280;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--secondary);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-        header {
-            background-color: #fff;
-            padding: 15px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .nav-links {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-dark);
-            font-weight: 600;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .nav-links a:hover {
-            background: #f1f5f9;
-        }
-        .btn-login {
-            background: var(--primary);
-            color: #fff !important;
-        }
-        .btn-login:hover {
-            background: #004494 !important;
-        }
-        .lang-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        .lang-btn.active {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        .hero {
-            background-color: var(--primary);
-            color: var(--text-light);
-            text-align: center;
-            padding: 100px 20px;
-        }
+        :root { --primary: #0056b3; --secondary: #f8f9fa; --text-dark: #333333; --text-light: #ffffff; --accent: #ffc107; --muted: #6b7280; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: var(--secondary); color: var(--text-dark); line-height: 1.6; }
+        header { background-color: #fff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; gap: 15px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-dark); font-weight: 600; padding: 8px 12px; border-radius: 6px; transition: all 0.2s; }
+        .nav-links a:hover { background: #f1f5f9; }
+        .btn-login { background: var(--primary); color: #fff !important; }
+        .btn-login:hover { background: #004494 !important; }
+        .lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: all 0.2s; }
+        .lang-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .hero { background-color: var(--primary); color: var(--text-light); text-align: center; padding: 100px 20px; }
         .hero h1 { font-size: 48px; margin-bottom: 20px; }
         .hero p { font-size: 20px; max-width: 800px; margin: 0 auto 40px auto; }
         .btn { display: inline-block; background-color: var(--accent); color: #333; padding: 15px 30px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 18px; transition: transform 0.2s; }
@@ -94,99 +24,38 @@
         .features { display: flex; justify-content: space-around; padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
         .feature-card { background: #fff; padding: 30px; border-radius: 8px; width: 30%; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .feature-card h3 { color: var(--primary); margin-bottom: 15px; }
+        @media (max-width: 768px) { header { flex-direction: column; gap: 16px; padding: 15px 20px; } .nav-links { flex-wrap: wrap; justify-content: center; } .hero h1 { font-size: 32px; } .hero p { font-size: 16px; } .features { flex-direction: column; gap: 20px; padding: 40px 20px; } .feature-card { width: 100%; } }
 
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 16px; padding: 15px 20px; }
-            .nav-links { flex-wrap: wrap; justify-content: center; }
-            .hero h1 { font-size: 32px; }
-            .hero p { font-size: 16px; }
-            .features { flex-direction: column; gap: 20px; padding: 40px 20px; }
-            .feature-card { width: 100%; }
-        }
-    <style>
-      /* --- PLATFORM OWNER AVATAR (Playfish) --- */
-      #agentAvatar {
-        position: fixed;
-        bottom: 20px;
-        right: 20px; /* Moved back to bottom-right, but with a high z-index to avoid issues */
-        width: 60px;
-        height: 60px;
-        background: #0056b3;
-        border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        z-index: 2147483647; /* Absolute maximum z-index */
-        transition: transform 0.2s;
-      }
-      #agentAvatar:hover { transform: scale(1.1); }
-      #agentBadge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ff4757;
-        color: #fff;
-        font-size: 10px;
-        font-weight: bold;
-        padding: 2px 6px;
-        border-radius: 10px;
-        border: 2px solid #fff;
-      }
-      #agentChatbox {
-        display: none;
-        position: fixed;
-        bottom: 90px;
-        right: 20px; /* Chatbox also on the right */
-        width: 320px;
-        height: 400px;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        z-index: 2147483646;
-        border: 1px solid var(--border);
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .chat-header {
-        background: var(--primary);
-        color: #fff;
-        padding: 12px 16px;
-        font-weight: bold;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .chat-close { cursor: pointer; font-size: 18px; opacity: 0.8; }
-      .chat-close:hover { opacity: 1; }
-      .chat-body { flex: 1; padding: 16px; overflow-y: auto; background: #f8f9fa; font-size: 14px; }
-      .chat-msg { margin-bottom: 12px; max-width: 85%; }
-      .msg-agent { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; }
-      .msg-user { background: var(--primary); color: #fff; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; margin-left: auto; }
-      .chat-input { display: flex; padding: 12px; border-top: 1px solid var(--border); background: #fff; }
-      .chat-input input { flex: 1; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; outline: none; font-size: 14px; }
-      .chat-input button { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 20px; margin-left: 8px; cursor: pointer; font-weight: bold; }
-      
-      /* Mobile adjustment for chatbox */
-      @media (max-width: 768px) {
-        #agentChatbox { width: calc(100vw - 40px); bottom: 100px; height: 350px; }
-        #agentAvatar { bottom: 20px; }
-      }
+        /* --- PLATFORM OWNER AVATAR (Playfish) --- */
+        #agentAvatar { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: transparent; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 2147483647; transition: transform 0.2s; }
+        #agentAvatar:hover { transform: scale(1.1); }
+        #agentBadge { position: absolute; top: -5px; right: -5px; background: #ff4757; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid #fff; }
+        #agentChatbox { display: none; position: fixed; bottom: 90px; right: 20px; width: 320px; height: 400px; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 2147483646; border: 1px solid #e5e7eb; flex-direction: column; overflow: hidden; }
+        .chat-header { background: var(--primary); color: #fff; padding: 12px 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .chat-close { cursor: pointer; font-size: 18px; opacity: 0.8; }
+        .chat-close:hover { opacity: 1; }
+        .chat-body { flex: 1; padding: 16px; overflow-y: auto; background: #f8f9fa; font-size: 14px; }
+        .chat-msg { margin-bottom: 12px; max-width: 85%; }
+        .msg-agent { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; }
+        .msg-user { background: var(--primary); color: #fff; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; margin-left: auto; }
+        .chat-input { display: flex; padding: 12px; border-top: 1px solid #e5e7eb; background: #fff; }
+        .chat-input input { flex: 1; border: 1px solid #e5e7eb; padding: 8px 12px; border-radius: 20px; outline: none; font-size: 14px; }
+        .chat-input button { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 20px; margin-left: 8px; cursor: pointer; font-weight: bold; }
+        @media (max-width: 768px) { #agentChatbox { width: calc(100vw - 40px); bottom: 90px; height: 350px; left: 20px; } }
     </style>
 </head>
 <body>
 
-<!-- PLATFORM OWNER AVATAR (Playfish) -->
 <div id="agentAvatar" onclick="toggleChat()">
-  <img src="/img/avatar.jpg" style="width:50px;height:50px;border-radius:50%;object-fit:cover;" />
+  <img src="https://i.imgur.com/rM1iCqV.jpeg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" />
   <div id="agentBadge">1</div>
 </div>
 
 <div id="agentChatbox">
   <div class="chat-header">
     <div style="display:flex; align-items:center; gap:8px;">
-      <img src="/img/avatar.jpg" style="width:30px;height:30px;border-radius:50%;object-fit:cover;vertical-align:middle;" /> 小麦穗 (Owner)
+      <img src="https://i.imgur.com/rM1iCqV.jpeg" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" /> 
+      小麦穗 (Platform Owner)
     </div>
     <span class="chat-close" onclick="toggleChat()">×</span>
   </div>
@@ -194,7 +63,7 @@
     <div class="chat-msg msg-agent">长官，我是小麦穗！后台四大Agent已部署完毕，您可以直接对我用大白话发号施令（比如：“帮我在蒙特雷招一个懂西门子的，预算1500美金”）。</div>
   </div>
   <div class="chat-input">
-    <input type="text" id="chatInput" placeholder="Send an order to the Owner..." onkeypress="if(event.key === 'Enter') sendChat()" />
+    <input type="text" id="chatInput" placeholder="Send an order..." onkeypress="if(event.key === 'Enter') sendChat()" />
     <button onclick="sendChat()">Send</button>
   </div>
 </div>
@@ -234,51 +103,12 @@
 </section>
 
 <script>
-  const DICT = {
-    en: {
-      navHow: "How it Works", navTalent: "Find Engineers", navLogin: "Sign In",
-      heroTitle: "The Last-Mile Infrastructure for Global Equipment Deployment",
-      heroSub: "We connect Chinese manufacturing equipment suppliers with AI-verified, local automation engineers in North America and Mexico. Eliminate visa headaches, slash travel costs, and deploy faster.",
-      heroBtn: "Hire a Local Expert",
-      feat1Title: "🛡️ AI-Verified Talent",
-      feat1Desc: "Every engineer on our platform is rigorously tested by our proprietary AI Technical Screener for specific PLC and automation skills.",
-      feat2Title: "💰 Milestone Escrow",
-      feat2Desc: "Zero risk for both parties. Funds are held securely and released only upon successful completion of predefined project milestones.",
-      feat3Title: "🗣️ Seamless Translation",
-      feat3Desc: "Break the language barrier. Our AI Project Manager translates technical requirements and communication between Chinese suppliers and local engineers in real-time."
-    },
-    zh: {
-      navHow: "运作模式", navTalent: "找当地工程师", navLogin: "登录控制台",
-      heroTitle: "中国智造出海的最后一公里基础设施",
-      heroSub: "连接中国设备出海企业与北美、墨西哥本地经AI认证的自动化工程师。免去签证烦恼，砍掉差旅成本，实现海外产线快速交付。",
-      heroBtn: "发布海外需求",
-      feat1Title: "🛡️ AI 技术面试官",
-      feat1Desc: "平台所有入驻工程师均通过自研 AI 考官进行的硬核 PLC 及自动化控制场景题测试，拒绝水分。",
-      feat2Title: "💰 里程碑资金托管",
-      feat2Desc: "买卖双方零风险。资金安全托管，仅在预设的工程节点（如接线、打点、试运行）成功验收后释放。",
-      feat3Title: "🗣️ 无缝跨国协同",
-      feat3Desc: "打破语言屏障。我们的 AI 项目经理实时同传中国供应商与海外本地工程师之间的技术文档与对话。"
-    },
-    es: {
-      navHow: "Cómo funciona", navTalent: "Encuentra Ingenieros", navLogin: "Iniciar sesión",
-      heroTitle: "La infraestructura de última milla para el despliegue global de equipos",
-      heroSub: "Conectamos a proveedores chinos de equipos de fabricación con ingenieros locales de automatización verificados por IA en Norteamérica y México.",
-      heroBtn: "Contrata a un experto local",
-      feat1Title: "🛡️ Talento verificado por IA",
-      feat1Desc: "Cada ingeniero en nuestra plataforma es evaluado rigurosamente por nuestro Evaluador Técnico de IA patentado para habilidades específicas de PLC.",
-      feat2Title: "💰 Depósito en garantía por hitos",
-      feat2Desc: "Cero riesgo para ambas partes. Los fondos se mantienen seguros y se liberan solo tras la finalización exitosa de hitos del proyecto predefinidos.",
-      feat3Title: "🗣️ Traducción fluida",
-      feat3Desc: "Rompa la barrera del idioma. Nuestro Gerente de Proyectos de IA traduce los requisitos técnicos y la comunicación en tiempo real."
-    }
-  };
-
   let lang = localStorage.getItem('tal_lang') || 'en';
 
   function toggleChat() {
     const box = document.getElementById('agentChatbox');
     box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-    document.getElementById('agentBadge').style.display = 'none'; // hide unread badge
+    document.getElementById('agentBadge').style.display = 'none'; 
   }
 
   async function sendChat() {
@@ -287,103 +117,83 @@
     if(!text) return;
     
     const chatBody = document.getElementById('chatBody');
-    chatBody.innerHTML += \`<div class="chat-msg msg-user">\${text}</div>\`;
+    chatBody.innerHTML += `<div class="chat-msg msg-user">${text}</div>`;
     input.value = '';
     chatBody.scrollTop = chatBody.scrollHeight;
 
     const loadingId = 'load_' + Date.now();
-    chatBody.innerHTML += \`<div class="chat-msg msg-agent" id="\${loadingId}">🌾 收到长官指令，正在调用后台 Agent...</div>\`;
+    chatBody.innerHTML += `<div class="chat-msg msg-agent" id="${loadingId}">🌾 收到长官指令，正在调用后台 Agent...</div>`;
     chatBody.scrollTop = chatBody.scrollHeight;
 
     try {
-      // INTENT ROUTER: Super simple frontend intent parsing to control the whole SaaS
       const lowerText = text.toLowerCase();
-      
-      // Intent 1: Check Finance / Escrow
       if (lowerText.includes('钱') || lowerText.includes('财务') || lowerText.includes('放款') || lowerText.includes('escrow') || lowerText.includes('pay')) {
          setTimeout(() => {
            document.getElementById(loadingId).remove();
-           chatBody.innerHTML += \`<div class="chat-msg msg-agent">
+           chatBody.innerHTML += `<div class="chat-msg msg-agent">
              <b>💳 AI-CFO 资金报告：</b><br/>
              长官，目前您的托管账户中有 $1,500 处于锁定状态。我已经为您打开了控制面板，您可以点击下方的按钮去查阅或者强制放款：<br/>
              <button onclick="window.location.href='/finance'" style="margin-top:8px; padding:6px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">进入财务大盘</button>
-           </div>\`;
+           </div>`;
            chatBody.scrollTop = chatBody.scrollHeight;
          }, 800);
          return;
       }
-
-      // Intent 2: View Engineers / Talent Pool
       if (lowerText.includes('人') || lowerText.includes('工程师') || lowerText.includes('talent') || lowerText.includes('engineer')) {
          setTimeout(() => {
            document.getElementById(loadingId).remove();
-           chatBody.innerHTML += \`<div class="chat-msg msg-agent">
+           chatBody.innerHTML += `<div class="chat-msg msg-agent">
              <b>🛡️ Ghost HR 人才库汇报：</b><br/>
              长官，我们昨天从 LinkedIn 挖到了 3 名墨西哥的高级 PLC 专家。我已经帮您把人才列表掉出来了，您可以直接在里面向他们发起面试邀请：<br/>
              <button onclick="window.location.href='/talent'" style="margin-top:8px; padding:6px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">查看最新工程师</button>
-           </div>\`;
+           </div>`;
            chatBody.scrollTop = chatBody.scrollHeight;
          }, 800);
          return;
       }
 
-      // Intent 3: Default -> Zero-UI Project Creation (AI-PM)
       const res = await fetch('/api/demand/quick_launch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' })
       });
       const result = await res.json();
-      
       document.getElementById(loadingId).remove();
-
       if(res.ok && result.parsed_summary) {
-        chatBody.innerHTML += \`<div class="chat-msg msg-agent">
+        chatBody.innerHTML += `<div class="chat-msg msg-agent">
           <b>✅ AI-PM 已接管：</b><br/>
-          长官，您的需求已自动转为国际标书：<i>\${result.parsed_summary.title}</i>。<br/>
-          资金已切分为 \${result.parsed_summary.milestones.length} 个里程碑。幽灵猎头正在为您寻访 \${result.parsed_summary.region} 的工程师，一有消息我立刻通知您！
-        </div>\`;
+          长官，您的需求已自动转为国际标书：<i>${result.parsed_summary.title}</i>。<br/>
+          资金已切分为 ${result.parsed_summary.milestones.length} 个里程碑。幽灵猎头正在为您寻访 ${result.parsed_summary.region} 的工程师，一有消息我立刻通知您！
+        </div>`;
       } else {
-        chatBody.innerHTML += \`<div class="chat-msg msg-agent" style="color:#ef4444;">抱歉长官，解析需求失败。请您再详细描述一下工程内容。</div>\`;
+        chatBody.innerHTML += `<div class="chat-msg msg-agent" style="color:#ef4444;">抱歉长官，解析意图失败。请重新描述您的工程需求。</div>`;
       }
     } catch(e) {
       document.getElementById(loadingId).remove();
-      chatBody.innerHTML += \`<div class="chat-msg msg-agent" style="color:#ef4444;">网络连接中断或云端接口还未部署完成，请稍后再试。</div>\`;
+      chatBody.innerHTML += `<div class="chat-msg msg-agent" style="color:#ef4444;">网络连接中断或云端接口还未部署完成，请稍后再试。</div>`;
     }
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
+  const DICT = {
+    en: { navHow: "How it Works", navTalent: "Find Engineers", navLogin: "Sign In", heroTitle: "The Last-Mile Infrastructure for Global Equipment Deployment", heroSub: "We connect Chinese manufacturing equipment suppliers with AI-verified, local automation engineers in North America and Mexico. Eliminate visa headaches, slash travel costs, and deploy faster.", heroBtn: "Hire a Local Expert", feat1Title: "🛡️ AI-Verified Talent", feat1Desc: "Every engineer on our platform is rigorously tested by our proprietary AI Technical Screener for specific PLC and automation skills.", feat2Title: "💰 Milestone Escrow", feat2Desc: "Zero risk for both parties. Funds are held securely and released only upon successful completion of predefined project milestones.", feat3Title: "🗣️ Seamless Translation", feat3Desc: "Break the language barrier. Our AI Project Manager translates technical requirements and communication between Chinese suppliers and local engineers in real-time." },
+    zh: { navHow: "运作模式", navTalent: "找当地工程师", navLogin: "登录控制台", heroTitle: "中国智造出海的最后一公里基础设施", heroSub: "连接中国设备出海企业与北美、墨西哥本地经AI认证的自动化工程师。免去签证烦恼，砍掉差旅成本，实现海外产线快速交付。", heroBtn: "发布海外需求", feat1Title: "🛡️ AI 技术面试官", feat1Desc: "平台所有入驻工程师均通过自研 AI 考官进行的硬核 PLC 及自动化控制场景题测试，拒绝水分。", feat2Title: "💰 里程碑资金托管", feat2Desc: "买卖双方零风险。资金安全托管，仅在预设的工程节点（如接线、打点、试运行）成功验收后释放。", feat3Title: "🗣️ 无缝跨国协同", feat3Desc: "打破语言屏障。我们的 AI 项目经理实时同传中国供应商与海外本地工程师之间的技术文档与对话。" },
+    es: { navHow: "Cómo funciona", navTalent: "Encuentra Ingenieros", navLogin: "Iniciar sesión", heroTitle: "La infraestructura de última milla para el despliegue global de equipos", heroSub: "Conectamos a proveedores chinos de equipos de fabricación con ingenieros locales de automatización verificados por IA en Norteamérica y México.", heroBtn: "Contrata a un experto local", feat1Title: "🛡️ Talento verificado por IA", feat1Desc: "Cada ingeniero en nuestra plataforma es evaluado rigurosamente por nuestro Evaluador Técnico de IA patentado para habilidades específicas de PLC.", feat2Title: "💰 Depósito en garantía por hitos", feat2Desc: "Cero riesgo para ambas partes. Los fondos se mantienen seguros y se liberan solo tras la finalización exitosa de hitos del proyecto predefinidos.", feat3Title: "🗣️ Traducción fluida", feat3Desc: "Rompa la barrera del idioma. Nuestro Gerente de Proyectos de IA traduce los requisitos técnicos y la comunicación en tiempo real." }
+  };
+
   function setLang(l) {
-    lang = l;
-    localStorage.setItem('tal_lang', l);
-    
-    // Update button visual state
+    lang = l; localStorage.setItem('tal_lang', l);
     document.querySelectorAll('.lang-btn').forEach(b => {
       b.style.background = b.textContent.toLowerCase() === l ? 'var(--primary)' : 'transparent';
       b.style.color = b.textContent.toLowerCase() === l ? '#fff' : 'var(--muted)';
       b.style.borderColor = b.textContent.toLowerCase() === l ? 'var(--primary)' : 'var(--border)';
     });
-
     const d = DICT[l];
-    document.getElementById('navHow').textContent = d.navHow;
-    document.getElementById('navTalent').textContent = d.navTalent;
-    document.getElementById('navLogin').textContent = d.navLogin;
-    
-    document.getElementById('heroTitle').innerHTML = d.heroTitle;
-    document.getElementById('heroSub').textContent = d.heroSub;
-    document.getElementById('heroBtn').textContent = d.heroBtn;
-    
-    document.getElementById('feat1Title').textContent = d.feat1Title;
-    document.getElementById('feat1Desc').textContent = d.feat1Desc;
-    document.getElementById('feat2Title').textContent = d.feat2Title;
-    document.getElementById('feat2Desc').textContent = d.feat2Desc;
-    document.getElementById('feat3Title').textContent = d.feat3Title;
-    document.getElementById('feat3Desc').textContent = d.feat3Desc;
+    document.getElementById('navHow').textContent = d.navHow; document.getElementById('navTalent').textContent = d.navTalent; document.getElementById('navLogin').textContent = d.navLogin;
+    document.getElementById('heroTitle').innerHTML = d.heroTitle; document.getElementById('heroSub').textContent = d.heroSub; document.getElementById('heroBtn').textContent = d.heroBtn;
+    document.getElementById('feat1Title').textContent = d.feat1Title; document.getElementById('feat1Desc').textContent = d.feat1Desc; document.getElementById('feat2Title').textContent = d.feat2Title; document.getElementById('feat2Desc').textContent = d.feat2Desc; document.getElementById('feat3Title').textContent = d.feat3Title; document.getElementById('feat3Desc').textContent = d.feat3Desc;
   }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    setLang(lang);
-  });
+  document.addEventListener('DOMContentLoaded', () => setLang(lang));
 </script>
 </body>
 </html>
