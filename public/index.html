@@ -107,8 +107,8 @@
       /* --- PLATFORM OWNER AVATAR (Playfish) --- */
       #agentAvatar {
         position: fixed;
-        bottom: 100px;
-        right: 20px;
+        bottom: 20px;
+        left: 20px; /* [CRITICAL FIX] Changed from right to left */
         width: 60px;
         height: 60px;
         background: #0056b3;
@@ -122,7 +122,6 @@
         transition: transform 0.2s;
       }
       #agentAvatar:hover { transform: scale(1.1); }
-      #agentAvatar img { width: 40px; height: 40px; border-radius: 50%; }
       #agentBadge {
         position: absolute;
         top: -5px;
@@ -138,8 +137,8 @@
       #agentChatbox {
         display: none;
         position: fixed;
-        bottom: 170px;
-        right: 20px;
+        bottom: 90px;
+        left: 20px; /* [CRITICAL FIX] Changed from right to left */
         width: 320px;
         height: 400px;
         background: #fff;
