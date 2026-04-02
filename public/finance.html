@@ -626,14 +626,16 @@
 
     function triggerFaceIDRelease(milestoneId, demandId) {
       if (window.ReactNativeWebView) {
-        // App Environment: Send signal to Native shell
+        // [CRITICAL FIX] App Environment: Send signal to Native shell and STOP execution
         pendingReleaseTarget = { milestoneId, demandId };
         window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'REQUEST_FACEID' }));
-      } else {
-        // Web Environment: Fallback behavior
-        if(confirm("🛡️ [Web Fallback] FaceID Simulated. Approve work and release funds to engineer?")) {
-          releaseMilestone(milestoneId, demandId);
-        }
+        // DO NOT call releaseMilestone here! The native shell will call it via event listener.
+        return; 
+      } 
+      
+      // Web Environment: Fallback behavior (only runs if NOT in App)
+      if(confirm("🛡️ [Web Fallback] FaceID Simulated. Approve work and release funds to engineer?")) {
+        releaseMilestone(milestoneId, demandId);
       }
     }
 
