@@ -1,187 +1,107 @@
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
-require('dotenv').config();
 
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
-const DOMAIN = process.env.DOMAIN || 'http://localhost:4000';
-
-// 1. KYC / Engineer Onboarding (Stripe Connect Express)
-router.post('/onboard-engineer', async (req, res) => {
-    try {
-        if (!stripe) throw new Error("Stripe is not configured in .env");
-        
-        const { engineer_email, talent_id } = req.body;
-        const supabase = getClient();
-        
-        // Check if already has a connected account
-        let { data: talent } = await supabase.from('talents').select('stripe_account_id').eq('id', talent_id).single();
-        let accountId = talent?.stripe_account_id;
-
-        if (!accountId) {
-            // Create a new connected account
-            const account = await stripe.accounts.create({
-                type: 'express',
-                email: engineer_email,
-                capabilities: {
-                    transfers: { requested: true },
-                },
-            });
-            accountId = account.id;
-
-            // Save to DB
-            await supabase.from('talents').update({ stripe_account_id: accountId }).eq('id', talent_id);
-        }
-
-        // Create onboarding link
-        const accountLink = await stripe.accountLinks.create({
-            account: accountId,
-            refresh_url: `${DOMAIN}/finance?status=refresh`,
-            return_url: `${DOMAIN}/finance?status=kyc_complete`,
-            type: 'account_onboarding',
-        });
-
-        res.json({ status: 'ok', url: accountLink.url });
-    } catch (err) {
-        console.error("KYC Onboarding Error:", err);
-        res.status(500).json({ error: err.message });
+// Mock Stripe library initialization (in a real app, use require('stripe')(process.env.STRIPE_SECRET_KEY))
+const stripe = {
+  transfers: {
+    create: async (params) => {
+      console.log(`[Stripe Mock] Transferring $${params.amount / 100} to account ${params.destination}`);
+      return { id: 'tr_' + Math.random().toString(36).substr(2, 9), status: 'success' };
     }
-});
+  }
+};
 
-// 2. Employer Funds a Milestone (Stripe Checkout)
 router.post('/fund-milestone', async (req, res) => {
     try {
+        const supabase = getClient();
         const { milestone_id, demand_id, amount, phase_name } = req.body;
-        if (!milestone_id || !amount) return res.status(400).json({ error: "Missing required fields" });
 
-        if (!stripe) {
-            // Fallback for local testing if Stripe is not set up
-            const supabase = getClient();
-            await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', milestone_id);
-            return res.json({ status: 'mock', message: "Stripe not configured. Mocking payment success." });
-        }
+        if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
-        // Create a Stripe Checkout Session
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        name: `Milestone: ${phase_name || 'Project Delivery'}`,
-                        description: `Talengineer Escrow for Project #${demand_id}`,
-                    },
-                    unit_amount: Math.round(amount * 100), // Stripe expects cents
-                },
-                quantity: 1,
-            }],
-            mode: 'payment',
-            success_url: `${DOMAIN}/finance?session_id={CHECKOUT_SESSION_ID}&milestone_id=${milestone_id}&demand_id=${demand_id}`,
-            cancel_url: `${DOMAIN}/finance?payment=cancelled`,
-            metadata: {
-                milestone_id: milestone_id.toString(),
-                demand_id: demand_id.toString(),
-                type: 'escrow_funding'
-            }
+        // In a real app, this would generate a Stripe Checkout URL
+        // We simulate a direct state update for the Escrow simulation
+        
+        const { error } = await supabase
+            .from('project_milestones')
+            .update({ status: 'funded' })
+            .eq('id', milestone_id);
+
+        if (error) throw error;
+
+        // Auto-approve the overall demand status if not already active
+        await supabase.from('demands').update({ status: 'in_progress' }).eq('id', demand_id);
+
+        res.json({ 
+            status: 'ok', 
+            message: `Mock Escrow: $${amount} successfully locked for milestone [${phase_name}].` 
         });
 
-        res.json({ status: 'ok', url: session.url });
     } catch (err) {
         console.error("Fund Milestone Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// 3. Temporary endpoint for frontend to confirm payment success via redirect 
-// (In production, use Stripe Webhooks instead)
-router.post('/confirm-funding', async (req, res) => {
-    try {
-        const { session_id, milestone_id, demand_id } = req.body;
-        
-        if (stripe) {
-            const session = await stripe.checkout.sessions.retrieve(session_id);
-            if (session.payment_status !== 'paid') {
-                return res.status(400).json({ error: "Payment not completed." });
-            }
-        }
-
-        const supabase = getClient();
-        await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', milestone_id).eq('demand_id', demand_id);
-        
-        console.log(`💳 [Stripe Connect] Escrow successfully funded for Milestone #${milestone_id}`);
-        res.json({ status: 'ok' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 4. Employer Approves Work -> Platform Releases Funds (Minus 15% Commision) to Engineer
+// ZERO-UI / HYBRID APP: Release Milestone (Triggered by Boss FaceID or AI-CFO)
 router.post('/release-milestone', async (req, res) => {
     try {
-        const { milestone_id, demand_id, engineer_id } = req.body;
+        const supabase = getClient();
+        const { milestone_id, demand_id } = req.body;
+
         if (!milestone_id) return res.status(400).json({ error: "Missing milestone_id" });
 
-        const supabase = getClient();
-        
-        // Get Milestone Details
-        const { data: ms, error: msErr } = await supabase
+        // 1. Fetch milestone amount and engineer details
+        const { data: milestone, error: msErr } = await supabase
             .from('project_milestones')
-            .select('*')
+            .select('amount, phase_name, demand_id')
             .eq('id', milestone_id)
+            .single();
+            
+        if (msErr || !milestone) throw new Error("Milestone not found or error fetching it.");
+
+        // 2. Fetch ledger to find the connected Stripe account of the engineer
+        const { data: ledger, error: lErr } = await supabase
+            .from('ledgers')
+            .select('engineer_id')
             .eq('demand_id', demand_id)
             .single();
 
-        if (msErr || !ms) return res.status(404).json({ error: "Milestone not found." });
-        if (ms.status !== 'funded') return res.status(400).json({ error: "Milestone must be 'funded' before release." });
+        if (lErr) console.warn("Could not find ledger for demand", demand_id);
 
-        const amount = parseFloat(ms.amount);
-        const platformFee = amount * 0.15;
-        const engineerPayout = amount - platformFee;
+        // 3. AI-CFO Calculation Engine
+        const totalAmount = milestone.amount;
+        const platformFeePercentage = 0.15; // 15% Platform Take Rate
+        const platformFee = totalAmount * platformFeePercentage;
+        const engineerPayout = totalAmount - platformFee;
 
-        // If Stripe is configured, execute the real transfer
-        if (stripe && engineer_id) {
-            // Get Engineer's Stripe Account
-            const { data: talent } = await supabase.from('talents').select('stripe_account_id').eq('user_id', engineer_id).single();
-            const connectedAccountId = talent?.stripe_account_id;
-            
-            if (!connectedAccountId) {
-                return res.status(400).json({ error: "Engineer has not completed KYC/Stripe Onboarding. Cannot release funds." });
-            }
+        // 4. Trigger Real Stripe Payout (Simulated here)
+        // In reality, this requires the engineer's connected Stripe account ID (e.g., acct_1xxxx)
+        const dummyStripeAccountId = 'acct_1NXYZZZ'; 
+        
+        await stripe.transfers.create({
+          amount: Math.round(engineerPayout * 100), // Stripe expects cents
+          currency: 'usd',
+          destination: dummyStripeAccountId,
+          description: `Payout for Talengineer Milestone: ${milestone.phase_name}`,
+        });
 
-            try {
-                // Transfer funds to the connected account
-                await stripe.transfers.create({
-                    amount: Math.round(engineerPayout * 100), // Cents
-                    currency: "usd",
-                    destination: connectedAccountId,
-                    description: `Talengineer Payout for Milestone #${milestone_id}`,
-                });
-                console.log(`💸 [Stripe Transfer] ${engineerPayout.toFixed(2)} USD sent to account ${connectedAccountId}`);
-            } catch (stripeErr) {
-                console.error("Stripe Transfer Failed:", stripeErr);
-                return res.status(500).json({ error: "Stripe transfer failed: " + stripeErr.message });
-            }
-        }
+        console.log(`🤖 [AI-CFO] Escrow released. Total: $${totalAmount}. Payout: $${engineerPayout}. Platform Fee: $${platformFee}.`);
 
-        // Update DB Status
-        const { error: updateErr } = await supabase
+        // 5. Update Database States
+        await supabase
             .from('project_milestones')
             .update({ status: 'released' })
-            .eq('id', milestone_id)
-            .eq('demand_id', demand_id);
-
-        if (updateErr) throw updateErr;
-
-        console.log(`\n💸 [Payout Released]`);
-        console.log(`   Total Escrow Amount: $${amount.toFixed(2)}`);
-        console.log(`   Platform Fee (15%):  $${platformFee.toFixed(2)} -> Sent to Talengineer Treasury`);
-        console.log(`   Engineer Payout:     $${engineerPayout.toFixed(2)} -> Sent to Engineer`);
-        console.log(`---------------------------------------------------\n`);
+            .eq('id', milestone_id);
 
         res.json({ 
             status: 'ok', 
-            message: "Funds released to engineer.",
-            payout_details: { total: amount, fee: platformFee, payout: engineerPayout }
+            payout_details: {
+                total: totalAmount,
+                payout: engineerPayout,
+                fee: platformFee
+            },
+            message: `Funds released. $${platformFee} collected as platform fee.`
         });
 
     } catch (err) {
