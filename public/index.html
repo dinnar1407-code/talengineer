@@ -103,9 +103,102 @@
             .features { flex-direction: column; gap: 20px; padding: 40px 20px; }
             .feature-card { width: 100%; }
         }
+    <style>
+      /* --- PLATFORM OWNER AVATAR (Playfish) --- */
+      #agentAvatar {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: #0056b3;
+        border-radius: 50%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        z-index: 9999;
+        transition: transform 0.2s;
+      }
+      #agentAvatar:hover { transform: scale(1.1); }
+      #agentAvatar img { width: 40px; height: 40px; border-radius: 50%; }
+      #agentBadge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4757;
+        color: #fff;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 10px;
+        border: 2px solid #fff;
+      }
+      #agentChatbox {
+        display: none;
+        position: fixed;
+        bottom: 170px;
+        right: 20px;
+        width: 320px;
+        height: 400px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        z-index: 9998;
+        border: 1px solid var(--border);
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .chat-header {
+        background: var(--primary);
+        color: #fff;
+        padding: 12px 16px;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-close { cursor: pointer; font-size: 18px; opacity: 0.8; }
+      .chat-close:hover { opacity: 1; }
+      .chat-body { flex: 1; padding: 16px; overflow-y: auto; background: #f8f9fa; font-size: 14px; }
+      .chat-msg { margin-bottom: 12px; max-width: 85%; }
+      .msg-agent { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 12px 12px 12px 0; align-self: flex-start; }
+      .msg-user { background: var(--primary); color: #fff; padding: 10px; border-radius: 12px 12px 0 12px; align-self: flex-end; margin-left: auto; }
+      .chat-input { display: flex; padding: 12px; border-top: 1px solid var(--border); background: #fff; }
+      .chat-input input { flex: 1; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; outline: none; font-size: 14px; }
+      .chat-input button { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 20px; margin-left: 8px; cursor: pointer; font-weight: bold; }
+      
+      /* Mobile adjustment for chatbox */
+      @media (max-width: 768px) {
+        #agentChatbox { width: calc(100vw - 40px); bottom: 100px; height: 350px; }
+        #agentAvatar { bottom: 20px; }
+      }
     </style>
 </head>
 <body>
+
+<!-- PLATFORM OWNER AVATAR (Playfish) -->
+<div id="agentAvatar" onclick="toggleChat()">
+  <span style="font-size:30px;">🌾</span>
+  <div id="agentBadge">1</div>
+</div>
+
+<div id="agentChatbox">
+  <div class="chat-header">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:20px;">🌾</span> 小麦穗 (Owner)
+    </div>
+    <span class="chat-close" onclick="toggleChat()">×</span>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="chat-msg msg-agent">长官，我是小麦穗！后台四大Agent已部署完毕，您可以直接对我用大白话发号施令（比如：“帮我在蒙特雷招一个懂西门子的，预算1500美金”）。</div>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Send an order to the Owner..." onkeypress="if(event.key === 'Enter') sendChat()" />
+    <button onclick="sendChat()">Send</button>
+  </div>
+</div>
 
 <header>
     <a href="/" class="logo"><span style="font-size:24px;">⚙️</span> Talengineer</a>
@@ -182,6 +275,56 @@
   };
 
   let lang = localStorage.getItem('tal_lang') || 'en';
+
+  function toggleChat() {
+    const box = document.getElementById('agentChatbox');
+    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('agentBadge').style.display = 'none'; // hide unread badge
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    
+    const chatBody = document.getElementById('chatBody');
+    // User message
+    chatBody.innerHTML += \`<div class="chat-msg msg-user">\${text}</div>\`;
+    input.value = '';
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    // Fake loading
+    const loadingId = 'load_' + Date.now();
+    chatBody.innerHTML += \`<div class="chat-msg msg-agent" id="\${loadingId}">🌾 正在呼叫后方 Agent 处理...</div>\`;
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    try {
+      // 真实调用刚才写好的 ZERO-UI QUICK LAUNCH API (AI-PM 模块)
+      const res = await fetch('/api/demand/quick_launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' })
+      });
+      const result = await res.json();
+      
+      document.getElementById(loadingId).remove();
+
+      if(res.ok && result.parsed_summary) {
+        chatBody.innerHTML += \`<div class="chat-msg msg-agent">
+          <b>指令已执行！</b><br/>
+          已为您生成项目：<i>\${result.parsed_summary.title}</i><br/>
+          预算切分为 \${result.parsed_summary.milestones.length} 个里程碑。<br/>
+          幽灵猎头(Ghost HR)已经开始在 \${result.parsed_summary.region} 搜寻合适的工程师！
+        </div>\`;
+      } else {
+        chatBody.innerHTML += \`<div class="chat-msg msg-agent" style="color:#ef4444;">抱歉长官，解析意图失败。请重新描述您的工程需求。</div>\`;
+      }
+    } catch(e) {
+      document.getElementById(loadingId).remove();
+      chatBody.innerHTML += \`<div class="chat-msg msg-agent" style="color:#ef4444;">服务器连接中断，可能是安全网关拦截了您的请求。</div>\`;
+    }
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
 
   function setLang(l) {
     lang = l;
