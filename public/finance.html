@@ -285,7 +285,73 @@
   </div>
 
   <script>
-    let currentUser = null;
+    function toggleChat() {
+    const box = document.getElementById('agentChatbox');
+    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('agentBadge').style.display = 'none'; 
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    
+    const chatBody = document.getElementById('chatBody');
+    chatBody.innerHTML += `<div class="chat-msg msg-user">${text}</div>`;
+    input.value = '';
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    const loadingId = 'load_' + Date.now();
+    chatBody.innerHTML += `<div class="chat-msg msg-agent" id="${loadingId}">🌾 收到长官指令，正在调用后台 Agent...</div>`;
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    try {
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('钱') || lowerText.includes('财务') || lowerText.includes('放款') || lowerText.includes('escrow') || lowerText.includes('pay')) {
+         setTimeout(() => {
+           document.getElementById(loadingId).remove();
+           chatBody.innerHTML += `<div class="chat-msg msg-agent">
+             <b>💳 AI-CFO 资金报告：</b><br/>
+             长官，目前您的托管账户中有 $1,500 处于锁定状态。我已经为您打开了控制面板，您可以点击下方的按钮去查阅或者强制放款：<br/>
+             <button onclick="window.location.href='/finance'" style="margin-top:8px; padding:6px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">进入财务大盘</button>
+           </div>`;
+           chatBody.scrollTop = chatBody.scrollHeight;
+         }, 800);
+         return;
+      }
+      if (lowerText.includes('人') || lowerText.includes('工程师') || lowerText.includes('talent') || lowerText.includes('engineer')) {
+         setTimeout(() => {
+           document.getElementById(loadingId).remove();
+           chatBody.innerHTML += `<div class="chat-msg msg-agent">
+             <b>🛡️ Ghost HR 人才库汇报：</b><br/>
+             长官，我们昨天从 LinkedIn 挖到了 3 名墨西哥的高级 PLC 专家。我已经帮您把人才列表掉出来了，您可以直接在里面向他们发起面试邀请：<br/>
+             <button onclick="window.location.href='/talent'" style="margin-top:8px; padding:6px 12px; background:var(--primary); color:#fff; border:none; border-radius:6px; cursor:pointer;">查看最新工程师</button>
+           </div>`;
+           chatBody.scrollTop = chatBody.scrollHeight;
+         }, 800);
+         return;
+      }
+
+      const res = await fetch('/api/demand/quick_launch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' }) });
+      const result = await res.json();
+      document.getElementById(loadingId).remove();
+      if(res.ok && result.parsed_summary) {
+        chatBody.innerHTML += `<div class="chat-msg msg-agent">
+          <b>✅ AI-PM 已接管：</b><br/>
+          长官，您的需求已自动转为国际标书：<i>${result.parsed_summary.title}</i>。<br/>
+          资金已切分为 ${result.parsed_summary.milestones.length} 个里程碑。幽灵猎头正在为您寻访 ${result.parsed_summary.region} 的工程师，一有消息我立刻通知您！
+        </div>`;
+      } else {
+        chatBody.innerHTML += `<div class="chat-msg msg-agent" style="color:#ef4444;">抱歉长官，解析意图失败。请重新描述您的工程需求。</div>`;
+      }
+    } catch(e) {
+      document.getElementById(loadingId).remove();
+      chatBody.innerHTML += `<div class="chat-msg msg-agent" style="color:#ef4444;">网络连接中断或云端接口还未部署完成，请稍后再试。</div>`;
+    }
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  let currentUser = null;
     let authMode = 'signin';
 
     function toggleAuthMode(mode) {
