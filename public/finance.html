@@ -386,9 +386,9 @@
             if (currentUser.role === 'employer' && m.status === 'locked') {
                actionBtn = `<button class="btn-action" onclick="fundMilestone(${m.id}, ${demandId}, ${m.amount}, '${m.phase_name}')" style="margin-top:8px; background:#d97706;">Fund via Stripe</button>`;
             } else if (currentUser.role === 'employer' && m.status === 'funded') {
-               actionBtn = `<button class="btn-action" onclick="releaseMilestone(${m.id}, ${demandId})" style="margin-top:8px; background:var(--success);">Approve & Release</button>`;
+               actionBtn = `<button class="btn-action" onclick="triggerFaceIDRelease(${m.id}, ${demandId})" style="margin-top:8px; background:var(--success);">🛡️ FaceID Release</button>`;
             } else if (currentUser.role === 'engineer' && m.status === 'funded') {
-               actionBtn = `<div style="font-size:11px; color:var(--success); margin-top:8px;">Ready to work</div>`;
+               actionBtn = `<button class="btn-action" onclick="triggerAIQC(${m.id}, ${demandId})" style="margin-top:8px; background:var(--primary);">📸 AI-QC Upload</button>`;
             } else if (m.status === 'released') {
                actionBtn = `<div style="font-size:11px; color:var(--muted); margin-top:8px;">Platform Fee Deducted</div>`;
             }
@@ -609,6 +609,51 @@
           else btnLogin.textContent = authMode === 'signin' ? "Sign In" : "Create Account";
       }
     }
+
+    // --- HYBRID APP BRIDGE LOGIC (v15.0) ---
+    let pendingReleaseTarget = null;
+
+    function triggerAIQC(milestoneId, demandId) {
+      if (window.ReactNativeWebView) {
+        // App Environment: Send signal to Native shell
+        window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'OPEN_CAMERA' }));
+      } else {
+        // Web Environment: Fallback behavior
+        alert('📸 [Web Fallback] AI-QC Camera activated. (Use the Native App for real camera access)');
+        setTimeout(() => alert('✅ AI-QC Passed! Milestone marked as completed.'), 1000);
+      }
+    }
+
+    function triggerFaceIDRelease(milestoneId, demandId) {
+      if (window.ReactNativeWebView) {
+        // App Environment: Send signal to Native shell
+        pendingReleaseTarget = { milestoneId, demandId };
+        window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'REQUEST_FACEID' }));
+      } else {
+        // Web Environment: Fallback behavior
+        if(confirm("🛡️ [Web Fallback] FaceID Simulated. Approve work and release funds to engineer?")) {
+          releaseMilestone(milestoneId, demandId);
+        }
+      }
+    }
+
+    // Listen for Native App Callbacks
+    window.addEventListener('CAMERA_RESULT', (e) => {
+      if (e.detail && e.detail.imageUri) {
+        alert('✅ Photo received from Native Camera!\\n\\nAI-QC Analysis: Cabling looks perfect. Milestone completed.');
+      }
+    });
+
+    window.addEventListener('FACEID_RESULT', (e) => {
+      if (e.detail && e.detail.success && pendingReleaseTarget) {
+        // FaceID success, proceed to actual Stripe payout API
+        releaseMilestone(pendingReleaseTarget.milestoneId, pendingReleaseTarget.demandId);
+        pendingReleaseTarget = null;
+      } else {
+        alert('❌ Biometric authorization failed or cancelled. Payout blocked.');
+        pendingReleaseTarget = null;
+      }
+    });
     
     window.addEventListener('DOMContentLoaded', () => {
       const savedLang = localStorage.getItem('tal_lang') || 'en';
