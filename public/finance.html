@@ -145,7 +145,29 @@
   </style>
 </head>
 <body>
-  <header>
+  <div id="agentAvatar" onclick="toggleChat()">
+  <img src="/img/avatar.jpg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;" onerror="this.src='https://i.imgur.com/rM1iCqV.jpeg'" />
+  <div id="agentBadge">1</div>
+</div>
+
+<div id="agentChatbox">
+  <div class="chat-header">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <img src="/img/avatar.jpg" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" onerror="this.src='https://i.imgur.com/rM1iCqV.jpeg'" /> 
+      小麦穗 (Platform Owner)
+    </div>
+    <span class="chat-close" onclick="toggleChat()">×</span>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="chat-msg msg-agent">长官，我是小麦穗！后台四大Agent已部署完毕，您可以直接对我用大白话发号施令（比如：“帮我在蒙特雷招一个懂西门子的，预算1500美金”）。</div>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Send an order..." onkeypress="if(event.key === 'Enter') sendChat()" />
+    <button onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<header>
     <a href="/" class="logo"><span style="font-size:24px;">⚙️</span> Talengineer</a>
     <div class="nav-links">
         <a href="/talent" id="navTalent">Find Engineers</a>
