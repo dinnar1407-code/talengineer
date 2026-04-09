@@ -23,9 +23,10 @@ async function runMatchmaker(demandId) {
         console.log(`📍 [Matchmaker] Project Title: "${demand.title}"`);
         console.log(`📍 [Matchmaker] Required Skills: "${demand.role_required || 'Not specified'}"`);
 
-        const demandRegion = demand.region || 'US';
-        const regionHint = demandRegion.includes('MX') || demandRegion.includes('Mexico') ? 'MX' : 
-                           demandRegion.includes('CA') ? 'CA' : 'US';
+
+        const demandRegion = (demand.region && demand.region !== 'null' && demand.region !== 'undefined') ? demand.region : 'US';
+        const regionHint = demandRegion && demandRegion.includes('MX') ? 'MX' : 
+                           demandRegion && demandRegion.includes('CA') ? 'CA' : 'US';
                            
         const { data: matches, error: talentErr } = await supabase
             .from('talents')
