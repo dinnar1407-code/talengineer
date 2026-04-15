@@ -37,7 +37,15 @@ router.post('/screen_verify', async (req, res) => {
 router.get('/list', async (req, res) => {
     try {
         const supabase = getClient();
-        const { data, error } = await supabase.from('talents').select('*').order('created_at', { ascending: false }).limit(50);
+        const { region, skills, min_score } = req.query;
+
+        let query = supabase.from('talents').select('*').order('verified_score', { ascending: false }).limit(50);
+
+        if (region && region !== 'all') query = query.ilike('region', `%${region}%`);
+        if (skills)                    query = query.ilike('skills', `%${skills}%`);
+        if (min_score)                 query = query.gte('verified_score', parseInt(min_score));
+
+        const { data, error } = await query;
         if (error) throw error;
         res.json({ status: 'ok', data });
     } catch (err) {

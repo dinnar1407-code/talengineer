@@ -248,3 +248,19 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+@media (max-width: 768px) {
+  .header { padding: 12px 16px; }
+  .mainContainer { flex-direction: column; height: auto; min-height: calc(100vh - 58px); }
+  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .sidebar h3 { width: 100%; }
+  .projectInfo { flex: 1; min-width: 200px; }
+  .aiPmControls { flex: 1; min-width: 200px; }
+  .footer { display: none; }
+  .chatArea { height: 60vh; }
+  .chatMessages { padding: 12px; }
+  .msgSent, .msgReceived { max-width: 90%; }
+  .chatInput { padding: 12px; gap: 8px; }
+  .chatInput button { padding: 0 14px; font-size: 13px; }
+  .loginBox { padding: 24px; margin: 20px; }
+}

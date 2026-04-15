@@ -160,4 +160,67 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
   }
 });
 
+// ── Stripe Webhook ────────────────────────────────────────────────────────────
+// Must be mounted BEFORE express.json() — uses raw body
+router.post('/webhook', async (req, res) => {
+  const sig    = req.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.warn('[Webhook] STRIPE_WEBHOOK_SECRET not set — skipping verification.');
+    return res.json({ received: true });
+  }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.rawBody || req.body, sig, secret);
+  } catch (err) {
+    console.error('[Webhook] Signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  const supabase = getClient();
+
+  if (event.type === 'checkout.session.completed') {
+    const session    = event.data.object;
+    const milestoneId = session.metadata?.milestone_id;
+    const demandId    = session.metadata?.demand_id;
+
+    if (milestoneId) {
+      await supabase
+        .from('project_milestones')
+        .update({ status: 'funded' })
+        .eq('id', milestoneId)
+        .eq('status', 'locked');
+
+      if (demandId) {
+        await supabase
+          .from('demands')
+          .update({ status: 'in_progress' })
+          .eq('id', demandId);
+      }
+
+      console.log(`[Webhook] Milestone ${milestoneId} funded via Stripe webhook.`);
+    }
+  }
+
+  res.json({ received: true });
+});
+
+// ── Confirm funding (legacy client-side fallback) ─────────────────────────────
+router.post('/confirm-funding', async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { session_id, milestone_id, demand_id } = req.body;
+    if (!session_id || !milestone_id) return res.status(400).json({ error: 'Missing params' });
+
+    await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', milestone_id).eq('status', 'locked');
+    if (demand_id) await supabase.from('demands').update({ status: 'in_progress' }).eq('id', demand_id);
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

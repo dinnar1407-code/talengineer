@@ -27,6 +27,18 @@ app.use(cors({
 }));
 
 // ── Body parser ───────────────────────────────────────────────────────────────
+// Preserve raw body for Stripe webhook signature verification
+app.use((req, res, next) => {
+  if (req.path === '/api/payment/webhook') {
+    let data = '';
+    req.setEncoding('utf8');
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => { req.rawBody = data; next(); });
+  } else {
+    next();
+  }
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -59,6 +71,7 @@ const authRoutes    = require('./routes/auth');
 const demandRoutes  = require('./routes/demand');
 const paymentRoutes = require('./routes/payment');
 const iotRoutes     = require('./routes/iot');
+const adminRoutes   = require('./routes/admin');
 
 app.use('/api/talent',  talentRoutes);
 app.use('/api/finance', financeRoutes);
@@ -66,6 +79,7 @@ app.use('/api/auth',    authRoutes);
 app.use('/api/demand',  demandRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/iot',     iotRoutes);
+app.use('/api/admin',   adminRoutes);
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));

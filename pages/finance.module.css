@@ -73,12 +73,46 @@
 .btnFund { display:block; margin-top:8px; padding:6px 12px; background:#d97706; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
 .btnRelease { display:block; margin-top:8px; padding:6px 12px; background:var(--success); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
 
+/* ── Logout button ─────────────────────────────────────────────────────── */
+.btnLogout { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s; font-size:14px; }
+.btnLogout:hover { border-color:#ef4444; color:#ef4444; }
+
+/* ── Role selection modal ───────────────────────────────────────────────── */
+.modalOverlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:300; display:flex; align-items:center; justify-content:center; }
+.roleModal { background:#fff; border-radius:16px; padding:40px; width:100%; max-width:480px; box-shadow:0 20px 40px rgba(0,0,0,0.15); text-align:center; }
+.roleModal h2 { font-size:24px; margin-bottom:8px; }
+.roleOptions { display:flex; gap:16px; margin-bottom:24px; }
+.roleCard { flex:1; border:2px solid var(--border); border-radius:12px; padding:20px 16px; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.roleCard:hover { border-color:var(--primary); background:#f0f7ff; }
+.roleCardActive { border-color:var(--primary); background:#eff6ff; }
+
+/* ── Skeleton loading ───────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeletonBase {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+.metricCardSkeleton { height:100px; border-radius:12px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size:800px 100%; animation:shimmer 1.5s infinite; }
+.skeletonCell { height:18px; background:linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size:800px 100%; animation:shimmer 1.5s infinite; border-radius:4px; }
+.msItemSkeleton { height:60px; background:linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size:800px 100%; animation:shimmer 1.5s infinite; border-radius:8px; margin-bottom:8px; list-style:none; }
+
 @media (max-width:768px) {
-  .header { flex-direction:column; gap:16px; padding:15px 20px; }
-  .metrics { grid-template-columns:1fr; }
-  .welcomeBar { flex-direction:column; gap:16px; align-items:flex-start; }
-  .table { display:block; overflow-x:auto; white-space:nowrap; }
-  .loginBox { padding:24px; margin:20px; }
-  .modalContent { width:95%; padding:16px; }
-  .msItem { flex-direction:column; }
+  .header { flex-direction:column; gap:12px; padding:12px 16px; }
+  .navLinks { flex-wrap:wrap; justify-content:center; gap:8px; }
+  .metrics { grid-template-columns:1fr; gap:12px; }
+  .welcomeBar { flex-direction:column; gap:12px; align-items:flex-start; padding:14px 16px; }
+  .table { display:block; overflow-x:auto; white-space:nowrap; font-size:13px; }
+  .table th, .table td { padding:10px 12px; }
+  .loginBox { padding:24px 20px; margin:16px; }
+  .modalContent { width:calc(100% - 32px); padding:16px; margin:16px; }
+  .msItem { flex-direction:column; gap:8px; }
+  .roleOptions { flex-direction:column; }
+  .roleModal { margin:16px; padding:24px 20px; }
+  .headerBlock h1 { font-size:22px; }
+  .container { margin:20px auto; padding:0 16px; }
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
+import { useToast } from '../components/Toast';
 import styles from './talent.module.css';
 
 const DICT = {
@@ -41,10 +42,16 @@ const DICT = {
 };
 
 export default function Talent() {
+  const toast = useToast();
   const [lang, setLangState]   = useState('en');
   const [activeTab, setActiveTab] = useState('projects');
-  const [demands, setDemands]  = useState(null);
-  const [talents, setTalents]  = useState(null);
+  const [demands, setDemands]  = useState(null); // null = loading
+  const [talents, setTalents]  = useState(null); // null = loading
+
+  // Talent filters
+  const [filterRegion, setFilterRegion] = useState('all');
+  const [filterSkills, setFilterSkills] = useState('');
+  const [filterScore,  setFilterScore]  = useState('');
 
   // Post project form
   const [rawText, setRawText]   = useState('');
@@ -77,12 +84,22 @@ export default function Talent() {
     } catch { setDemands([]); }
   }
 
-  async function loadTalent() {
+  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore) {
+    setTalents(null);
     try {
-      const res = await fetch('/api/talent/list');
+      const params = new URLSearchParams();
+      if (region && region !== 'all') params.set('region', region);
+      if (skills.trim()) params.set('skills', skills.trim());
+      if (score) params.set('min_score', score);
+      const res  = await fetch('/api/talent/list?' + params.toString());
       const data = await res.json();
       setTalents(data.data || []);
-    } catch { setTalents([]); }
+    } catch { setTalents([]); toast.error('Failed to load engineers.'); }
+  }
+
+  function applyFilters(e) {
+    e.preventDefault();
+    loadTalent(filterRegion, filterSkills, filterScore);
   }
 
   function switchTab(tab) {
@@ -107,10 +124,11 @@ export default function Talent() {
         setParsed(d);
         setParsedMilestones(d.milestones || []);
         setProjectForm(f => ({ ...f, title: d.title || '', role: d.role_required || '', description: d.standardized_description || '' }));
+        toast.success('AI parsed your project! Please review and confirm.');
       } else {
-        alert('Failed to parse: ' + (result.error || 'Unknown error'));
+        toast.error('Failed to parse: ' + (result.error || 'Unknown error'));
       }
-    } catch { alert('Network error.'); }
+    } catch { toast.error('Network error. Please try again.'); }
     setParsing(false);
   }
 
@@ -130,15 +148,15 @@ export default function Talent() {
         }),
       });
       if (res.ok) {
-        alert('Project posted! The AI Matchmaker is scanning for engineers.');
+        toast.success('Project posted! The AI Matchmaker is scanning for engineers.');
         setParsed(null); setRawText('');
         setProjectForm({ title: '', type: 'Cross-Border Equipment Deployment', role: '', region: 'United States (US)', pref: 'No Preference', location: '', budget: '', contact: '', description: '' });
         loadDemands();
       } else {
         const err = await res.json();
-        alert('Error: ' + err.error);
+        toast.error('Error: ' + err.error);
       }
-    } catch { alert('Network error.'); }
+    } catch { toast.error('Network error. Please try again.'); }
     setPostingJob(false);
   }
 
@@ -154,45 +172,34 @@ export default function Talent() {
       });
       const qData = await qRes.json();
       if (qData.status !== 'ok') {
-        alert('AI Technical Screen could not be initialized. Verification is required.');
+        toast.error('AI Technical Screen could not be initialized. Verification is required.');
         setPostingProfile(false); return;
       }
 
-      // Step 2: Prompt for answer (browser native — keeps the original UX)
       const answer = prompt(`🤖 Nexus AI Technical Screen (Required):\n\n${qData.question}\n\nYour Answer:`);
       if (!answer) {
-        alert('Submission cancelled. Tech screen is mandatory.');
+        toast.warn('Submission cancelled. Tech screen is mandatory.');
         setPostingProfile(false); return;
       }
 
-      // Step 3: Grade the answer
-      const vRes = await fetch('/api/talent/screen_verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: qData.question, answer, lang }),
-      });
+      const vRes  = await fetch('/api/talent/screen_verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: qData.question, answer, lang }) });
       const vData = await vRes.json();
       if (vData.score < 60) {
-        alert(`❌ Tech Screen Failed (Score: ${vData.score}).\nFeedback: ${vData.feedback}`);
+        toast.error(`Tech Screen Failed (Score: ${vData.score}). ${vData.feedback}`);
         setPostingProfile(false); return;
       }
-      alert(`✅ Tech Screen Passed! (Score: ${vData.score})\nFeedback: ${vData.feedback}`);
+      toast.success(`Tech Screen Passed! Score: ${vData.score} — ${vData.feedback}`);
 
-      // Step 4: Register
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...profileForm, role: 'engineer', verified_score: vData.score, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio }),
-      });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', verified_score: vData.score, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio }) });
       const result = await res.json();
       if (res.ok) {
-        alert('Profile published successfully! (Nexus Verified score added)');
+        toast.success('Profile published! Nexus Verified score added.');
         setProfileForm({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '' });
         loadTalent();
       } else {
-        alert('Error: ' + result.error);
+        toast.error('Error: ' + result.error);
       }
-    } catch { alert('Network error.'); }
+    } catch { toast.error('Network error. Please try again.'); }
     setPostingProfile(false);
   }
 
@@ -231,7 +238,7 @@ export default function Talent() {
           <div className={styles.splitLayout}>
             <div className={styles.mainCol}>
               {demands === null
-                ? <p className={styles.loading}>Loading open projects...</p>
+                ? [0,1,2].map(i => <div key={i} className={styles.cardSkeleton} />)
                 : demands.length === 0
                   ? <p className={styles.loading}>No projects available yet.</p>
                   : demands.map(item => (
@@ -308,8 +315,26 @@ export default function Talent() {
         {activeTab === 'talent' && (
           <div className={styles.splitLayout}>
             <div className={styles.mainCol}>
+              {/* ── Filter bar ── */}
+              <form className={styles.filterBar} onSubmit={applyFilters}>
+                <select value={filterRegion} onChange={e => setFilterRegion(e.target.value)} className={styles.filterSelect}>
+                  <option value="all">All Regions</option>
+                  <option value="US">United States (US)</option>
+                  <option value="MX">Mexico (MX)</option>
+                  <option value="CA">Canada (CA)</option>
+                </select>
+                <input className={styles.filterInput} value={filterSkills} onChange={e => setFilterSkills(e.target.value)} placeholder="Search skills (e.g. Siemens, Rockwell)" />
+                <select value={filterScore} onChange={e => setFilterScore(e.target.value)} className={styles.filterSelect}>
+                  <option value="">Any Score</option>
+                  <option value="80">Verified ≥ 80</option>
+                  <option value="60">Score ≥ 60</option>
+                </select>
+                <button type="submit" className={styles.btnAction}>Search</button>
+                <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); loadTalent('all', '', ''); }}>Clear</button>
+              </form>
+
               {talents === null
-                ? <p className={styles.loading}>Loading engineer profiles...</p>
+                ? [0,1,2].map(i => <div key={i} className={styles.cardSkeleton} />)
                 : talents.length === 0
                   ? <p className={styles.loading}>No engineers available at the moment.</p>
                   : talents.map(t => (
