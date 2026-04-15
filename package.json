@@ -4,8 +4,11 @@
   "description": "Talengineer: AI-Driven Cross-Border Industrial Services",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "build": "next build",
+    "start": "node src/nextServer.js",
+    "dev": "node src/nextServer.js",
+    "start:legacy": "node src/server.js",
+    "dev:legacy": "nodemon src/server.js"
   },
   "dependencies": {
     "@sentry/node": "^10.48.0",
@@ -17,9 +20,13 @@
     "express": "^4.18.3",
     "express-rate-limit": "^8.3.2",
     "jsonwebtoken": "^9.0.3",
+    "next": "^16.2.3",
     "node-fetch": "^2.7.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "resend": "^6.10.0",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "stripe": "^14.25.0",
     "zod": "^4.3.6"
   },

@@ -1,0 +1,84 @@
+.header { background:#fff; padding:15px 40px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); position:sticky; top:0; z-index:50; }
+.logo { font-size:24px; font-weight:800; color:var(--primary); display:flex; align-items:center; gap:10px; }
+.navLinks { display:flex; gap:15px; align-items:center; }
+.navLinks a { font-weight:600; padding:8px 12px; border-radius:6px; transition:all 0.2s; color:var(--text-dark); }
+.navLinks a:hover { background:#f1f5f9; }
+.btnLogin { background:var(--primary) !important; color:#fff !important; }
+.btnLogin:hover { background:#004494 !important; }
+
+/* ── Login overlay ─────────────────────────────────────────────────── */
+.loginOverlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.9); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px); }
+.loginBox { background:#fff; border:1px solid var(--border); padding:40px; border-radius:12px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
+.authTabs { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:12px; }
+.authTab { font-weight:bold; cursor:pointer; color:var(--muted); }
+.authTabActive { font-weight:bold; cursor:pointer; color:var(--primary); }
+.langToggle { background:transparent; border:1px solid var(--border); color:var(--muted); padding:2px 6px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold; }
+.loginBox input, .loginBox select { width:100%; padding:12px; background:#fff; border:1px solid var(--border); color:var(--text-dark); border-radius:6px; outline:none; box-sizing:border-box; font-size:14px; }
+.loginBox input:focus, .loginBox select:focus { border-color:var(--primary); }
+.btnPrimary { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:6px; font-weight:700; cursor:pointer; transition:background 0.2s; font-size:15px; }
+.btnPrimary:hover { background:#004494; }
+.btnPrimary:disabled { opacity:0.6; cursor:not-allowed; }
+.orDivider { text-align:center; margin:20px 0; color:var(--muted); font-size:12px; position:relative; }
+.orDivider::before { content:''; border-top:1px solid var(--border); position:absolute; top:50%; width:100%; left:0; z-index:1; }
+.orDivider span { background:#fff; padding:0 10px; position:relative; z-index:2; }
+.socialGroup { display:flex; flex-direction:column; gap:10px; }
+.btnGoogle { padding:12px; background:#fff; color:var(--text-dark); border:1px solid var(--border); border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; }
+.btnGoogle:hover { opacity:0.8; }
+.btnLinkedIn { padding:12px; background:#0a66c2; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; }
+.btnLinkedIn:hover { opacity:0.8; }
+.btnApple { flex:1; padding:12px; background:#000; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btnApple:hover { opacity:0.8; }
+.btnWeChat { flex:1; padding:12px; background:#07c160; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btnWeChat:hover { opacity:0.8; }
+
+/* ── Dashboard ─────────────────────────────────────────────────────── */
+.container { flex:1; max-width:1000px; margin:40px auto; width:100%; padding:0 20px; }
+.welcomeBar { background:#fff; border:1px solid var(--border); padding:16px 24px; border-radius:12px; margin-bottom:32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02); }
+.welcomeBar h2 { font-size:18px; margin:0 0 4px; }
+.roleLabel { font-size:13px; color:var(--muted); }
+.kycBadge { background:rgba(244,196,48,0.1); color:#d97706; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; border:1px solid rgba(244,196,48,0.3); }
+.btnVerify { background:transparent; border:1px solid var(--primary); color:var(--primary); padding:6px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:12px; }
+.btnVerify:hover { background:var(--primary); color:#fff; }
+
+.headerBlock { margin-bottom:32px; }
+.headerBlock h1 { font-size:28px; margin-bottom:8px; }
+.headerBlock p { color:var(--muted); font-size:15px; }
+
+.metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-bottom:32px; }
+.metricCard { background:#fff; border:1px solid var(--border); border-radius:12px; padding:24px; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.02); }
+.metricVal { font-size:32px; font-weight:800; color:var(--primary); margin-bottom:8px; }
+.metricLabel { font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+.table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.02); }
+.table th, .table td { padding:16px; text-align:left; border-bottom:1px solid var(--border); }
+.table th { background:var(--secondary); color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+.table tr:last-child td { border-bottom:none; }
+.emptyCell { text-align:center; padding:40px; color:var(--muted); }
+.statusBadge { padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; }
+.status_pending { background:rgba(244,196,48,0.1); color:#d97706; }
+.status_funded { background:rgba(16,185,129,0.1); color:var(--success); }
+.status_locked { background:var(--secondary); color:var(--muted); border:1px solid var(--border); }
+.status_released { background:rgba(0,86,179,0.1); color:var(--primary); }
+.btnAction { background:var(--primary); color:#fff; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
+.btnAction:hover { background:#004494; }
+
+/* ── Modal ─────────────────────────────────────────────────────────── */
+.modal { display:flex; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
+.modalContent { background:#fff; width:600px; border-radius:12px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
+.modalHeader { font-size:18px; font-weight:bold; margin-bottom:16px; display:flex; justify-content:space-between; }
+.modalClose { cursor:pointer; color:var(--muted); font-size:20px; }
+.msList { list-style:none; padding:0; margin-bottom:24px; }
+.msItem { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); align-items:flex-start; gap:12px; }
+.msItem:last-child { border-bottom:none; }
+.btnFund { display:block; margin-top:8px; padding:6px 12px; background:#d97706; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
+.btnRelease { display:block; margin-top:8px; padding:6px 12px; background:var(--success); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
+
+@media (max-width:768px) {
+  .header { flex-direction:column; gap:16px; padding:15px 20px; }
+  .metrics { grid-template-columns:1fr; }
+  .welcomeBar { flex-direction:column; gap:16px; align-items:flex-start; }
+  .table { display:block; overflow-x:auto; white-space:nowrap; }
+  .loginBox { padding:24px; margin:20px; }
+  .modalContent { width:95%; padding:16px; }
+  .msItem { flex-direction:column; }
+}

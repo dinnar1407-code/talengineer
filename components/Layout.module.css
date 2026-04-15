@@ -1,0 +1,84 @@
+.header {
+  background-color: #fff;
+  padding: 15px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navLinks {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.navLinks a {
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  color: var(--text-dark);
+}
+
+.navLinks a:hover {
+  background: #f1f5f9;
+}
+
+.btnLogin {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-radius: 6px;
+}
+
+.btnLogin:hover {
+  background: #004494 !important;
+}
+
+.divider {
+  border-left: 1px solid #ccc;
+  height: 24px;
+  margin: 0 10px;
+}
+
+.langBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.langBtn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 15px 20px;
+  }
+  .navLinks {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

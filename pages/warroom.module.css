@@ -1,0 +1,250 @@
+.header {
+  background-color: #fff;
+  padding: 15px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 50;
+}
+.logo { font-size: 24px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+.headerSub { font-weight: bold; color: var(--muted); }
+
+.mainContainer { display: flex; height: calc(100vh - 66px); overflow: hidden; }
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 300px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+}
+.sidebar h3 { margin: 0; color: var(--primary); }
+
+.projectInfo {
+  background: var(--secondary);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.infoLabel { font-size: 12px; color: var(--muted); font-weight: bold; }
+.infoValue { font-size: 14px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.onlineDot { display: inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+
+.aiPmControls {
+  background: rgba(244,196,48,0.1);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(244,196,48,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aiPmTitle { font-size: 12px; color: #d97706; font-weight: bold; }
+.btnNudge { padding: 8px; background: #d97706; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
+.btnReport { padding: 8px; background: #0f172a; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
+
+.footer { font-size: 11px; color: var(--muted); text-align: center; padding: 10px; border-top: 1px solid var(--border); }
+.footer p { margin: 4px 0; }
+
+/* ── Chat area ───────────────────────────────────────────────────────── */
+.chatArea { flex: 1; display: flex; flex-direction: column; background: #f1f5f9; overflow: hidden; }
+
+.chatHeader {
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chatHeader h2 { font-size: 18px; margin: 0; }
+.liveTag { font-size: 12px; color: var(--success); font-weight: bold; }
+.exitBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--muted);
+}
+
+.chatMessages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msgSystem {
+  align-self: center;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  max-width: 90%;
+}
+.msgSent {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+.msgReceived {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+  border-bottom-left-radius: 2px;
+}
+.msgAIPM {
+  align-self: center;
+  max-width: 90%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(244,196,48,0.1);
+  border: 1px solid rgba(244,196,48,0.3);
+  color: var(--text-dark);
+  font-size: 14px;
+}
+.msgIOT {
+  align-self: center;
+  max-width: 90%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: var(--text-dark);
+  font-size: 14px;
+}
+.senderName { font-size: 11px; font-weight: 600; margin-bottom: 4px; opacity: 0.8; }
+.translation {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255,255,255,0.3);
+  font-style: italic;
+  font-size: 13px;
+}
+.translationReceived {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+.typingDot {
+  align-self: flex-start;
+  background: var(--border);
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ── Input bar ───────────────────────────────────────────────────────── */
+.chatInput {
+  padding: 20px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.chatInput input[type="text"] {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  outline: none;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+.chatInput input[type="text"]:focus { border-color: var(--primary); }
+.chatInput button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0 24px;
+  height: 44px;
+  border-radius: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chatInput button:hover { background: #004494; }
+.chatInput button:disabled { background: #9ca3af; cursor: not-allowed; }
+.btnCamera {
+  background: var(--secondary);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0 16px;
+  height: 44px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+}
+.btnCamera:hover { background: #e2e8f0; color: var(--text-dark); }
+
+/* ── Login overlay ───────────────────────────────────────────────────── */
+.loginOverlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(255,255,255,0.9);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+.loginBox {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 40px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.loginBox h2 { margin-bottom: 24px; color: var(--text-dark); text-align: center; }
+.formGroup { margin-bottom: 16px; }
+.formGroup label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+.formGroup input, .formGroup select {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+  border-radius: 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+.btnPrimary {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
