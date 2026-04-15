@@ -1,3 +1,6 @@
+// IMPORTANT: Sentry must be initialized before anything else
+require('../instrument.js');
+
 /**
  * Custom Next.js + Express + Socket.IO server.
  *

@@ -5,15 +5,6 @@ const rateLimit = require('express-rate-limit');
 const Sentry = require('@sentry/node');
 require('dotenv').config();
 
-// ── Sentry: error tracking ────────────────────────────────────────────────────
-if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV || 'development',
-    tracesSampleRate: 0.1,
-  });
-}
-
 const app = express();
 
 // ── CORS: whitelist only known origins ───────────────────────────────────────
@@ -82,6 +73,9 @@ app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, '../public',
 app.get('/warroom', (req, res) => res.sendFile(path.join(__dirname, '../public', 'warroom.html')));
 app.get('*',        (req, res) => res.sendFile(path.join(__dirname, '../public', 'index.html')));
 
+// ── Sentry error handler (must be before any other error middleware) ──────────
+Sentry.setupExpressErrorHandler(app);
+
 // ── Global error handler ──────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
@@ -89,8 +83,6 @@ app.use((err, req, res, next) => {
   if (err.message?.startsWith('CORS:')) {
     return res.status(403).json({ error: err.message });
   }
-  // Report to Sentry
-  if (process.env.SENTRY_DSN) Sentry.captureException(err);
   console.error('[Server Error]', err);
   const isDev = process.env.NODE_ENV !== 'production';
   res.status(err.status || 500).json({
