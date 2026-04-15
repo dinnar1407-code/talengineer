@@ -204,6 +204,65 @@ router.post('/webhook', async (req, res) => {
     }
   }
 
+  // ── Payment failed ──────────────────────────────────────────────────────────
+  if (event.type === 'payment_intent.payment_failed') {
+    const intent      = event.data.object;
+    const milestoneId = intent.metadata?.milestone_id;
+    const demandId    = intent.metadata?.demand_id;
+
+    if (milestoneId) {
+      await supabase
+        .from('project_milestones')
+        .update({ status: 'payment_failed' })
+        .eq('id', milestoneId)
+        .eq('status', 'locked');
+
+      console.warn(`[Webhook] Payment failed for milestone ${milestoneId}. Reason: ${intent.last_payment_error?.message}`);
+    }
+
+    if (demandId) {
+      await supabase
+        .from('demands')
+        .update({ status: 'payment_failed' })
+        .eq('id', demandId)
+        .eq('status', 'open');
+    }
+  }
+
+  // ── Dispute (chargeback) created ────────────────────────────────────────────
+  if (event.type === 'charge.dispute.created') {
+    const dispute     = event.data.object;
+    const milestoneId = dispute.metadata?.milestone_id;
+
+    // Freeze any funded milestone tied to this charge
+    if (milestoneId) {
+      await supabase
+        .from('project_milestones')
+        .update({ status: 'disputed' })
+        .eq('id', milestoneId)
+        .in('status', ['funded', 'locked']);
+    }
+
+    console.error(`[Webhook] Dispute created — charge ${dispute.charge}, amount $${(dispute.amount / 100).toFixed(2)}, reason: ${dispute.reason}`);
+  }
+
+  // ── Transfer failed (engineer payout failed) ────────────────────────────────
+  if (event.type === 'transfer.failed') {
+    const transfer    = event.data.object;
+    const milestoneId = transfer.metadata?.milestone_id;
+
+    if (milestoneId) {
+      // Roll back to funded so it can be retried
+      await supabase
+        .from('project_milestones')
+        .update({ status: 'funded', stripe_transfer_id: null })
+        .eq('id', milestoneId)
+        .eq('status', 'released');
+    }
+
+    console.error(`[Webhook] Transfer failed — ${transfer.id}, milestone ${milestoneId || 'unknown'}`);
+  }
+
   res.json({ received: true });
 });
 
