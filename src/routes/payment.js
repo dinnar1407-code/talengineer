@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
+const { requireAuth } = require('../middleware/auth');
 
 // Mock Stripe library initialization (in a real app, use require('stripe')(process.env.STRIPE_SECRET_KEY))
 const stripe = {
@@ -12,7 +13,7 @@ const stripe = {
   }
 };
 
-router.post('/fund-milestone', async (req, res) => {
+router.post('/fund-milestone', requireAuth, async (req, res) => {
     try {
         const supabase = getClient();
         const { milestone_id, demand_id, amount, phase_name } = req.body;
@@ -44,7 +45,7 @@ router.post('/fund-milestone', async (req, res) => {
 });
 
 // ZERO-UI / HYBRID APP: Release Milestone (Triggered by Boss FaceID or AI-CFO)
-router.post('/release-milestone', async (req, res) => {
+router.post('/release-milestone', requireAuth, async (req, res) => {
     try {
         const supabase = getClient();
         const { milestone_id, demand_id } = req.body;

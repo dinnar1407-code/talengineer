@@ -1,95 +1,160 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { z } = require('zod');
 const { getClient } = require('../config/db');
-const crypto = require('crypto');
 
-function hashPassword(pwd) {
-    return crypto.createHash('sha256').update(pwd || '').digest('hex');
-}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = '24h';
+const BCRYPT_ROUNDS = 10;
 
-router.post('/register', async (req, res) => {
-    try {
-        const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, verified_score } = req.body;
-        if (!email || !role || !password) return res.status(400).json({ error: "Missing email, role, or password" });
-        
-        const supabase = getClient();
-        const pwdHash = hashPassword(password);
+// ── Input validation schemas ─────────────────────────────────────────────────
 
-        // 1. Insert into users table
-        const { data: user, error: userErr } = await supabase
-            .from('users')
-            .insert([{ email, password: pwdHash, role, name: engName || name || '' }])
-            .select()
-            .single();
-
-        if (userErr) {
-            if (userErr.code === '23505') { // Postgres unique_violation
-                return res.status(400).json({ error: "Email already registered. Please sign in instead." });
-            }
-            throw userErr;
-        }
-
-        // 2. If role is engineer, insert into talents table
-        if (role === 'engineer' && engName) {
-            const { error: talentErr } = await supabase
-                .from('talents')
-                .insert([{
-                    user_id: user.id,
-                    name: engName,
-                    skills: engSkills || 'Automation Engineer',
-                    region: engRegion || 'US/CA/MX',
-                    rate: engRate || 'Open',
-                    pricing_model: engPricingModel || 'hourly',
-                    level: engLevel || 'Mid',
-                    verified_score: 0,
-                    bio: engBio || '',
-                    contact: email
-                }]);
-            
-            if (talentErr) throw talentErr;
-            console.log(`[Auth] Registered new engineer: ${engName}`);
-        }
-
-        res.json({ status: 'ok', email: user.email, role: user.role, name: user.name });
-        
-    } catch (err) {
-        console.error("Auth Register Error:", err);
-        res.status(500).json({ error: err.message });
-    }
+const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['employer', 'engineer'], { errorMap: () => ({ message: 'Role must be employer or engineer' }) }),
+  name: z.string().optional(),
+  // Engineer-specific fields (optional)
+  engName: z.string().optional(),
+  engSkills: z.string().optional(),
+  engRate: z.string().optional(),
+  engBio: z.string().optional(),
+  engRegion: z.string().optional(),
+  engLevel: z.string().optional(),
+  engPricingModel: z.enum(['hourly', 'milestone']).optional(),
 });
 
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: "Missing email or password" });
-        
-        const supabase = getClient();
-        const pwdHash = hashPassword(password);
-        
-        const { data: user, error: fetchErr } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .single();
-        
-        if (fetchErr || !user) {
-            return res.status(401).json({ error: "Invalid email or password." });
-        }
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
 
-        if (user.password !== pwdHash) {
-            // Legacy migration fallback
-            if (!user.password) {
-                await supabase.from('users').update({ password: pwdHash }).eq('email', email);
-                return res.json({ status: 'ok', email: user.email, role: user.role, name: user.name, msg: "Legacy account migrated." });
-            }
-            return res.status(401).json({ error: "Invalid email or password." });
-        }
+// ── Register ─────────────────────────────────────────────────────────────────
 
-        res.json({ status: 'ok', email: user.email, role: user.role, name: user.name });
-    } catch (err) {
-        console.error("Auth Login Error:", err);
-        res.status(500).json({ error: err.message });
+router.post('/register', async (req, res) => {
+  try {
+    // Validate input
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0].message });
     }
+
+    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel } = parsed.data;
+    const supabase = getClient();
+
+    // Hash password with bcrypt (salted)
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    // Insert user
+    const { data: user, error: userErr } = await supabase
+      .from('users')
+      .insert([{ email, password: passwordHash, role, name: engName || name || '' }])
+      .select()
+      .single();
+
+    if (userErr) {
+      if (userErr.code === '23505') {
+        return res.status(400).json({ error: 'Email already registered. Please sign in instead.' });
+      }
+      throw userErr;
+    }
+
+    // If engineer, create talent profile
+    if (role === 'engineer' && engName) {
+      const { error: talentErr } = await supabase
+        .from('talents')
+        .insert([{
+          user_id: user.id,
+          name: engName,
+          skills: engSkills || 'Automation Engineer',
+          region: engRegion || 'US/CA/MX',
+          rate: engRate || 'Open',
+          pricing_model: engPricingModel || 'hourly',
+          level: engLevel || 'Mid',
+          verified_score: 0,
+          bio: engBio || '',
+          contact: email,
+        }]);
+      if (talentErr) throw talentErr;
+      console.log(`[Auth] Registered new engineer: ${engName}`);
+    }
+
+    // Issue JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({ status: 'ok', token, email: user.email, role: user.role, name: user.name });
+
+  } catch (err) {
+    console.error('[Auth] Register error:', err);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
+  }
+});
+
+// ── Login ────────────────────────────────────────────────────────────────────
+
+router.post('/login', async (req, res) => {
+  try {
+    // Validate input
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0].message });
+    }
+
+    const { email, password } = parsed.data;
+    const supabase = getClient();
+
+    const { data: user, error: fetchErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (fetchErr || !user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // Handle legacy accounts (plain SHA256 hash — migrate on first login)
+    let passwordValid = false;
+    const isBcrypt = user.password?.startsWith('$2');
+
+    if (isBcrypt) {
+      passwordValid = await bcrypt.compare(password, user.password);
+    } else {
+      // Legacy SHA256 — verify then migrate to bcrypt
+      const crypto = require('crypto');
+      const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
+      if (user.password === legacyHash || !user.password) {
+        passwordValid = true;
+        // Migrate to bcrypt silently
+        const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await supabase.from('users').update({ password: newHash }).eq('id', user.id);
+        console.log(`[Auth] Migrated legacy password for ${email}`);
+      }
+    }
+
+    if (!passwordValid) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // Issue JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({ status: 'ok', token, email: user.email, role: user.role, name: user.name });
+
+  } catch (err) {
+    console.error('[Auth] Login error:', err);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
 });
 
 module.exports = router;
