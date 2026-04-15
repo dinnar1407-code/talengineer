@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
+    "@sentry/node": "^10.48.0",
     "@supabase/supabase-js": "^2.101.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^9.6.0",

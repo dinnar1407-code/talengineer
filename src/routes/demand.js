@@ -3,6 +3,7 @@ const router = express.Router();
 const { getClient } = require('../config/db');
 const { parseDemand } = require('../services/aiService');
 const { runMatchmaker } = require('../services/matchmakerService');
+const { requireAuth } = require('../middleware/auth');
 
 // Submit raw demand and get AI parsed SoW (For UI / Manual confirmation)
 router.post('/parse', async (req, res) => {
@@ -87,7 +88,7 @@ router.post('/quick_launch', async (req, res) => {
 });
 
 // Save parsed demand to DB (Manual form submission)
-router.post('/submit', async (req, res) => {
+router.post('/submit', requireAuth, async (req, res) => {
     try {
         const supabase = getClient();
         const { employer_id, title, role_required, region, project_type, location, budget, description, contact, milestones } = req.body;

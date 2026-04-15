@@ -2,7 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const Sentry = require('@sentry/node');
 require('dotenv').config();
+
+// ── Sentry: error tracking ────────────────────────────────────────────────────
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.1,
+  });
+}
 
 const app = express();
 
@@ -79,6 +89,8 @@ app.use((err, req, res, next) => {
   if (err.message?.startsWith('CORS:')) {
     return res.status(403).json({ error: err.message });
   }
+  // Report to Sentry
+  if (process.env.SENTRY_DSN) Sentry.captureException(err);
   console.error('[Server Error]', err);
   const isDev = process.env.NODE_ENV !== 'production';
   res.status(err.status || 500).json({
