@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
+import { supabase } from '../lib/supabaseClient';
 import styles from './finance.module.css';
 
 const DICT = {
@@ -47,7 +48,29 @@ export default function Finance() {
         window.history.replaceState({}, document.title, '/finance');
       });
     }
+
+    // Restore existing Supabase session (e.g. after Google OAuth redirect)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) loginWithSupabaseUser(session.user);
+    });
+
+    // Listen for auth state changes (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) loginWithSupabaseUser(session.user);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  function loginWithSupabaseUser(user) {
+    const userData = {
+      email: user.email,
+      name: user.user_metadata?.full_name || user.email.split('@')[0],
+      role: 'employer', // default role for OAuth users
+    };
+    setCurrentUser(userData);
+    loadLedger(userData);
+  }
 
   function setLang(l) { setLangState(l); localStorage.setItem('tal_lang', l); }
 
@@ -161,7 +184,7 @@ export default function Finance() {
 
             <div className={styles.orDivider}><span>{d.lblOr}</span></div>
             <div className={styles.socialGroup}>
-              <button className={styles.btnGoogle} onClick={() => alert('Google OAuth integration pending (Supabase Auth).')}>
+              <button className={styles.btnGoogle} onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/finance' } })}>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width={16} height={16} alt="Google" /> Google
               </button>
               <button className={styles.btnLinkedIn} onClick={() => alert('LinkedIn OAuth integration pending.')}>
