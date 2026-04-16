@@ -175,26 +175,31 @@
   margin: 4px 0;
 }
 
-/* Lang buttons */
+/* Lang switcher */
 .divider {
   width: 1px;
   height: 20px;
   background: var(--border, #e5e7eb);
+  flex-shrink: 0;
 }
 
-.langBtn {
+.langSelect {
+  appearance: none;
+  -webkit-appearance: none;
   background: none;
-  border: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted, #9ca3af);
+  color: var(--text, #111);
   cursor: pointer;
-  padding: 2px 4px;
-  transition: color .15s;
+  padding: 4px 8px;
+  transition: border-color .15s;
+  white-space: nowrap;
 }
 
-.langBtn:hover { color: var(--text, #111); }
-.langActive    { color: var(--primary, #0056b3) !important; }
+.langSelect:hover  { border-color: var(--primary, #0056b3); }
+.langSelect:focus  { outline: none; border-color: var(--primary, #0056b3); }
 
 /* Mobile: hide nav links on small screens */
 @media (max-width: 600px) {

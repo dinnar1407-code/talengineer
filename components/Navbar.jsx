@@ -9,6 +9,18 @@ const LS_LANG_KEY = 'tal_lang';
 const ROLE_LABEL = { employer: 'Employer', engineer: 'Engineer' };
 const ROLE_COLOR  = { employer: '#10b981', engineer: '#0056b3' };
 
+const LANGS = [
+  { code: 'en', label: '🇺🇸 English' },
+  { code: 'zh', label: '🇨🇳 中文' },
+  { code: 'es', label: '🇲🇽 Español' },
+  { code: 'vi', label: '🇻🇳 Tiếng Việt' },
+  { code: 'hi', label: '🇮🇳 हिन्दी' },
+  { code: 'fr', label: '🇫🇷 Français' },
+  { code: 'de', label: '🇩🇪 Deutsch' },
+  { code: 'ja', label: '🇯🇵 日本語' },
+  { code: 'ko', label: '🇰🇷 한국어' },
+];
+
 const DICT = {
   en: {
     findEngineers:  'Find Engineers',
@@ -36,6 +48,60 @@ const DICT = {
     editProfile:    'Editar perfil',
     apiKeys:        'Claves API',
     signOut:        'Cerrar sesión',
+  },
+  vi: {
+    findEngineers:  'Tìm Kỹ Sư',
+    rateBenchmarks: 'Thị Trường Giá',
+    signIn:         'Đăng nhập',
+    dashboard:      'Bảng điều khiển',
+    editProfile:    'Chỉnh sửa hồ sơ',
+    apiKeys:        'Khóa API',
+    signOut:        'Đăng xuất',
+  },
+  hi: {
+    findEngineers:  'इंजीनियर खोजें',
+    rateBenchmarks: 'बाज़ार दरें',
+    signIn:         'साइन इन करें',
+    dashboard:      'डैशबोर्ड',
+    editProfile:    'प्रोफ़ाइल संपादित करें',
+    apiKeys:        'API कुंजियाँ',
+    signOut:        'साइन आउट',
+  },
+  fr: {
+    findEngineers:  'Trouver des Ingénieurs',
+    rateBenchmarks: 'Tarifs du marché',
+    signIn:         'Se connecter',
+    dashboard:      'Tableau de bord',
+    editProfile:    'Modifier le profil',
+    apiKeys:        'Clés API',
+    signOut:        'Se déconnecter',
+  },
+  de: {
+    findEngineers:  'Ingenieure finden',
+    rateBenchmarks: 'Marktpreise',
+    signIn:         'Anmelden',
+    dashboard:      'Dashboard',
+    editProfile:    'Profil bearbeiten',
+    apiKeys:        'API-Schlüssel',
+    signOut:        'Abmelden',
+  },
+  ja: {
+    findEngineers:  'エンジニアを探す',
+    rateBenchmarks: '市場レート',
+    signIn:         'サインイン',
+    dashboard:      'ダッシュボード',
+    editProfile:    'プロフィール編集',
+    apiKeys:        'APIキー',
+    signOut:        'サインアウト',
+  },
+  ko: {
+    findEngineers:  '엔지니어 찾기',
+    rateBenchmarks: '시장 요율',
+    signIn:         '로그인',
+    dashboard:      '대시보드',
+    editProfile:    '프로필 편집',
+    apiKeys:        'API 키',
+    signOut:        '로그아웃',
   },
 };
 
@@ -160,15 +226,15 @@ export default function Navbar({ lang: langProp, onLangChange }) {
         )}
 
         <div className={styles.divider} />
-        {['en', 'zh', 'es'].map(l => (
-          <button
-            key={l}
-            className={`${styles.langBtn} ${lang === l ? styles.langActive : ''}`}
-            onClick={() => switchLang(l)}
-          >
-            {l.toUpperCase()}
-          </button>
-        ))}
+        <select
+          className={styles.langSelect}
+          value={lang}
+          onChange={e => switchLang(e.target.value)}
+        >
+          {LANGS.map(l => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
+        </select>
       </nav>
     </header>
   );

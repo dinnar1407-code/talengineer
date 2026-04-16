@@ -10,37 +10,94 @@ const PAGE_SIZE = 12;
 
 const DICT = {
   en: {
-    navTalent: 'Find Engineers', navLogin: 'Sign In / Dashboard',
-    hubTitle: 'Industrial Automation Service Hub',
-    hubSub: 'AI-driven cross-border marketplace connecting Chinese equipment suppliers with elite local engineers in North America & Mexico.',
-    tabProjects: 'Browse Projects (For Engineers)', tabTalent: 'Browse Engineers (For Foremen)',
-    formTitleProjects: 'Post a Project (Supplier/Foreman)',
-    lblDescribe: 'Describe your project (You can type in Chinese)',
-    parseBtn: '✨ AI Magic: Parse & Standardize',
-    formTitleTalent: 'Create Profile (Engineer)',
+    hubTitle: 'Global Industrial Automation Hub',
+    hubSub: 'AI-driven marketplace connecting equipment manufacturers worldwide with AI-verified local engineers across North America, Vietnam, India, Europe, and beyond.',
+    tabProjects: 'Browse Projects (For Engineers)', tabTalent: 'Browse Engineers (For Employers)',
+    formTitleProjects: 'Post a Project',
+    lblDescribe: 'Describe your project (any language)',
+    parseBtn: '✨ AI: Parse & Standardize',
+    formTitleTalent: 'Create Engineer Profile',
     submitJobBtn: 'Confirm & Post Project', submitProfileBtn: 'Publish Profile',
   },
   zh: {
-    navTalent: '寻找工程师', navLogin: '登录 / 控制台',
-    hubTitle: '工业自动化服务大厅',
-    hubSub: 'AI 驱动的跨境撮合平台，连接中国出海设备供应商与北美/墨西哥顶尖本土工程师。',
+    hubTitle: '全球工业自动化服务大厅',
+    hubSub: 'AI 驱动的全球撮合平台，连接出海设备企业与北美、越南、印度、欧洲等地经 AI 认证的本地工程师。',
     tabProjects: '浏览项目 (我是工程师)', tabTalent: '寻找工程师 (我是发包方)',
-    formTitleProjects: '发布项目 (发包方入口)',
-    lblDescribe: '用大白话描述您的项目需求',
-    parseBtn: '✨ AI 魔法：自动解析并生成英文标书',
+    formTitleProjects: '发布项目',
+    lblDescribe: '用任意语言描述您的项目需求',
+    parseBtn: '✨ AI 魔法：自动解析并生成标书',
     formTitleTalent: '创建工程师档案',
     submitJobBtn: '确认发布项目', submitProfileBtn: '发布档案 (接受 AI 审核)',
   },
   es: {
-    navTalent: 'Buscar Ingenieros', navLogin: 'Iniciar sesión',
-    hubTitle: 'Centro de Servicios de Automatización',
-    hubSub: 'Mercado transfronterizo impulsado por IA que conecta proveedores chinos con ingenieros locales en Norteamérica y México.',
-    tabProjects: 'Ver Proyectos (Para Ingenieros)', tabTalent: 'Ver Ingenieros (Para Gerentes)',
+    hubTitle: 'Centro Global de Automatización Industrial',
+    hubSub: 'Mercado impulsado por IA que conecta fabricantes de equipos con ingenieros locales verificados en todo el mundo.',
+    tabProjects: 'Ver Proyectos (Para Ingenieros)', tabTalent: 'Ver Ingenieros (Para Empleadores)',
     formTitleProjects: 'Publicar un Proyecto',
-    lblDescribe: 'Describe tu proyecto',
-    parseBtn: '✨ Magia IA: Analizar y Estandarizar',
-    formTitleTalent: 'Crear Perfil (Ingeniero)',
+    lblDescribe: 'Describe tu proyecto (cualquier idioma)',
+    parseBtn: '✨ IA: Analizar y Estandarizar',
+    formTitleTalent: 'Crear Perfil de Ingeniero',
     submitJobBtn: 'Confirmar y Publicar', submitProfileBtn: 'Publicar Perfil',
+  },
+  vi: {
+    hubTitle: 'Trung tâm Tự động hóa Công nghiệp Toàn cầu',
+    hubSub: 'Thị trường AI kết nối nhà sản xuất thiết bị với kỹ sư địa phương được xác minh tại Việt Nam, Ấn Độ, Bắc Mỹ và toàn cầu.',
+    tabProjects: 'Xem Dự Án (Cho Kỹ Sư)', tabTalent: 'Tìm Kỹ Sư (Cho Nhà Tuyển Dụng)',
+    formTitleProjects: 'Đăng Dự Án',
+    lblDescribe: 'Mô tả dự án của bạn (bất kỳ ngôn ngữ nào)',
+    parseBtn: '✨ AI: Phân tích & Chuẩn hóa',
+    formTitleTalent: 'Tạo Hồ Sơ Kỹ Sư',
+    submitJobBtn: 'Xác nhận & Đăng', submitProfileBtn: 'Xuất bản Hồ Sơ',
+  },
+  hi: {
+    hubTitle: 'वैश्विक औद्योगिक स्वचालन केंद्र',
+    hubSub: 'AI-संचालित बाज़ार जो उपकरण निर्माताओं को भारत, वियतनाम, उत्तरी अमेरिका और दुनिया भर के AI-सत्यापित इंजीनियरों से जोड़ता है।',
+    tabProjects: 'प्रोजेक्ट देखें (इंजीनियरों के लिए)', tabTalent: 'इंजीनियर खोजें (नियोक्ताओं के लिए)',
+    formTitleProjects: 'प्रोजेक्ट पोस्ट करें',
+    lblDescribe: 'अपने प्रोजेक्ट का वर्णन करें (किसी भी भाषा में)',
+    parseBtn: '✨ AI: विश्लेषण और मानकीकरण',
+    formTitleTalent: 'इंजीनियर प्रोफ़ाइल बनाएं',
+    submitJobBtn: 'पुष्टि करें और पोस्ट करें', submitProfileBtn: 'प्रोफ़ाइल प्रकाशित करें',
+  },
+  fr: {
+    hubTitle: 'Hub Mondial d\'Automatisation Industrielle',
+    hubSub: 'Marketplace IA reliant fabricants d\'équipements et ingénieurs locaux vérifiés partout dans le monde — Amérique du Nord, Vietnam, Inde, Europe.',
+    tabProjects: 'Voir les Projets (Ingénieurs)', tabTalent: 'Trouver des Ingénieurs (Employeurs)',
+    formTitleProjects: 'Publier un Projet',
+    lblDescribe: 'Décrivez votre projet (n\'importe quelle langue)',
+    parseBtn: '✨ IA : Analyser & Standardiser',
+    formTitleTalent: 'Créer un Profil Ingénieur',
+    submitJobBtn: 'Confirmer et Publier', submitProfileBtn: 'Publier le Profil',
+  },
+  de: {
+    hubTitle: 'Globaler Marktplatz für Industrieautomation',
+    hubSub: 'KI-gestützter Marktplatz verbindet Anlagenhersteller weltweit mit verifizierten lokalen Ingenieuren in Nordamerika, Vietnam, Indien und Europa.',
+    tabProjects: 'Projekte ansehen (Ingenieure)', tabTalent: 'Ingenieure finden (Arbeitgeber)',
+    formTitleProjects: 'Projekt veröffentlichen',
+    lblDescribe: 'Beschreiben Sie Ihr Projekt (beliebige Sprache)',
+    parseBtn: '✨ KI: Analysieren & Standardisieren',
+    formTitleTalent: 'Ingenieurprofil erstellen',
+    submitJobBtn: 'Bestätigen & Veröffentlichen', submitProfileBtn: 'Profil veröffentlichen',
+  },
+  ja: {
+    hubTitle: 'グローバル産業オートメーション・プラットフォーム',
+    hubSub: 'AIが世界中の設備メーカーと、北米・ベトナム・インド・欧州のAI検証済みエンジニアをつなぐマーケットプレイス。',
+    tabProjects: 'プロジェクト一覧（エンジニア向け）', tabTalent: 'エンジニアを探す（発注者向け）',
+    formTitleProjects: 'プロジェクトを投稿',
+    lblDescribe: 'プロジェクトの概要を説明してください（任意の言語可）',
+    parseBtn: '✨ AI：解析・標準化',
+    formTitleTalent: 'エンジニアプロフィール作成',
+    submitJobBtn: '確認して投稿', submitProfileBtn: 'プロフィールを公開',
+  },
+  ko: {
+    hubTitle: '글로벌 산업 자동화 허브',
+    hubSub: 'AI 기반 마켓플레이스로 전 세계 설비 제조사와 북미, 베트남, 인도, 유럽의 AI 인증 엔지니어를 연결합니다.',
+    tabProjects: '프로젝트 탐색 (엔지니어용)', tabTalent: '엔지니어 찾기 (고용주용)',
+    formTitleProjects: '프로젝트 게시',
+    lblDescribe: '프로젝트를 설명해주세요 (어떤 언어든 가능)',
+    parseBtn: '✨ AI: 분석 및 표준화',
+    formTitleTalent: '엔지니어 프로필 생성',
+    submitJobBtn: '확인 및 게시', submitProfileBtn: '프로필 공개',
   },
 };
 
@@ -325,6 +382,15 @@ export default function Talent() {
                         <option>United States (US)</option>
                         <option>Canada (CA)</option>
                         <option>Mexico (MX)</option>
+                        <option>Vietnam (VN)</option>
+                        <option>India (IN)</option>
+                        <option>Germany (DE)</option>
+                        <option>France (FR)</option>
+                        <option>Japan (JP)</option>
+                        <option>South Korea (KR)</option>
+                        <option>Brazil (BR)</option>
+                        <option>Australia (AU)</option>
+                        <option>United Kingdom (GB)</option>
                         <option>Remote / Anywhere</option>
                       </select>
                     </FormGroup>
@@ -355,8 +421,18 @@ export default function Talent() {
                 <select value={filterRegion} onChange={e => setFilterRegion(e.target.value)} className={styles.filterSelect}>
                   <option value="all">All Regions</option>
                   <option value="US">United States (US)</option>
-                  <option value="MX">Mexico (MX)</option>
                   <option value="CA">Canada (CA)</option>
+                  <option value="MX">Mexico (MX)</option>
+                  <option value="VN">Vietnam (VN)</option>
+                  <option value="IN">India (IN)</option>
+                  <option value="DE">Germany (DE)</option>
+                  <option value="FR">France (FR)</option>
+                  <option value="JP">Japan (JP)</option>
+                  <option value="KR">South Korea (KR)</option>
+                  <option value="BR">Brazil (BR)</option>
+                  <option value="AU">Australia (AU)</option>
+                  <option value="GB">United Kingdom (GB)</option>
+                  <option value="Remote">Remote / Anywhere</option>
                 </select>
                 <input className={styles.filterInput} value={filterSkills} onChange={e => setFilterSkills(e.target.value)} placeholder="Search skills (e.g. Siemens, Rockwell)" />
                 <select value={filterScore} onChange={e => setFilterScore(e.target.value)} className={styles.filterSelect}>
@@ -425,7 +501,19 @@ export default function Talent() {
                 <FormGroup label="Primary Skills & PLCs"><input value={profileForm.skills} onChange={e => setProfileForm(f => ({ ...f, skills: e.target.value }))} placeholder="e.g. Siemens S7, Rockwell, TIA Portal" required /></FormGroup>
                 <FormGroup label="Service Region">
                   <select value={profileForm.region} onChange={e => setProfileForm(f => ({ ...f, region: e.target.value }))}>
-                    <option>Mexico (MX)</option><option>United States (US)</option><option>Canada (CA)</option>
+                    <option>United States (US)</option>
+                    <option>Canada (CA)</option>
+                    <option>Mexico (MX)</option>
+                    <option>Vietnam (VN)</option>
+                    <option>India (IN)</option>
+                    <option>Germany (DE)</option>
+                    <option>France (FR)</option>
+                    <option>Japan (JP)</option>
+                    <option>South Korea (KR)</option>
+                    <option>Brazil (BR)</option>
+                    <option>Australia (AU)</option>
+                    <option>United Kingdom (GB)</option>
+                    <option>Remote / Anywhere</option>
                   </select>
                 </FormGroup>
                 <FormGroup label="Expected Rate (USD)"><input value={profileForm.rate} onChange={e => setProfileForm(f => ({ ...f, rate: e.target.value }))} placeholder="e.g. $60/hr or $500/day" required /></FormGroup>
