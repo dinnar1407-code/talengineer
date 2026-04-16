@@ -47,6 +47,11 @@ export default function Finance() {
   const [applicants, setApplicants]                 = useState(null);
   const [assigning, setAssigning]                   = useState(null);
 
+  // Dispute
+  const [openingDispute, setOpeningDispute] = useState(null); // milestoneId
+  const [disputeReason, setDisputeReason]   = useState('');
+  const [filingDispute, setFilingDispute]   = useState(false);
+
   // Forgot password
   const [showForgotPw, setShowForgotPw] = useState(false);
   const [forgotEmail, setForgotEmail]   = useState('');
@@ -243,6 +248,29 @@ export default function Finance() {
       else if (res.ok) { toast.success(result.message); openMilestones(demandId); }
       else toast.error(result.error);
     } catch { toast.error('Network error.'); }
+  }
+
+  async function openDispute(e) {
+    e.preventDefault();
+    if (!disputeReason.trim()) return;
+    setFilingDispute(true);
+    try {
+      const res  = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser?.token}` },
+        body: JSON.stringify({ milestone_id: openingDispute, demand_id: modalDemandId, reason: disputeReason }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Dispute filed. Our team will review within 48 hours.');
+        setOpeningDispute(null);
+        setDisputeReason('');
+        openMilestones(modalDemandId);
+      } else {
+        toast.error(data.error || 'Failed to open dispute.');
+      }
+    } catch { toast.error('Network error.'); }
+    setFilingDispute(false);
   }
 
   async function releaseMilestone(milestoneId, demandId) {
@@ -498,6 +526,27 @@ export default function Finance() {
         </div>
       )}
 
+      {/* Dispute Modal */}
+      {openingDispute && (
+        <div className={styles.modal} onClick={e => e.target === e.currentTarget && setOpeningDispute(null)}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <span>⚠️ Open a Dispute</span>
+              <span className={styles.modalClose} onClick={() => setOpeningDispute(null)}>×</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>Funds will be frozen and our team will review within 48–72 hours. Both parties will be asked to submit evidence.</p>
+            <form onSubmit={openDispute}>
+              <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>Reason for Dispute</label>
+              <textarea value={disputeReason} onChange={e => setDisputeReason(e.target.value)} rows={4} required placeholder="Describe the issue clearly — e.g. work not completed, deliverables not met..." style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)' }} />
+              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                <button type="submit" disabled={filingDispute} style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', padding: '11px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>{filingDispute ? 'Filing…' : 'File Dispute'}</button>
+                <button type="button" onClick={() => setOpeningDispute(null)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', padding: '11px', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Milestone Modal */}
       {modalDemandId && (
         <div className={styles.modal} onClick={e => e.target === e.currentTarget && setModalDemandId(null)}>
@@ -523,6 +572,7 @@ export default function Finance() {
                         {currentUser?.role === 'employer' && m.status === 'locked' && <button className={styles.btnFund} onClick={() => fundMilestone(m.id, modalDemandId, m.amount, m.phase_name)}>Fund via Stripe</button>}
                         {currentUser?.role === 'employer' && m.status === 'funded' && <button className={styles.btnRelease} onClick={() => releaseMilestone(m.id, modalDemandId)}>🛡️ Release Funds</button>}
                         {currentUser?.role === 'engineer' && m.status === 'funded' && <a href={`/workorder/${m.id}`} className={styles.btnAction} style={{ display: 'block', marginTop: 8, textAlign: 'center', textDecoration: 'none', fontSize: 12 }}>📍 Work Order</a>}
+                        {['funded', 'completed'].includes(m.status) && <button className={styles.btnAction} style={{ background: '#ef4444', marginTop: 6, fontSize: 11 }} onClick={() => setOpeningDispute(m.id)}>⚠️ Dispute</button>}
                         {m.status === 'released' && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Platform Fee Deducted</div>}
                       </div>
                     </li>

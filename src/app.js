@@ -22,7 +22,7 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password'],
   credentials: true,
 }));
 
@@ -75,6 +75,9 @@ const adminRoutes   = require('./routes/admin');
 const connectRoutes        = require('./routes/connect');
 const certificationsRoutes = require('./routes/certifications');
 const workorderRoutes      = require('./routes/workorder');
+const { router: apikeysRouter } = require('./routes/apikeys');
+const disputesRoutes       = require('./routes/disputes');
+const enterpriseRoutes     = require('./routes/enterprise');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -86,6 +89,9 @@ app.use('/api/admin',           adminRoutes);
 app.use('/api/payment/connect', connectRoutes);
 app.use('/api/certifications',  certificationsRoutes);
 app.use('/api/workorder',       workorderRoutes);
+app.use('/api/apikeys',         apikeysRouter);
+app.use('/api/disputes',        disputesRoutes);
+app.use('/api/enterprise',      enterpriseRoutes);
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));

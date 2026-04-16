@@ -88,4 +88,45 @@ router.get('/profile/:id', async (req, res) => {
   }
 });
 
+// ── Rate benchmarks (public) ──────────────────────────────────────────────────
+router.get('/rate-benchmarks', async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('talents')
+      .select('region, rate, skills')
+      .not('rate', 'is', null);
+    if (error) throw error;
+
+    const parse = r => parseFloat(String(r).replace(/[^0-9.]/g, '')) || null;
+    const byRegion = {};
+    const allSkills = new Set();
+
+    (data || []).forEach(t => {
+      const num = parse(t.rate);
+      if (!num) return;
+      const key = t.region || 'Other';
+      if (!byRegion[key]) byRegion[key] = { rates: [], skills: {} };
+      byRegion[key].rates.push(num);
+      (t.skills || '').split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
+        allSkills.add(s);
+        byRegion[key].skills[s] = (byRegion[key].skills[s] || 0) + 1;
+      });
+    });
+
+    const summary = Object.entries(byRegion).map(([region, { rates, skills }]) => {
+      rates.sort((a, b) => a - b);
+      const avg = rates.reduce((s, v) => s + v, 0) / rates.length;
+      const mid = Math.floor(rates.length / 2);
+      const median = rates.length % 2 !== 0 ? rates[mid] : (rates[mid - 1] + rates[mid]) / 2;
+      const top_skills = Object.entries(skills).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s]) => s);
+      return { region, count: rates.length, avg: Math.round(avg), median: Math.round(median), min: rates[0], max: rates[rates.length - 1], top_skills };
+    }).sort((a, b) => b.count - a.count);
+
+    res.json({ status: 'ok', data: summary, skills: [...allSkills].sort() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

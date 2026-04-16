@@ -12,6 +12,7 @@ export default function Admin() {
   const [loading, setLoading]   = useState(false);
   const [activeTab, setActiveTab] = useState('users');
   const [certs, setCerts]         = useState(null);
+  const [disputes, setDisputes]   = useState(null);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -64,6 +65,32 @@ export default function Admin() {
     } catch { setCerts([]); }
   }
 
+  async function loadDisputes(status = 'open') {
+    setDisputes(null);
+    try {
+      const res  = await fetch(`/api/disputes?status=${status}`, { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setDisputes(data.data || []);
+    } catch { setDisputes([]); }
+  }
+
+  async function resolveDispute(disputeId, resolution, adminDecision) {
+    try {
+      const res  = await fetch(`/api/disputes/${disputeId}/resolve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ resolution, admin_decision: adminDecision }),
+      });
+      if (res.ok) {
+        toast.success(`Dispute #${disputeId} resolved.`);
+        setDisputes(prev => prev.filter(d => d.id !== disputeId));
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed to resolve.');
+      }
+    } catch { toast.error('Network error.'); }
+  }
+
   async function reviewCert(certId, status) {
     try {
       await fetch(`/api/certifications/${certId}/review`, {
@@ -77,11 +104,12 @@ export default function Admin() {
   }
 
   const TABS = [
-    { id: 'users',   label: `Users (${counts.users})` },
-    { id: 'demands', label: `Projects (${counts.demands})` },
-    { id: 'talents', label: `Engineers (${counts.talents})` },
-    { id: 'ledgers', label: `Ledger (${counts.ledgers})` },
-    { id: 'certs',   label: 'Certifications' },
+    { id: 'users',    label: `Users (${counts.users})` },
+    { id: 'demands',  label: `Projects (${counts.demands})` },
+    { id: 'talents',  label: `Engineers (${counts.talents})` },
+    { id: 'ledgers',  label: `Ledger (${counts.ledgers})` },
+    { id: 'certs',    label: 'Certifications' },
+    { id: 'disputes', label: 'Disputes' },
   ];
 
   return (
@@ -109,7 +137,7 @@ export default function Admin() {
         {/* Tabs */}
         <div className={styles.tabs}>
           {TABS.map(t => (
-            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); }}>{t.label}</button>
+            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); if (t.id === 'disputes') loadDisputes(); }}>{t.label}</button>
           ))}
         </div>
 
@@ -202,6 +230,46 @@ export default function Admin() {
               }
             </tbody>
           </table>
+        )}
+
+        {/* Disputes */}
+        {activeTab === 'disputes' && (
+          <div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              {['open', 'under_review', 'resolved_engineer', 'resolved_employer', 'resolved_split'].map(s => (
+                <button key={s} onClick={() => loadDisputes(s)} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 12 }}>{s.replace(/_/g, ' ')}</button>
+              ))}
+            </div>
+            <table className={styles.table}>
+              <thead><tr><th>ID</th><th>Milestone</th><th>Opened By</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                {disputes === null
+                  ? <tr><td colSpan={6} className={styles.empty}>Loading…</td></tr>
+                  : disputes.length === 0
+                    ? <tr><td colSpan={6} className={styles.empty}>No disputes with this status.</td></tr>
+                    : disputes.map(d => (
+                      <tr key={d.id}>
+                        <td>#{d.id}</td>
+                        <td>{d.project_milestones?.phase_name || '—'}<br /><span className={styles.muted}>${parseFloat(d.project_milestones?.amount || 0).toLocaleString()}</span></td>
+                        <td className={styles.muted} style={{ fontSize: 12 }}>{d.opened_by_email}</td>
+                        <td style={{ maxWidth: 200, fontSize: 12 }}>{d.reason?.slice(0, 80)}{d.reason?.length > 80 ? '…' : ''}</td>
+                        <td><span className={`${styles.badge} ${styles.badgeGray}`}>{d.status}</span></td>
+                        <td>
+                          {!d.status?.startsWith('resolved') && (
+                            <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                              <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(d.id, 'resolved_engineer', dec); }} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>→ Engineer</button>
+                              <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(d.id, 'resolved_employer', dec); }} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>→ Employer</button>
+                              <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(d.id, 'resolved_split', dec); }} style={{ background: '#6366f1', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Split</button>
+                              <a href={`/dispute/${d.id}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--primary)', padding: '3px 8px', border: '1px solid var(--primary)', borderRadius: 4, textAlign: 'center', textDecoration: 'none' }}>View ↗</a>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                }
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Ledger */}
