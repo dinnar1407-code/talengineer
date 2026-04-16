@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
 import Navbar from '../../components/Navbar';
+import { useLang } from '../../hooks/useLang';
 import styles from './engineer.module.css';
 
 const CERT_TYPES = ['OSHA-10', 'OSHA-30', 'Electrical License', 'Siemens Certified', 'Rockwell/Allen-Bradley', 'Fanuc Robotics', 'CSIA Certified', 'PMP', 'General Liability Insurance', 'Workers Comp Insurance', 'Other'];
@@ -30,6 +31,7 @@ function StarRating({ value, onChange, size = 24 }) {
 export default function EngineerProfile() {
   const router = useRouter();
   const toast  = useToast();
+  const [lang, setLang] = useLang();
   const { id, review: reviewParam, demand_id: demandIdParam } = router.query;
 
   const [engineer, setEngineer]   = useState(null);
@@ -190,7 +192,7 @@ export default function EngineerProfile() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </Head>
 
-      <Navbar />
+      <Navbar lang={lang} onLangChange={setLang} />
 
       <div className={styles.wrap}>
         <div className={styles.card}>

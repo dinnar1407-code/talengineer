@@ -2,21 +2,29 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
+import Navbar from '../components/Navbar';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabaseClient';
+import { useLang } from '../hooks/useLang';
 import styles from './finance.module.css';
 
 const DICT = {
-  en: { navTalent: 'Find Engineers', navLogin: 'Sign In / Dashboard', dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out' },
-  zh: { navTalent: '寻找工程师', navLogin: '登录 / 控制台', dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录' },
-  es: { navTalent: 'Buscar Ingenieros', navLogin: 'Iniciar sesión', dashTitle: 'Finanzas y Facturas', dashSub: 'Gestione sus depósitos en garantía, hitos del proyecto e historial de pagos.', lblEscrow: 'Fondos en Garantía', lblReleased: 'Total Liberado', lblPending: 'Proyectos Activos', thProject: 'Proyecto / ID Pedido', thCounterparty: 'Contraparte', thAmount: 'Monto Total', thStatus: 'Estado', thAction: 'Acción', modalTitle: 'Hitos del Proyecto', btnModalClose: 'Cerrar', signIn: 'Iniciar Sesión', createAccount: 'Crear Cuenta', lblName: 'Nombre completo', lblRole: 'Yo soy un...', lblEmail: 'Correo Electrónico', lblPassword: 'Contraseña', lblOr: 'o continuar con', btnLogin: 'Iniciar Sesión', btnCreate: 'Crear Cuenta', logout: 'Cerrar sesión' },
+  en: { dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out' },
+  zh: { dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录' },
+  es: { dashTitle: 'Finanzas y Facturas', dashSub: 'Gestione sus depósitos en garantía, hitos del proyecto e historial de pagos.', lblEscrow: 'Fondos en Garantía', lblReleased: 'Total Liberado', lblPending: 'Proyectos Activos', thProject: 'Proyecto / ID Pedido', thCounterparty: 'Contraparte', thAmount: 'Monto Total', thStatus: 'Estado', thAction: 'Acción', modalTitle: 'Hitos del Proyecto', btnModalClose: 'Cerrar', signIn: 'Iniciar Sesión', createAccount: 'Crear Cuenta', lblName: 'Nombre completo', lblRole: 'Yo soy un...', lblEmail: 'Correo Electrónico', lblPassword: 'Contraseña', lblOr: 'o continuar con', btnLogin: 'Iniciar Sesión', btnCreate: 'Crear Cuenta', logout: 'Cerrar sesión' },
+  vi: { dashTitle: 'Tài chính & Hóa đơn', dashSub: 'Quản lý ký quỹ, cột mốc dự án và lịch sử thanh toán.', lblEscrow: 'Tiền ký quỹ', lblReleased: 'Tổng đã giải ngân', lblPending: 'Dự án đang hoạt động', thProject: 'Dự án / ID đơn hàng', thCounterparty: 'Đối tác', thAmount: 'Tổng tiền', thStatus: 'Trạng thái', thAction: 'Hành động', modalTitle: 'Cột mốc dự án', btnModalClose: 'Đóng', signIn: 'Đăng nhập', createAccount: 'Tạo tài khoản', lblName: 'Họ và tên', lblRole: 'Tôi là...', lblEmail: 'Địa chỉ email', lblPassword: 'Mật khẩu', lblOr: 'hoặc tiếp tục với', btnLogin: 'Đăng nhập vào bảng điều khiển', btnCreate: 'Tạo tài khoản', logout: 'Đăng xuất' },
+  hi: { dashTitle: 'वित्त और चालान', dashSub: 'अपने एस्क्रो, प्रोजेक्ट माइलस्टोन और भुगतान इतिहास प्रबंधित करें।', lblEscrow: 'एस्क्रो में धनराशि', lblReleased: 'कुल जारी', lblPending: 'सक्रिय प्रोजेक्ट', thProject: 'प्रोजेक्ट / ऑर्डर ID', thCounterparty: 'प्रतिपक्ष', thAmount: 'कुल राशि', thStatus: 'स्थिति', thAction: 'कार्रवाई', modalTitle: 'प्रोजेक्ट माइलस्टोन', btnModalClose: 'बंद करें', signIn: 'साइन इन', createAccount: 'खाता बनाएं', lblName: 'पूरा नाम', lblRole: 'मैं हूँ...', lblEmail: 'ईमेल पता', lblPassword: 'पासवर्ड', lblOr: 'या इसके साथ जारी रखें', btnLogin: 'डैशबोर्ड में साइन इन', btnCreate: 'खाता बनाएं', logout: 'साइन आउट' },
+  fr: { dashTitle: 'Finances & Factures', dashSub: 'Gérez vos séquestres actifs, jalons de projet et historique de paiements.', lblEscrow: 'Fonds en séquestre', lblReleased: 'Total libéré', lblPending: 'Projets actifs', thProject: 'Projet / ID Commande', thCounterparty: 'Contrepartie', thAmount: 'Montant total', thStatus: 'Statut', thAction: 'Action', modalTitle: 'Jalons du projet', btnModalClose: 'Fermer', signIn: 'Connexion', createAccount: 'Créer un compte', lblName: 'Nom complet', lblRole: 'Je suis...', lblEmail: 'Adresse e-mail', lblPassword: 'Mot de passe', lblOr: 'ou continuer avec', btnLogin: 'Connexion au tableau de bord', btnCreate: 'Créer un compte', logout: 'Déconnexion' },
+  de: { dashTitle: 'Finanzen & Rechnungen', dashSub: 'Verwalten Sie Treuhandkonten, Projektmeilensteine und Zahlungshistorie.', lblEscrow: 'Treuhänderische Mittel', lblReleased: 'Gesamt ausgezahlt', lblPending: 'Aktive Projekte', thProject: 'Projekt / Auftrags-ID', thCounterparty: 'Gegenpartei', thAmount: 'Gesamtbetrag', thStatus: 'Status', thAction: 'Aktion', modalTitle: 'Projektmeilensteine', btnModalClose: 'Schließen', signIn: 'Anmelden', createAccount: 'Konto erstellen', lblName: 'Vollständiger Name', lblRole: 'Ich bin...', lblEmail: 'E-Mail-Adresse', lblPassword: 'Passwort', lblOr: 'oder weiter mit', btnLogin: 'Am Dashboard anmelden', btnCreate: 'Konto erstellen', logout: 'Abmelden' },
+  ja: { dashTitle: '財務・請求書管理', dashSub: '稼働中のエスクロー、プロジェクトマイルストーン、支払い履歴を管理します。', lblEscrow: 'エスクロー中の資金', lblReleased: '総支払済み', lblPending: '進行中のプロジェクト', thProject: 'プロジェクト / 注文ID', thCounterparty: '取引相手', thAmount: '合計金額', thStatus: 'ステータス', thAction: 'アクション', modalTitle: 'プロジェクトマイルストーン', btnModalClose: '閉じる', signIn: 'サインイン', createAccount: 'アカウント作成', lblName: '氏名', lblRole: '私は...', lblEmail: 'メールアドレス', lblPassword: 'パスワード', lblOr: 'または次のアカウントで続行', btnLogin: 'ダッシュボードにサインイン', btnCreate: 'アカウントを作成', logout: 'サインアウト' },
+  ko: { dashTitle: '재무 및 청구서', dashSub: '활성 에스크로, 프로젝트 마일스톤 및 결제 내역을 관리합니다.', lblEscrow: '에스크로 자금', lblReleased: '총 지급액', lblPending: '진행 중인 프로젝트', thProject: '프로젝트 / 주문 ID', thCounterparty: '거래 상대방', thAmount: '총 금액', thStatus: '상태', thAction: '작업', modalTitle: '프로젝트 마일스톤', btnModalClose: '닫기', signIn: '로그인', createAccount: '계정 만들기', lblName: '이름', lblRole: '저는...', lblEmail: '이메일 주소', lblPassword: '비밀번호', lblOr: '또는 다음으로 계속', btnLogin: '대시보드 로그인', btnCreate: '계정 만들기', logout: '로그아웃' },
 };
 
 const LS_USER_KEY = 'tal_user';
 
 export default function Finance() {
   const toast = useToast();
-  const [lang, setLangState]        = useState('en');
+  const [lang, setLang]             = useLang();
   const [authMode, setAuthMode]     = useState('signin');
   const [currentUser, setCurrentUser] = useState(null);
   const [ledger, setLedger]         = useState(null); // null = loading
@@ -58,9 +66,6 @@ export default function Finance() {
   const [forgotSent, setForgotSent]     = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('tal_lang') || 'en';
-    setLangState(saved);
-
     // ── Restore session from localStorage (email/password login) ─────────────
     const stored = localStorage.getItem(LS_USER_KEY);
     if (stored) {
@@ -140,8 +145,6 @@ export default function Finance() {
     loadLedger(userData);
     if (userData.role === 'engineer' && userData.token) loadConnectStatus(userData.token);
   }
-
-  function setLang(l) { setLangState(l); localStorage.setItem('tal_lang', l); }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -326,7 +329,6 @@ export default function Finance() {
                 <span className={authMode === 'signin' ? styles.authTabActive : styles.authTab} onClick={() => setAuthMode('signin')}>{d.signIn}</span>
                 <span className={authMode === 'signup' ? styles.authTabActive : styles.authTab} onClick={() => setAuthMode('signup')}>{d.createAccount}</span>
               </div>
-              <button className={styles.langToggle} onClick={() => setLang(lang === 'en' ? 'zh' : lang === 'zh' ? 'es' : 'en')}>ZH / ES</button>
             </div>
             {showForgotPw ? (
               forgotSent ? (
@@ -391,16 +393,7 @@ export default function Finance() {
         </div>
       )}
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
-        <nav className={styles.navLinks}>
-          <Link href="/talent">{d.navTalent}</Link>
-          {currentUser
-            ? <button className={styles.btnLogout} onClick={handleLogout}>{d.logout}</button>
-            : <Link href="/finance" className={styles.btnLogin}>{d.navLogin}</Link>
-          }
-        </nav>
-      </header>
+      <Navbar lang={lang} onLangChange={setLang} />
 
       {currentUser && (
         <div className={styles.container}>

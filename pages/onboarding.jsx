@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../components/Toast';
+import Navbar from '../components/Navbar';
+import { useLang } from '../hooks/useLang';
 import styles from './onboarding.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -13,6 +15,7 @@ const STEPS = ['Welcome', 'Profile', 'Skills', 'Availability', 'Done'];
 export default function Onboarding() {
   const router = useRouter();
   const toast = useToast();
+  const [lang, setLang] = useLang();
   const [currentUser, setCurrentUser] = useState(null);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -92,6 +95,8 @@ export default function Onboarding() {
       <Head>
         <title>Complete Your Profile | Talengineer</title>
       </Head>
+
+      <Navbar lang={lang} onLangChange={setLang} />
 
       <div className={styles.layout}>
         <div className={styles.card}>

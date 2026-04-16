@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import ChatBot from '../components/ChatBot';
 import { useToast } from '../components/Toast';
+import { useLang } from '../hooks/useLang';
 import styles from './talent.module.css';
 
 const PAGE_SIZE = 12;
@@ -103,7 +104,7 @@ const DICT = {
 
 export default function Talent() {
   const toast = useToast();
-  const [lang, setLangState]   = useState('en');
+  const [lang, setLang]        = useLang();
   const [activeTab, setActiveTab] = useState('projects');
   const [demands, setDemands]  = useState(null); // null = loading
   const [talents, setTalents]  = useState(null); // null = loading
@@ -138,17 +139,10 @@ export default function Talent() {
   const [postingProfile, setPostingProfile] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('tal_lang') || 'en';
-    setLangState(saved);
     loadDemands();
     const stored = localStorage.getItem('tal_user');
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
-
-  function setLang(l) {
-    setLangState(l);
-    localStorage.setItem('tal_lang', l);
-  }
 
   async function loadDemands() {
     try {

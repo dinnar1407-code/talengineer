@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
+import { useLang } from '../hooks/useLang';
 import styles from './index.module.css';
 
 const DICT = {
@@ -116,7 +117,7 @@ const DICT = {
 };
 
 export default function Home() {
-  const [lang, setLangState] = useState('en');
+  const [lang, setLang] = useLang();
   const [chatOpen, setChatOpen] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(true);
   const [messages, setMessages] = useState([
@@ -124,16 +125,6 @@ export default function Home() {
   ]);
   const [inputVal, setInputVal] = useState('');
   const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('tal_lang') || 'en';
-    setLangState(saved);
-  }, []);
-
-  function setLang(l) {
-    setLangState(l);
-    localStorage.setItem('tal_lang', l);
-  }
 
   function toggleChat() {
     setChatOpen((v) => !v);
