@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /finance
+Disallow: /admin
+Disallow: /onboarding
+Disallow: /workorder/
+Disallow: /api/
+
+Sitemap: https://talengineer.us/sitemap.xml

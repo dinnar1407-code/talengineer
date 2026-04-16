@@ -103,7 +103,11 @@ export default function WorkOrder() {
         headers: { Authorization: `Bearer ${currentUser.token}` },
       });
       const result = await res.json();
-      if (res.ok) { toast.success(`Approved! Payout $${result.payout?.toFixed(2)} sent to engineer.`); setStep('done'); }
+      if (res.ok) {
+        toast.success(`Approved! Payout $${result.payout?.toFixed(2)} sent to engineer.`);
+        setData(d => ({ ...d, approvedDemandId: result.demand_id }));
+        setStep('done');
+      }
       else toast.error(result.error);
     } catch { toast.error('Network error.'); }
     setSubmitting(false);
@@ -227,6 +231,15 @@ export default function WorkOrder() {
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
             <h2>Work Order Complete</h2>
             <p>Funds have been released to the engineer's Stripe account.</p>
+            {currentUser?.role === 'employer' && ms?.demands?.assigned_engineer_id && (
+              <a
+                href={`/engineer/${ms.demands.assigned_engineer_id}?review=1&demand_id=${ms.demand_id}`}
+                className={styles.btnPrimary}
+                style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 10, background: '#f59e0b' }}
+              >
+                ★ Rate the Engineer
+              </a>
+            )}
             <button className={styles.btnPrimary} onClick={() => router.push('/finance')}>Back to Dashboard</button>
           </div>
         )}

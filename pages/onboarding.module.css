@@ -1,0 +1,319 @@
+.layout {
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #f0f4ff 0%, #fff 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.1);
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 4px;
+  background: #e5e7eb;
+}
+
+.progressFill {
+  height: 4px;
+  background: var(--primary, #0056b3);
+  transition: width .4s ease;
+}
+
+.stepLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 12px 32px 0;
+}
+
+.stepContent {
+  padding: 24px 32px 32px;
+}
+
+.emoji {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.stepContent h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.stepContent h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.stepDesc {
+  font-size: 14px;
+  color: var(--muted, #6b7280);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.featureList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0 28px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text, #111);
+}
+
+.feature span {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.formGroup {
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+
+.input:focus { outline: none; border-color: var(--primary, #0056b3); }
+
+.rateInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted, #6b7280);
+}
+
+.rateInput .input { flex: 1; }
+
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  box-sizing: border-box;
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.textarea:focus { outline: none; border-color: var(--primary, #0056b3); }
+
+.charCount { font-size: 11px; color: var(--muted, #9ca3af); text-align: right; margin-top: 4px; }
+
+/* Skills grid */
+.skillGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.skillBtn {
+  padding: 6px 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 20px;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted, #6b7280);
+  transition: all .15s;
+}
+
+.skillBtn:hover { border-color: var(--primary, #0056b3); color: var(--primary, #0056b3); }
+
+.skillBtnActive {
+  background: var(--primary, #0056b3);
+  border-color: var(--primary, #0056b3);
+  color: #fff !important;
+}
+
+.customSkillRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.btnAdd {
+  padding: 10px 14px;
+  background: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text, #111);
+}
+
+.selectedSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.selectedChip {
+  background: rgba(0,86,179,.08);
+  color: var(--primary, #0056b3);
+  border: 1px solid rgba(0,86,179,.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selectedChip button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary, #0056b3);
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Availability */
+.availOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.availCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 2px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.availCard:hover { border-color: var(--primary, #0056b3); }
+.availCardActive { border-color: var(--primary, #0056b3); background: rgba(0,86,179,.04); }
+
+.availTitle { font-weight: 700; font-size: 14px; }
+.availDesc  { font-size: 12px; color: var(--muted, #6b7280); }
+
+/* Buttons */
+.btnRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btnNext {
+  flex: 1;
+  background: var(--primary, #0056b3);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  transition: background .15s;
+}
+
+.btnNext:hover { background: #004494; }
+.btnNext:disabled { opacity: .6; cursor: not-allowed; }
+
+.btnBack {
+  flex: none;
+  background: none;
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--muted, #6b7280);
+}
+
+.doneActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btnSecondary {
+  display: block;
+  text-align: center;
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text, #111);
+}
+
+@media (max-width: 480px) {
+  .stepContent { padding: 20px; }
+  .formRow { grid-template-columns: 1fr; }
+}

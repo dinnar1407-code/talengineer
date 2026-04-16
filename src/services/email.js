@@ -104,6 +104,33 @@ function emailPasswordReset({ userEmail, resetUrl }) {
   });
 }
 
+function emailRequestReview({ employerEmail, engineerName, projectTitle, reviewUrl }) {
+  return sendEmail({
+    to: employerEmail,
+    subject: `⭐ How did ${engineerName} do? Leave a review`,
+    html: wrap(`
+      <h2 style="color:#0056b3;margin-top:0">Project Complete — Leave a Review</h2>
+      <p>Your project <strong>${projectTitle}</strong> has been completed and payment released.</p>
+      <p>It takes 30 seconds and helps other employers make confident hiring decisions.</p>
+      <p><a href="${reviewUrl}" style="background:#0056b3;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">⭐ Rate ${engineerName}</a></p>
+      <p style="font-size:13px;color:#6b7280">Your honest feedback helps build trust on the platform.</p>
+    `),
+  });
+}
+
+function emailNewMessage({ recipientEmail, senderName, projectTitle, messagePreview, threadUrl }) {
+  return sendEmail({
+    to: recipientEmail,
+    subject: `💬 New message from ${senderName}: ${projectTitle}`,
+    html: wrap(`
+      <h2 style="color:#0056b3;margin-top:0">New Message</h2>
+      <p><strong>${senderName}</strong> sent you a message about <strong>${projectTitle}</strong>.</p>
+      <blockquote style="border-left:4px solid #e5e7eb;margin:16px 0;padding:12px 16px;color:#374151;font-style:italic">${messagePreview.slice(0, 200)}${messagePreview.length > 200 ? '…' : ''}</blockquote>
+      <p><a href="${threadUrl}" style="background:#0056b3;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">Reply →</a></p>
+    `),
+  });
+}
+
 module.exports = {
   emailMilestoneFunded,
   emailMilestoneReleased,
@@ -111,4 +138,6 @@ module.exports = {
   emailEngineerAssigned,
   emailNewApplication,
   emailPasswordReset,
+  emailRequestReview,
+  emailNewMessage,
 };

@@ -78,6 +78,8 @@ const workorderRoutes      = require('./routes/workorder');
 const { router: apikeysRouter } = require('./routes/apikeys');
 const disputesRoutes       = require('./routes/disputes');
 const enterpriseRoutes     = require('./routes/enterprise');
+const reviewsRoutes        = require('./routes/reviews');
+const messagesRoutes       = require('./routes/messages');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -92,6 +94,8 @@ app.use('/api/workorder',       workorderRoutes);
 app.use('/api/apikeys',         apikeysRouter);
 app.use('/api/disputes',        disputesRoutes);
 app.use('/api/enterprise',      enterpriseRoutes);
+app.use('/api/reviews',         reviewsRoutes);
+app.use('/api/messages',        messagesRoutes);
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));

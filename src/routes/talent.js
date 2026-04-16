@@ -71,6 +71,30 @@ router.get('/list', async (req, res) => {
   }
 });
 
+// ── Update own engineer profile ───────────────────────────────────────────────
+const { requireAuth } = require('../middleware/auth');
+
+router.put('/profile', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const allowed = ['bio', 'region', 'rate', 'pricing_model', 'skills', 'availability', 'available_from', 'avatar_url'];
+    const updates = {};
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'No valid fields to update' });
+
+    // Find talent by user_id
+    const { data: talent } = await supabase.from('talents').select('id').eq('user_id', req.user.userId).single();
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found. Please create a profile first.' });
+
+    const { data, error } = await supabase.from('talents').update(updates).eq('id', talent.id).select().single();
+    if (error) throw error;
+    res.json({ status: 'ok', data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Get single engineer profile ───────────────────────────────────────────────
 router.get('/profile/:id', async (req, res) => {
   try {

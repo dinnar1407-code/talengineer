@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
-const { emailMilestoneReleased } = require('../services/email');
+const { emailMilestoneReleased, emailRequestReview } = require('../services/email');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const PLATFORM_FEE = 0.15;
@@ -124,7 +124,22 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
     await supabase.from('project_milestones').update({ status: 'released', ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) }).eq('id', ms.id);
     await supabase.from('work_order_checkins').update({ status: 'approved' }).eq('milestone_id', ms.id);
 
-    res.json({ status: 'ok', payout: engineerPayout, stripe_transfer_id: stripeTransferId });
+    // Send review request email to employer
+    const DOMAIN = process.env.DOMAIN || 'https://talengineer.us';
+    const { data: demandFull } = await supabase.from('demands').select('title, users(email), assigned_engineer_id').eq('id', ms.demand_id).single();
+    if (demandFull?.users?.email && demand?.assigned_engineer_id) {
+      const { data: engineerForReview } = await supabase.from('talents').select('id, name').eq('id', demand.assigned_engineer_id).single();
+      if (engineerForReview) {
+        emailRequestReview({
+          employerEmail: demandFull.users.email,
+          engineerName:  engineerForReview.name,
+          projectTitle:  demandFull.title,
+          reviewUrl:     `${DOMAIN}/engineer/${engineerForReview.id}?review=1&demand_id=${ms.demand_id}`,
+        }).catch(console.error);
+      }
+    }
+
+    res.json({ status: 'ok', payout: engineerPayout, stripe_transfer_id: stripeTransferId, demand_id: ms.demand_id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

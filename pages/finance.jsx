@@ -152,7 +152,11 @@ export default function Finance() {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Authentication failed'); setLogging(false); return; }
       persistAndSet(data);
-      toast.success(`Welcome back, ${data.name || data.email}!`);
+      toast.success(`Welcome${authMode === 'signup' ? '' : ' back'}, ${data.name || data.email}!`);
+      // New engineers → onboarding
+      if (authMode === 'signup' && data.role === 'engineer') {
+        setTimeout(() => { window.location.href = '/onboarding'; }, 800);
+      }
     } catch { toast.error('Login failed. Please try again.'); }
     setLogging(false);
   }
@@ -471,6 +475,7 @@ export default function Finance() {
                       <td><span className={`${styles.statusBadge} ${styles['status_' + item.status]}`}>{item.status.toUpperCase()}</span></td>
                       <td style={{ display: 'flex', gap: 8 }}>
                         <button className={styles.btnAction} onClick={() => openMilestones(item.demand_id)}>Milestones</button>
+                        <a href={`/messages/${item.demand_id}`} className={styles.btnAction} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>💬 Chat</a>
                         {currentUser?.role === 'employer' && <button className={styles.btnAction} style={{ background: '#6b7280' }} onClick={() => loadApplicants(item.demand_id)}>Applicants</button>}
                       </td>
                     </tr>
