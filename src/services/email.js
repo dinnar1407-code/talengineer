@@ -1,5 +1,5 @@
 const FROM = process.env.EMAIL_FROM || 'TalEngineer <hello@talengineer.us>';
-const DOMAIN = process.env.DOMAIN || 'https://talengineer.com';
+const DOMAIN = process.env.DOMAIN || 'https://talengineer.us';
 
 async function sendEmail({ to, subject, html }) {
   const apiKey = process.env.RESEND_API_KEY;
