@@ -298,7 +298,7 @@ export default function Finance() {
   return (
     <>
       <Head><title>Dashboard & Finance | Talengineer</title></Head>
-      <ChatBot />
+      <ChatBot lang={lang} />
 
       {/* ── Role selection modal for first-time Google OAuth users ── */}
       {showRoleModal && (

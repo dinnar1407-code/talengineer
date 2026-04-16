@@ -298,7 +298,7 @@ export default function Talent() {
   return (
     <>
       <Head><title>Talent & Projects | Talengineer</title></Head>
-      <ChatBot />
+      <ChatBot lang={lang} />
 
       <Navbar lang={lang} onLangChange={setLang} />
 
