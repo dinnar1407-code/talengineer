@@ -169,7 +169,7 @@ export default function ChatBot({ lang = 'en' }) {
       const res = await fetch('/api/demand/quick_launch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_text: text, employer_email: 'boss@dinnar.com' }),
+        body: JSON.stringify({ raw_text: text, employer_email: (() => { try { return JSON.parse(localStorage.getItem('tal_user') || '{}').email || ''; } catch { return ''; } })() }),
       });
       const result = await res.json();
       const reply = res.ok && result.parsed_summary

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import styles from './Navbar.module.css';
@@ -106,10 +106,14 @@ const DICT = {
 };
 
 export default function Navbar({ lang: langProp, onLangChange }) {
-  const [user, setUser]         = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [lang, setLang]         = useState(langProp || 'en');
+  const [user, setUser]             = useState(null);
+  const [menuOpen, setMenuOpen]     = useState(false);
+  const [lang, setLang]             = useState(langProp || 'en');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifs, setNotifs]         = useState([]);
+  const [bellOpen, setBellOpen]     = useState(false);
   const menuRef = useRef(null);
+  const bellRef = useRef(null);
 
   useEffect(() => {
     // Load user
@@ -134,6 +138,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
 
     function onClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false);
     }
     document.addEventListener('mousedown', onClickOutside);
 
@@ -147,6 +152,60 @@ export default function Navbar({ lang: langProp, onLangChange }) {
   useEffect(() => {
     if (langProp && DICT[langProp]) setLang(langProp);
   }, [langProp]);
+
+  const fetchUnread = useCallback(async (currentUser) => {
+    if (!currentUser) return;
+    try {
+      const stored = localStorage.getItem(LS_USER_KEY);
+      const token = stored ? JSON.parse(stored)?.token : null;
+      if (!token) return;
+      const res = await fetch('/api/notifications/unread-count', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { count } = await res.json();
+        setUnreadCount(count || 0);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); return; }
+    fetchUnread(user);
+    const timer = setInterval(() => fetchUnread(user), 30_000);
+    return () => clearInterval(timer);
+  }, [user, fetchUnread]);
+
+  async function openBell() {
+    setBellOpen(v => !v);
+    if (bellOpen) return;
+    try {
+      const stored = localStorage.getItem(LS_USER_KEY);
+      const token = stored ? JSON.parse(stored)?.token : null;
+      if (!token) return;
+      const res = await fetch('/api/notifications', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setNotifs(data || []);
+      }
+    } catch {}
+  }
+
+  async function markAllRead() {
+    try {
+      const stored = localStorage.getItem(LS_USER_KEY);
+      const token = stored ? JSON.parse(stored)?.token : null;
+      if (!token) return;
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnreadCount(0);
+      setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    } catch {}
+  }
 
   function switchLang(l) {
     setLang(l);
@@ -177,6 +236,51 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       <nav className={styles.nav}>
         <Link href="/talent" className={styles.navLink}>{d.findEngineers}</Link>
         <Link href="/rates"  className={styles.navLink}>{d.rateBenchmarks}</Link>
+
+        {user && (
+          <Link href="/messages" className={styles.navLink} style={{ position: 'relative' }}>
+            💬
+          </Link>
+        )}
+
+        {user && (
+          <div className={styles.bellWrap} ref={bellRef}>
+            <button className={styles.bellBtn} onClick={openBell} aria-label="Notifications">
+              🔔
+              {unreadCount > 0 && (
+                <span className={styles.bellBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+            {bellOpen && (
+              <div className={styles.notifDropdown}>
+                <div className={styles.notifHeader}>
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <button className={styles.markRead} onClick={markAllRead}>Mark all read</button>
+                  )}
+                </div>
+                {notifs.length === 0 ? (
+                  <div className={styles.notifEmpty}>No notifications yet</div>
+                ) : (
+                  notifs.map(n => (
+                    <Link
+                      key={n.id}
+                      href={n.link || '/finance'}
+                      className={`${styles.notifItem} ${n.read ? styles.notifRead : ''}`}
+                      onClick={() => setBellOpen(false)}
+                    >
+                      <div className={styles.notifTitle}>{n.title}</div>
+                      {n.body && <div className={styles.notifBody}>{n.body}</div>}
+                      <div className={styles.notifTime}>
+                        {new Date(n.created_at).toLocaleDateString()}
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {user ? (
           <div className={styles.userMenu} ref={menuRef}>

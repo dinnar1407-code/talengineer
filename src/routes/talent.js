@@ -10,6 +10,7 @@ router.get('/demands', async (req, res) => {
     const { data, error } = await supabase
       .from('demands')
       .select('*')
+      .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -45,27 +46,45 @@ router.post('/screen_verify', async (req, res) => {
 router.get('/list', async (req, res) => {
   try {
     const supabase = getClient();
-    const { region, skills, min_score, page = '0', limit: limitParam = '12' } = req.query;
+    const {
+      region, skills, min_score,
+      availability, verified_only, sort,
+      page = '0', limit: limitParam = '12',
+    } = req.query;
 
     const pageNum  = Math.max(0, parseInt(page) || 0);
     const pageSize = Math.min(50, Math.max(1, parseInt(limitParam) || 12));
     const from = pageNum * pageSize;
     const to   = from + pageSize - 1;
 
+    // Determine sort column
+    let orderCol = 'verified_score', orderAsc = false;
+    if (sort === 'newest')    { orderCol = 'created_at'; orderAsc = false; }
+    else if (sort === 'rate') { orderCol = 'created_at'; orderAsc = false; } // rate is text, fallback
+
     let query = supabase
       .from('talents')
       .select('*', { count: 'exact' })
-      .order('verified_score', { ascending: false })
+      .order(orderCol, { ascending: orderAsc })
       .range(from, to);
 
-    if (region && region !== 'all') query = query.ilike('region', `%${region}%`);
-    if (skills)                     query = query.ilike('skills', `%${skills}%`);
-    if (min_score)                  query = query.gte('verified_score', parseInt(min_score));
+    if (region && region !== 'all')   query = query.ilike('region', `%${region}%`);
+    if (skills)                        query = query.ilike('skills', `%${skills}%`);
+    if (min_score)                     query = query.gte('verified_score', parseInt(min_score));
+    if (availability && availability !== 'all') query = query.eq('availability', availability);
+    if (verified_only === 'true')      query = query.gt('verified_score', 0);
 
     const { data, error, count } = await query;
     if (error) throw error;
 
-    res.json({ status: 'ok', data, total: count || 0, page: pageNum, pageSize });
+    // If sort=available, push available engineers first client-side
+    let sorted = data || [];
+    if (sort === 'available') {
+      const order = { available: 0, busy: 1, unavailable: 2 };
+      sorted = sorted.sort((a, b) => (order[a.availability] ?? 3) - (order[b.availability] ?? 3));
+    }
+
+    res.json({ status: 'ok', data: sorted, total: count || 0, page: pageNum, pageSize });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -88,6 +107,32 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (!talent) return res.status(404).json({ error: 'Engineer profile not found. Please create a profile first.' });
 
     const { data, error } = await supabase.from('talents').update(updates).eq('id', talent.id).select().single();
+    if (error) throw error;
+    res.json({ status: 'ok', data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Update portfolio images ───────────────────────────────────────────────────
+router.put('/portfolio', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { portfolio_images } = req.body;
+
+    if (!Array.isArray(portfolio_images)) return res.status(400).json({ error: 'portfolio_images must be an array' });
+    if (portfolio_images.length > 12) return res.status(400).json({ error: 'Maximum 12 portfolio items' });
+
+    const { data: talent } = await supabase.from('talents').select('id').eq('user_id', req.user.userId).single();
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found' });
+
+    const { data, error } = await supabase
+      .from('talents')
+      .update({ portfolio_images })
+      .eq('id', talent.id)
+      .select('portfolio_images')
+      .single();
+
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {

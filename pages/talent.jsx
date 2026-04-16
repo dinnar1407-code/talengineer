@@ -113,9 +113,12 @@ export default function Talent() {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Talent filters
-  const [filterRegion, setFilterRegion] = useState('all');
-  const [filterSkills, setFilterSkills] = useState('');
-  const [filterScore,  setFilterScore]  = useState('');
+  const [filterRegion,       setFilterRegion]       = useState('all');
+  const [filterSkills,       setFilterSkills]       = useState('');
+  const [filterScore,        setFilterScore]        = useState('');
+  const [filterAvailability, setFilterAvailability] = useState('all');
+  const [filterVerifiedOnly, setFilterVerifiedOnly] = useState(false);
+  const [filterSort,         setFilterSort]         = useState('score');
 
   // Pagination
   const [talentPage, setTalentPage]  = useState(0);
@@ -125,6 +128,9 @@ export default function Talent() {
   const [applyDemand, setApplyDemand] = useState(null); // demand object
   const [applyMsg, setApplyMsg]       = useState('');
   const [applying, setApplying]       = useState(false);
+  const [applyQuotedRate, setApplyQuotedRate]   = useState('');
+  const [applyQuotedDays, setApplyQuotedDays]   = useState('');
+  const [applyQuoteAmount, setApplyQuoteAmount] = useState('');
 
   // Post project form
   const [rawText, setRawText]   = useState('');
@@ -141,7 +147,19 @@ export default function Talent() {
   useEffect(() => {
     loadDemands();
     const stored = localStorage.getItem('tal_user');
-    if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
+    if (stored) {
+      try {
+        const user = JSON.parse(stored);
+        setCurrentUser(user);
+        // Pre-fill contact email and auto-switch to employer tab
+        if (user.email) {
+          setProjectForm(f => ({ ...f, contact: f.contact || user.email }));
+        }
+        if (user.role === 'employer') {
+          setActiveTab('projects'); // employers land on Browse Projects (post/manage side)
+        }
+      } catch {}
+    }
   }, []);
 
   async function loadDemands() {
@@ -152,13 +170,15 @@ export default function Talent() {
     } catch { setDemands([]); }
   }
 
-  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore, page = 0) {
+  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore, page = 0, avail = filterAvailability, verified = filterVerifiedOnly, sort = filterSort) {
     setTalents(null);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE), sort });
       if (region && region !== 'all') params.set('region', region);
       if (skills.trim()) params.set('skills', skills.trim());
       if (score) params.set('min_score', score);
+      if (avail && avail !== 'all') params.set('availability', avail);
+      if (verified) params.set('verified_only', 'true');
       const res  = await fetch('/api/talent/list?' + params.toString());
       const data = await res.json();
       setTalents(data.data || []);
@@ -175,13 +195,16 @@ export default function Talent() {
       const res  = await fetch('/api/demand/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
-        body: JSON.stringify({ demand_id: applyDemand.id, message: applyMsg }),
+        body: JSON.stringify({ demand_id: applyDemand.id, message: applyMsg, quoted_rate: applyQuotedRate || undefined, quoted_days: applyQuotedDays ? parseInt(applyQuotedDays) : undefined, quote_amount: applyQuoteAmount ? parseFloat(applyQuoteAmount) : undefined }),
       });
       const data = await res.json();
       if (res.ok) {
         toast.success('Application submitted! The employer will be notified.');
         setApplyDemand(null);
         setApplyMsg('');
+        setApplyQuotedRate('');
+        setApplyQuotedDays('');
+        setApplyQuoteAmount('');
       } else toast.error(data.error);
     } catch { toast.error('Network error.'); }
     setApplying(false);
@@ -189,7 +212,7 @@ export default function Talent() {
 
   function applyFilters(e) {
     e.preventDefault();
-    loadTalent(filterRegion, filterSkills, filterScore);
+    loadTalent(filterRegion, filterSkills, filterScore, 0, filterAvailability, filterVerifiedOnly, filterSort);
   }
 
   function switchTab(tab) {
@@ -224,11 +247,12 @@ export default function Talent() {
 
   async function submitProject(e) {
     e.preventDefault();
+    if (!currentUser?.token) { toast.error('Please sign in on the Dashboard first.'); return; }
     setPostingJob(true);
     try {
       const res = await fetch('/api/demand/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
         body: JSON.stringify({
           title: projectForm.title, role_required: projectForm.role,
           region: projectForm.region, project_type: projectForm.type,
@@ -434,8 +458,22 @@ export default function Talent() {
                   <option value="80">Verified ≥ 80</option>
                   <option value="60">Score ≥ 60</option>
                 </select>
+                <select value={filterAvailability} onChange={e => setFilterAvailability(e.target.value)} className={styles.filterSelect}>
+                  <option value="all">Any Availability</option>
+                  <option value="available">🟢 Available Now</option>
+                  <option value="busy">🟡 Available Soon</option>
+                </select>
+                <select value={filterSort} onChange={e => setFilterSort(e.target.value)} className={styles.filterSelect}>
+                  <option value="score">Sort: Top Verified</option>
+                  <option value="available">Sort: Available First</option>
+                  <option value="newest">Sort: Newest</option>
+                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={filterVerifiedOnly} onChange={e => setFilterVerifiedOnly(e.target.checked)} />
+                  Verified only
+                </label>
                 <button type="submit" className={styles.btnAction}>Search</button>
-                <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); loadTalent('all', '', ''); }}>Clear</button>
+                <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); setFilterAvailability('all'); setFilterVerifiedOnly(false); setFilterSort('score'); loadTalent('all', '', '', 0, 'all', false, 'score'); }}>Clear</button>
               </form>
 
               {/* Pagination info */}
@@ -536,16 +574,30 @@ export default function Talent() {
               <span style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setApplyDemand(null)}>×</span>
             </div>
             <textarea
-              rows={5}
+              rows={4}
               value={applyMsg}
               onChange={e => setApplyMsg(e.target.value)}
               placeholder="Introduce yourself and explain why you're a great fit for this project…"
               style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', marginBottom: 14 }}
             />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Your Rate (e.g. $85/hr)</label>
+                <input value={applyQuotedRate} onChange={e => setApplyQuotedRate(e.target.value)} placeholder="$85/hr" style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Est. Days</label>
+                <input type="number" min={1} value={applyQuotedDays} onChange={e => setApplyQuotedDays(e.target.value)} placeholder="14" style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Total Quote (USD)</label>
+                <input type="number" min={0} step="0.01" value={applyQuoteAmount} onChange={e => setApplyQuoteAmount(e.target.value)} placeholder="2000" style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" style={{ flex: 1, padding: 10, background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setApplyDemand(null)}>Cancel</button>
               <button type="submit" className={styles.btnAction} style={{ flex: 2, padding: 10 }} disabled={applying}>
-                {applying ? 'Submitting…' : 'Submit Application'}
+                {applying ? 'Submitting…' : 'Submit Proposal'}
               </button>
             </div>
           </form>

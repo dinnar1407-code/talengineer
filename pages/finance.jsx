@@ -28,6 +28,7 @@ export default function Finance() {
   const [authMode, setAuthMode]     = useState('signin');
   const [currentUser, setCurrentUser] = useState(null);
   const [ledger, setLedger]         = useState(null); // null = loading
+  const [myDemands, setMyDemands]   = useState(null); // employer's own projects
   const [metrics, setMetrics]       = useState({ escrow: 0, released: 0, active: 0 });
 
   // Login form
@@ -65,6 +66,15 @@ export default function Finance() {
   const [forgotEmail, setForgotEmail]   = useState('');
   const [forgotSent, setForgotSent]     = useState(false);
 
+  // KYC
+  const [kycInfo, setKycInfo]         = useState(null); // null=loading, {}=loaded
+  const [showKycForm, setShowKycForm] = useState(false);
+  const [kycForm, setKycForm]         = useState({ company_name: '', company_website: '', company_phone: '' });
+  const [submittingKyc, setSubmittingKyc] = useState(false);
+
+  // Employer analytics
+  const [analytics, setAnalytics] = useState(null);
+
   useEffect(() => {
     // ── Restore session from localStorage (email/password login) ─────────────
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -73,6 +83,10 @@ export default function Finance() {
         const user = JSON.parse(stored);
         setCurrentUser(user);
         loadLedger(user);
+        loadMyDemands(user);
+        if (user.token) loadKyc(user.token);
+        if (user.role === 'employer' && user.token) loadAnalytics(user.token);
+        if (user.role === 'engineer' && user.token) loadConnectStatus(user.token);
       } catch { localStorage.removeItem(LS_USER_KEY); }
     }
 
@@ -143,7 +157,46 @@ export default function Finance() {
     localStorage.setItem(LS_USER_KEY, JSON.stringify(userData));
     setCurrentUser(userData);
     loadLedger(userData);
+    loadMyDemands(userData);
     if (userData.role === 'engineer' && userData.token) loadConnectStatus(userData.token);
+    if (userData.token) { loadKyc(userData.token); }
+    if (userData.role === 'employer' && userData.token) loadAnalytics(userData.token);
+  }
+
+  async function loadKyc(token) {
+    try {
+      const res  = await fetch('/api/kyc/status', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) setKycInfo(data.data || {});
+    } catch { setKycInfo({}); }
+  }
+
+  async function submitKyc(e) {
+    e.preventDefault();
+    if (!kycForm.company_name.trim()) { toast.error('Company name is required.'); return; }
+    setSubmittingKyc(true);
+    try {
+      const res  = await fetch('/api/kyc/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify(kycForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Verification submitted! We\'ll review within 24 hours.');
+        setKycInfo(prev => ({ ...prev, kyc_status: 'pending', ...kycForm }));
+        setShowKycForm(false);
+      } else toast.error(data.error);
+    } catch { toast.error('Network error.'); }
+    setSubmittingKyc(false);
+  }
+
+  async function loadAnalytics(token) {
+    try {
+      const res  = await fetch('/api/demand/analytics', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) setAnalytics(data);
+    } catch {}
   }
 
   async function handleLogin(e) {
@@ -226,21 +279,39 @@ export default function Finance() {
 
   async function loadLedger(user) {
     setLedger(null); // show skeleton
+    if (!user?.token) { setLedger([]); return; }
     try {
-      const res  = await fetch(`/api/finance/ledger?email=${encodeURIComponent(user.email)}`);
+      const res  = await fetch('/api/finance/ledger', {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
       const data = await res.json();
       const rows = data.data || [];
       setLedger(rows);
-      const total = rows.reduce((s, r) => s + (r.total_amount || 0), 0);
-      setMetrics({ escrow: total, released: 0, active: rows.length });
+      const escrow   = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
+      const released = rows.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
+      setMetrics({ escrow, released, active: rows.length });
     } catch { setLedger([]); toast.error('Failed to load ledger.'); }
+  }
+
+  async function loadMyDemands(user) {
+    if (!user?.token || user.role !== 'employer') return;
+    try {
+      const res  = await fetch('/api/demand/my', {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const data = await res.json();
+      setMyDemands(data.data || []);
+    } catch { setMyDemands([]); }
   }
 
   async function openMilestones(demandId) {
     setModalDemandId(demandId);
     setMilestones(null);
+    if (!currentUser?.token) { setMilestones([]); return; }
     try {
-      const res  = await fetch(`/api/finance/milestones?demand_id=${demandId}`);
+      const res  = await fetch(`/api/finance/milestones?demand_id=${demandId}`, {
+        headers: { Authorization: `Bearer ${currentUser.token}` },
+      });
       const data = await res.json();
       setMilestones(data.data || []);
     } catch { setMilestones([]); toast.error('Failed to load milestones.'); }
@@ -249,7 +320,11 @@ export default function Finance() {
   async function fundMilestone(milestoneId, demandId, amount, phaseName) {
     if (!window.confirm(`Proceed to Stripe Checkout to deposit $${amount} into Escrow?`)) return;
     try {
-      const res    = await fetch('/api/payment/fund-milestone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId, amount, phase_name: phaseName }) });
+      const res    = await fetch('/api/payment/fund-milestone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser?.token}` },
+        body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId, amount, phase_name: phaseName }),
+      });
       const result = await res.json();
       if (res.ok && result.url) { window.location.href = result.url; }
       else if (res.ok) { toast.success(result.message); openMilestones(demandId); }
@@ -283,7 +358,11 @@ export default function Finance() {
   async function releaseMilestone(milestoneId, demandId) {
     if (!window.confirm('Approve work and release funds to engineer (minus platform fee)?')) return;
     try {
-      const res    = await fetch('/api/payment/release-milestone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId }) });
+      const res    = await fetch('/api/payment/release-milestone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser?.token}` },
+        body: JSON.stringify({ milestone_id: milestoneId, demand_id: demandId }),
+      });
       const result = await res.json();
       if (res.ok) {
         toast.success(`Funds released! Payout: $${result.payout_details.engineer_payout} | Fee: $${result.payout_details.platform_fee}`);
@@ -374,16 +453,16 @@ export default function Finance() {
               <button className={styles.btnGoogle} onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin) + '/finance' } })}>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width={16} height={16} alt="Google" /> Google
               </button>
-              <button className={styles.btnLinkedIn} onClick={() => toast.info('LinkedIn OAuth integration pending.')}>
+              <button className={styles.btnLinkedIn} disabled style={{ opacity: 0.45, cursor: 'not-allowed', position: 'relative' }} title="Coming soon">
                 <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
                 LinkedIn
               </button>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className={styles.btnApple} onClick={() => toast.info('Apple Sign In pending.')}>
+                <button className={styles.btnApple} disabled style={{ opacity: 0.45, cursor: 'not-allowed' }} title="Coming soon">
                   <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="currentColor" viewBox="0 0 16 16"><path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-1.082-.031-2.242.708-2.733.708-.49 0-1.428-.709-2.351-.708-.923.001-1.78.435-2.246 1.157-.927 1.432-1.396 3.926-.464 6.305.463 1.182 1.034 2.414 2.152 2.381 1.118-.033 1.533-.709 2.873-.709 1.34 0 1.71.709 2.873.709 1.163 0 1.77-.996 2.246-2.157.476-.762.686-1.55.709-1.584z"/></svg>
                   Apple
                 </button>
-                <button className={styles.btnWeChat} onClick={() => toast.info('WeChat Login pending.')}>
+                <button className={styles.btnWeChat} disabled style={{ opacity: 0.45, cursor: 'not-allowed' }} title="Coming soon">
                   <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="currentColor" viewBox="0 0 16 16"><path d="M11.136 6.551c-.183 0-.329-.146-.329-.33 0-.182.146-.328.329-.328.182 0 .328.146.328.328 0 .184-.146.33-.328.33zm-2.882 0c-.183 0-.329-.146-.329-.33 0-.182.146-.328.329-.328.182 0 .329.146.329.328 0 .184-.147.33-.329.33zm-4.316-2.52c-.22 0-.397-.175-.397-.397 0-.22.177-.397.397-.397.22 0 .398.177.398.397 0 .222-.178.397-.398.397zm-2.775 0c-.22 0-.397-.175-.397-.397 0-.22.177-.397.397-.397.22 0 .398.177.398.397 0 .222-.178.397-.398.397zM8.114 4.542c0-2.115-2.073-3.83-4.63-3.83C.926.712 0 2.427 0 4.542c0 1.218.666 2.302 1.704 3.018-.115.344-.368 1.05-.368 1.05s.745-.04 1.34-.23c.571.212 1.206.332 1.874.332.222 0 .438-.016.65-.043-.112-.3-.172-.622-.172-.958 0-1.748 1.378-3.169 3.086-3.169.213 0 .421.025.621.072-.187-2.116-2.261-3.83-4.63-3.83zM16 9.878c0-1.747-1.68-3.168-3.75-3.168s-3.75 1.421-3.75 3.168c0 1.748 1.68 3.169 3.75 3.169.574 0 1.114-.105 1.597-.287.512.164 1.15.201 1.15.201s-.217-.604-.316-.902c.89-.613 1.32-1.542 1.32-2.181z"/></svg>
                   WeChat
                 </button>
@@ -403,8 +482,18 @@ export default function Finance() {
               <div className={styles.roleLabel}>{currentUser.role === 'employer' ? 'Company Account / Supplier' : 'Engineering Contractor'}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span className={styles.kycBadge}>⚠️ KYC Verification Required</span>
-              <button className={styles.btnVerify} onClick={() => toast.info('KYC Flow integration pending (Stripe Identity / Onfido).')}>Verify Now</button>
+              {kycInfo === null ? null
+                : kycInfo.kyc_status === 'verified'
+                  ? <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', color: '#059669', border: '1px solid rgba(16,185,129,0.3)' }}>✅ Verified</span>
+                  : kycInfo.kyc_status === 'pending'
+                    ? <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(244,196,48,0.1)', color: '#b45309', border: '1px solid rgba(244,196,48,0.4)' }}>⏳ Verification Pending</span>
+                    : currentUser?.role === 'employer'
+                      ? <>
+                          <span className={styles.kycBadge}>⚠️ KYC Verification Required</span>
+                          <button className={styles.btnVerify} onClick={() => setShowKycForm(true)}>Verify Now</button>
+                        </>
+                      : null
+              }
             </div>
           </div>
 
@@ -444,6 +533,91 @@ export default function Finance() {
             }
           </div>
 
+          {/* Employer Analytics */}
+          {currentUser?.role === 'employer' && analytics && (
+            <div style={{ marginBottom: 28 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text)' }}>📊 Project Analytics</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+                {[
+                  { label: 'Total Projects', value: analytics.totals?.projects ?? 0 },
+                  { label: 'Total Views', value: analytics.totals?.views ?? 0 },
+                  { label: 'Total Applicants', value: analytics.totals?.applicants ?? 0 },
+                  { label: 'Assigned / Active', value: analytics.totals?.assigned ?? 0 },
+                ].map(stat => (
+                  <div key={stat.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)' }}>{stat.value}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              {analytics.data?.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className={styles.table} style={{ marginBottom: 0 }}>
+                    <thead>
+                      <tr>
+                        <th>Project</th><th>Status</th><th>Views</th><th>Applicants</th><th>Pending</th><th>Accepted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.data.map(row => (
+                        <tr key={row.id}>
+                          <td style={{ fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.title}</td>
+                          <td><span className={`${styles.statusBadge} ${styles['status_' + row.status]}`}>{row.status.replace('_', ' ').toUpperCase()}</span></td>
+                          <td>{row.view_count}</td>
+                          <td>{row.applicant_count}</td>
+                          <td>{row.pending_count}</td>
+                          <td>{row.accepted_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Post a Project CTA (employers with no projects yet) */}
+          {currentUser?.role === 'employer' && myDemands !== null && myDemands.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '32px 24px', marginBottom: 24, background: 'var(--surface)', border: '2px dashed var(--border)', borderRadius: 12 }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🚀</div>
+              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>Post your first project</div>
+              <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 20 }}>Describe what you need and our AI will find the best engineers for you.</div>
+              <a href="/talent" style={{ display: 'inline-block', background: 'var(--primary)', color: '#fff', padding: '10px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15 }}>Post a Project</a>
+            </div>
+          )}
+
+          {/* My Projects (employers only — projects without ledger entries) */}
+          {currentUser?.role === 'employer' && myDemands !== null && myDemands.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text)' }}>📋 My Projects</h3>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {myDemands.map(d => {
+                  const msTotal = (d.project_milestones || []).length;
+                  const msFunded = (d.project_milestones || []).filter(m => m.status === 'funded' || m.status === 'released').length;
+                  return (
+                    <div key={d.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{d.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          {d.region} · {d.budget}
+                          {msTotal > 0 && ` · ${msFunded}/${msTotal} milestones funded`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: d.status === 'open' ? 'rgba(16,185,129,0.1)' : 'rgba(0,86,179,0.08)', color: d.status === 'open' ? '#059669' : 'var(--primary)' }}>
+                          {d.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                        <button className={styles.btnAction} onClick={() => openMilestones(d.id)}>Milestones</button>
+                        <button className={styles.btnAction} style={{ background: '#6b7280' }} onClick={() => loadApplicants(d.id)}>Applicants</button>
+                        <a href={`/messages/${d.id}`} className={styles.btnAction} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>💬</a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Ledger table */}
           <table className={styles.table}>
             <thead>
@@ -476,6 +650,39 @@ export default function Finance() {
               }
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* KYC Form Modal */}
+      {showKycForm && (
+        <div className={styles.modal} onClick={e => e.target === e.currentTarget && setShowKycForm(false)}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <span>🏢 Company Verification</span>
+              <span className={styles.modalClose} onClick={() => setShowKycForm(false)}>×</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>Submit your company details for verification. Our team will review within 24 hours.</p>
+            {kycInfo?.kyc_note && (
+              <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+                <strong>Previous rejection note:</strong> {kycInfo.kyc_note}
+              </div>
+            )}
+            <form onSubmit={submitKyc}>
+              <FormGroup label="Company Name *">
+                <input value={kycForm.company_name} onChange={e => setKycForm(p => ({ ...p, company_name: e.target.value }))} placeholder="Acme Industrial Ltd." required />
+              </FormGroup>
+              <FormGroup label="Company Website">
+                <input value={kycForm.company_website} onChange={e => setKycForm(p => ({ ...p, company_website: e.target.value }))} placeholder="https://yourcompany.com" />
+              </FormGroup>
+              <FormGroup label="Business Phone">
+                <input value={kycForm.company_phone} onChange={e => setKycForm(p => ({ ...p, company_phone: e.target.value }))} placeholder="+1 555 000 0000" />
+              </FormGroup>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button type="submit" disabled={submittingKyc} className={styles.btnPrimary} style={{ flex: 1 }}>{submittingKyc ? 'Submitting…' : 'Submit for Review'}</button>
+                <button type="button" onClick={() => setShowKycForm(false)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', padding: '11px', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

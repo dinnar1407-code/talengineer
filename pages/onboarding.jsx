@@ -10,7 +10,7 @@ const LS_USER_KEY = 'tal_user';
 
 const SKILL_OPTIONS = ['PLC Programming', 'Siemens TIA Portal', 'Rockwell Studio 5000', 'SCADA/HMI', 'Fanuc Robotics', 'KUKA Robotics', 'ABB Robotics', 'Electrical Panel Design', 'Process Control', 'VFD/Drives', 'Pneumatics', 'Hydraulics', 'Commissioning', 'Troubleshooting', 'AutoCAD Electrical', 'EPLAN', 'Allen-Bradley', 'Omron', 'Mitsubishi PLC', 'Safety Systems (SIL/PLe)'];
 
-const STEPS = ['Welcome', 'Profile', 'Skills', 'Availability', 'Done'];
+const STEPS = ['Welcome', 'Profile', 'Skills', 'Availability', 'Portfolio', 'Done'];
 
 export default function Onboarding() {
   const router = useRouter();
@@ -29,6 +29,11 @@ export default function Onboarding() {
   const [customSkill, setCustomSkill] = useState('');
   const [availability, setAvailability] = useState('available');
   const [availableFrom, setAvailableFrom] = useState('');
+  // Portfolio
+  const [portfolioItems, setPortfolioItems] = useState([]);
+  const [portfolioUrl, setPortfolioUrl]     = useState('');
+  const [portfolioCaption, setPortfolioCaption] = useState('');
+  const [savingPortfolio, setSavingPortfolio] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -78,7 +83,7 @@ export default function Onboarding() {
       const data = await res.json();
       if (res.ok) {
         toast.success('Profile saved!');
-        setStep(4); // Done
+        setStep(4); // Portfolio
       } else {
         toast.error(data.error || 'Failed to save profile.');
       }
@@ -260,8 +265,86 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 4: Done */}
+          {/* Step 4: Portfolio */}
           {step === 4 && (
+            <div className={styles.stepContent}>
+              <h2>Portfolio</h2>
+              <p className={styles.stepDesc}>Add photos of your past work — installations, panels, wiring diagrams. Employers trust engineers with proof.</p>
+
+              {/* Add item */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                <input
+                  className={styles.input}
+                  value={portfolioUrl}
+                  onChange={e => setPortfolioUrl(e.target.value)}
+                  placeholder="Image URL (e.g. https://i.imgur.com/abc.jpg)"
+                />
+                <input
+                  className={styles.input}
+                  value={portfolioCaption}
+                  onChange={e => setPortfolioCaption(e.target.value)}
+                  placeholder="Caption (e.g. Siemens S7 panel commissioning, Monterrey 2024)"
+                />
+                <button
+                  type="button"
+                  className={styles.btnAdd}
+                  onClick={() => {
+                    const url = portfolioUrl.trim();
+                    if (!url) return;
+                    setPortfolioItems(prev => [...prev, { url, caption: portfolioCaption.trim() }]);
+                    setPortfolioUrl('');
+                    setPortfolioCaption('');
+                  }}
+                >
+                  + Add Item
+                </button>
+              </div>
+
+              {/* Preview grid */}
+              {portfolioItems.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
+                  {portfolioItems.map((item, i) => (
+                    <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#f3f4f6', aspectRatio: '1' }}>
+                      <img src={item.url} alt={item.caption || `Portfolio ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                      {item.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: 10, padding: '3px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.caption}</div>}
+                      <button
+                        onClick={() => setPortfolioItems(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.5)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', fontSize: 12, lineHeight: 1 }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className={styles.btnRow}>
+                <button className={styles.btnBack} onClick={() => setStep(3)}>← Back</button>
+                <button
+                  className={styles.btnNext}
+                  disabled={savingPortfolio}
+                  onClick={async () => {
+                    if (portfolioItems.length === 0) { setStep(5); return; }
+                    setSavingPortfolio(true);
+                    try {
+                      const res = await fetch('/api/talent/portfolio', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+                        body: JSON.stringify({ portfolio_images: portfolioItems }),
+                      });
+                      if (res.ok) { toast.success('Portfolio saved!'); }
+                      else { const d = await res.json(); toast.error(d.error || 'Failed to save portfolio.'); }
+                    } catch { toast.error('Network error.'); }
+                    setSavingPortfolio(false);
+                    setStep(5);
+                  }}
+                >
+                  {savingPortfolio ? 'Saving…' : portfolioItems.length > 0 ? 'Save & Finish ✓' : 'Skip →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Done */}
+          {step === 5 && (
             <div className={styles.stepContent} style={{ textAlign: 'center' }}>
               <div className={styles.emoji}>🎉</div>
               <h1>Profile Complete!</h1>

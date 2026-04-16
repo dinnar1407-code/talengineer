@@ -3,6 +3,7 @@ const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { emailMilestoneFunded, emailMilestoneReleased, emailPaymentFailed } = require('../services/email');
+const { createNotification } = require('../services/notificationService');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -102,12 +103,14 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
     const platformFee = totalAmount * PLATFORM_FEE;
     const engineerPayout = totalAmount - platformFee;
 
-    // ── Fetch engineer's Stripe Connect account ─────────────────────────────
-    const { data: demand } = await supabase
+    // ── Verify requester is the employer for this demand ────────────────────
+    const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .select('assigned_engineer_id')
+      .select('employer_id, assigned_engineer_id')
       .eq('id', demand_id)
       .single();
+    if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
     let stripeTransferId = null;
 
@@ -144,11 +147,19 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
 
     console.log(`[Payment] Milestone ${milestone_id} released. Total: $${totalAmount}, Fee: $${platformFee}, Payout: $${engineerPayout}`);
 
-    // Notify engineer
+    // Notify engineer (email + in-app)
     if (demand?.assigned_engineer_id) {
       const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', demand.assigned_engineer_id).single();
       if (talent?.contact) {
         emailMilestoneReleased({ engineerEmail: talent.contact, engineerName: talent.name, phaseName: milestone.phase_name, payout: engineerPayout }).catch(console.error);
+        createNotification({
+          user_email: talent.contact,
+          type: 'milestone_released',
+          title: `Funds released: ${milestone.phase_name}`,
+          body: `$${engineerPayout.toFixed(2)} has been sent to your Stripe account.`,
+          link: `/workorder/${milestone_id}`,
+          demand_id: parseInt(demand_id),
+        });
       }
     }
 
@@ -219,6 +230,14 @@ router.post('/webhook', async (req, res) => {
           const { data: ms } = await supabase.from('project_milestones').select('phase_name, amount').eq('id', milestoneId).single();
           if (talent?.contact && ms) {
             emailMilestoneFunded({ engineerEmail: talent.contact, engineerName: talent.name, projectTitle: demand.title, phaseName: ms.phase_name, amount: ms.amount }).catch(console.error);
+            createNotification({
+              user_email: talent.contact,
+              type: 'milestone_funded',
+              title: `Milestone funded: ${ms.phase_name}`,
+              body: `$${ms.amount} is now held in escrow for "${demand.title}". You can check in to begin work.`,
+              link: `/workorder/${milestoneId}`,
+              demand_id: parseInt(demandId),
+            });
           }
         }
       }

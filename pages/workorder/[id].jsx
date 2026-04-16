@@ -28,12 +28,13 @@ export default function WorkOrder() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/workorder/${id}`)
+    const token = (() => { try { return JSON.parse(localStorage.getItem('tal_user') || '{}').token || ''; } catch { return ''; } })();
+    fetch(`/api/workorder/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.json())
       .then(d => {
         setData(d);
         const c = d.checkin;
-        if (!c)                        setStep('checkin');
+        if (!c)                              setStep('checkin');
         else if (c.status === 'checked_in')  setStep('working');
         else if (c.status === 'completed')   setStep('review');
         else                                 setStep('done');
@@ -240,6 +241,15 @@ export default function WorkOrder() {
                 ★ Rate the Engineer
               </a>
             )}
+            <a
+              href={`/api/workorder/${id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.btnPrimary}
+              style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 10, background: '#6b7280' }}
+            >
+              📄 Download Work Order PDF
+            </a>
             <button className={styles.btnPrimary} onClick={() => router.push('/finance')}>Back to Dashboard</button>
           </div>
         )}

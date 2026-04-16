@@ -13,6 +13,9 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('users');
   const [certs, setCerts]         = useState(null);
   const [disputes, setDisputes]   = useState(null);
+  const [notifs, setNotifs]       = useState(null);
+  const [kycList, setKycList]     = useState(null);
+  const [funnel, setFunnel]       = useState(null);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -91,6 +94,52 @@ export default function Admin() {
     } catch { toast.error('Network error.'); }
   }
 
+  async function loadNotifs() {
+    if (notifs !== null) return;
+    try {
+      const res  = await fetch('/api/admin/notifications', { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setNotifs(data);
+    } catch { setNotifs({ data: [], byType: {}, unreadCount: 0 }); }
+  }
+
+  async function loadKycList(status = 'pending') {
+    setKycList(null);
+    try {
+      const res  = await fetch(`/api/admin/kyc?status=${status}`, { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setKycList(data.data || []);
+    } catch { setKycList([]); }
+  }
+
+  async function reviewKyc(userId, decision) {
+    const note = decision === 'rejected' ? window.prompt('Rejection reason (optional):') : null;
+    if (decision === 'rejected' && note === null) return; // cancelled
+    try {
+      const res = await fetch(`/api/admin/kyc/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ decision, note }),
+      });
+      if (res.ok) {
+        toast.success(`User ${decision}.`);
+        setKycList(prev => (prev || []).filter(u => u.id !== userId));
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed.');
+      }
+    } catch { toast.error('Network error.'); }
+  }
+
+  async function loadFunnel() {
+    if (funnel !== null) return;
+    try {
+      const res  = await fetch('/api/admin/analytics', { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      if (res.ok) setFunnel(data);
+    } catch {}
+  }
+
   async function reviewCert(certId, status) {
     try {
       await fetch(`/api/certifications/${certId}/review`, {
@@ -104,12 +153,15 @@ export default function Admin() {
   }
 
   const TABS = [
-    { id: 'users',    label: `Users (${counts.users})` },
-    { id: 'demands',  label: `Projects (${counts.demands})` },
-    { id: 'talents',  label: `Engineers (${counts.talents})` },
-    { id: 'ledgers',  label: `Ledger (${counts.ledgers})` },
-    { id: 'certs',    label: 'Certifications' },
-    { id: 'disputes', label: 'Disputes' },
+    { id: 'users',     label: `Users (${counts.users})` },
+    { id: 'demands',   label: `Projects (${counts.demands})` },
+    { id: 'talents',   label: `Engineers (${counts.talents})` },
+    { id: 'ledgers',   label: `Ledger (${counts.ledgers})` },
+    { id: 'certs',     label: 'Certifications' },
+    { id: 'disputes',  label: 'Disputes' },
+    { id: 'notifs',    label: `Notifications (${counts.notifications ?? '…'})` },
+    { id: 'kyc',       label: 'KYC' },
+    { id: 'analytics', label: 'Analytics' },
   ];
 
   return (
@@ -137,7 +189,7 @@ export default function Admin() {
         {/* Tabs */}
         <div className={styles.tabs}>
           {TABS.map(t => (
-            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); if (t.id === 'disputes') loadDisputes(); }}>{t.label}</button>
+            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); if (t.id === 'disputes') loadDisputes(); if (t.id === 'notifs') loadNotifs(); if (t.id === 'kyc') loadKycList(); if (t.id === 'analytics') loadFunnel(); }}>{t.label}</button>
           ))}
         </div>
 
@@ -269,6 +321,134 @@ export default function Admin() {
                 }
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Notifications */}
+        {activeTab === 'notifs' && (
+          <div>
+            {notifs === null ? (
+              <p className={styles.empty}>Loading…</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+                  {Object.entries(notifs.byType || {}).map(([type, count]) => (
+                    <div key={type} style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 16px', fontSize: 13 }}>
+                      <strong>{count}</strong> <span style={{ color: 'var(--muted)' }}>{type.replace(/_/g, ' ')}</span>
+                    </div>
+                  ))}
+                  <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 16px', fontSize: 13 }}>
+                    <strong>{notifs.unreadCount}</strong> <span style={{ color: '#92400e' }}>unread</span>
+                  </div>
+                </div>
+                <table className={styles.table}>
+                  <thead><tr><th>Type</th><th>User</th><th>Title</th><th>Read</th><th>Date</th></tr></thead>
+                  <tbody>
+                    {notifs.data.length === 0
+                      ? <tr><td colSpan={5} className={styles.empty}>No notifications yet.</td></tr>
+                      : notifs.data.map(n => (
+                        <tr key={n.id} style={{ opacity: n.read ? 0.6 : 1 }}>
+                          <td><span className={`${styles.badge} ${styles.badgeGray}`}>{n.type.replace(/_/g, ' ')}</span></td>
+                          <td className={styles.muted} style={{ fontSize: 12 }}>{n.user_email}</td>
+                          <td style={{ maxWidth: 240, fontSize: 13 }}>{n.title}</td>
+                          <td>{n.read ? '✅' : '🔵'}</td>
+                          <td className={styles.muted}>{new Date(n.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* KYC */}
+        {activeTab === 'kyc' && (
+          <div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              {['pending', 'verified', 'rejected', 'unverified'].map(s => (
+                <button key={s} onClick={() => loadKycList(s)} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 12 }}>{s}</button>
+              ))}
+            </div>
+            <table className={styles.table}>
+              <thead><tr><th>Email</th><th>Company</th><th>Website</th><th>Phone</th><th>Submitted</th><th>Note</th><th>Action</th></tr></thead>
+              <tbody>
+                {kycList === null
+                  ? <tr><td colSpan={7} className={styles.empty}>Loading…</td></tr>
+                  : kycList.length === 0
+                    ? <tr><td colSpan={7} className={styles.empty}>No users with this status.</td></tr>
+                    : kycList.map(u => (
+                      <tr key={u.id}>
+                        <td style={{ fontSize: 12 }}>{u.email}</td>
+                        <td style={{ fontWeight: 600 }}>{u.company_name || '—'}</td>
+                        <td style={{ fontSize: 12 }}>{u.company_website ? <a href={u.company_website} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Link ↗</a> : '—'}</td>
+                        <td style={{ fontSize: 12 }}>{u.company_phone || '—'}</td>
+                        <td className={styles.muted}>{u.kyc_submitted_at ? new Date(u.kyc_submitted_at).toLocaleDateString() : '—'}</td>
+                        <td style={{ fontSize: 12, maxWidth: 140 }}>{u.kyc_note || '—'}</td>
+                        <td>
+                          {u.kyc_status === 'pending' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => reviewKyc(u.id, 'verified')} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✅ Verify</button>
+                              <button onClick={() => reviewKyc(u.id, 'rejected')} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✗ Reject</button>
+                            </div>
+                          )}
+                          {u.kyc_status !== 'pending' && <span className={`${styles.badge} ${u.kyc_status === 'verified' ? styles.badgeGreen : styles.badgeGray}`}>{u.kyc_status}</span>}
+                        </td>
+                      </tr>
+                    ))
+                }
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Analytics / Funnel */}
+        {activeTab === 'analytics' && (
+          <div>
+            {funnel === null ? (
+              <p className={styles.empty}>Loading…</p>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
+                  {[
+                    { label: 'Total Posted', value: funnel.funnel?.posted ?? 0 },
+                    { label: 'Open', value: funnel.funnel?.open ?? 0 },
+                    { label: 'Assigned', value: funnel.funnel?.assigned ?? 0 },
+                    { label: 'Completed', value: funnel.funnel?.completed ?? 0 },
+                    { label: 'Total Applications', value: funnel.funnel?.total_applies ?? 0 },
+                    { label: 'Conversion %', value: `${funnel.funnel?.conversion_pct ?? 0}%` },
+                    { label: 'KYC Pending', value: funnel.kyc_pending ?? 0 },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 26, fontWeight: 800 }}>{stat.value}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 10 }}>Conversion Funnel</div>
+                  {[
+                    { label: 'Projects Posted', value: funnel.funnel?.posted, color: '#6366f1' },
+                    { label: 'Open (Accepting Applications)', value: funnel.funnel?.open, color: '#f59e0b' },
+                    { label: 'Assigned / In Progress', value: funnel.funnel?.assigned, color: '#10b981' },
+                    { label: 'Completed', value: funnel.funnel?.completed, color: '#059669' },
+                  ].map(row => {
+                    const pct = funnel.funnel?.posted ? Math.round((row.value / funnel.funnel.posted) * 100) : 0;
+                    return (
+                      <div key={row.label} style={{ marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                          <span>{row.label}</span><span style={{ fontWeight: 700 }}>{row.value} ({pct}%)</span>
+                        </div>
+                        <div style={{ background: 'var(--border)', borderRadius: 4, height: 6 }}>
+                          <div style={{ width: `${pct}%`, background: row.color, height: 6, borderRadius: 4, transition: 'width 0.4s' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 

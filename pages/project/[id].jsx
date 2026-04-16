@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import Navbar from '../../components/Navbar';
+import { useLang } from '../../hooks/useLang';
 import styles from './project.module.css';
 
 const STATUS_COLOR = { open: '#10b981', in_progress: '#0056b3', completed: '#6b7280', payment_failed: '#ef4444' };
@@ -10,6 +12,7 @@ const STATUS_COLOR = { open: '#10b981', in_progress: '#0056b3', completed: '#6b7
 export default function ProjectDetail() {
   const router = useRouter();
   const toast  = useToast();
+  const [lang, setLang] = useLang();
   const { id } = router.query;
 
   const [project, setProject]       = useState(null);
@@ -18,6 +21,9 @@ export default function ProjectDetail() {
   const [currentUser, setCurrentUser] = useState(null);
   const [applying, setApplying]     = useState(false);
   const [applyMsg, setApplyMsg]     = useState('');
+  const [quotedRate, setQuotedRate] = useState('');
+  const [quotedDays, setQuotedDays] = useState('');
+  const [quoteAmount, setQuoteAmount] = useState('');
   const [assigning, setAssigning]   = useState(null);
 
   useEffect(() => {
@@ -51,7 +57,7 @@ export default function ProjectDetail() {
       const res  = await fetch('/api/demand/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
-        body: JSON.stringify({ demand_id: id, message: applyMsg }),
+        body: JSON.stringify({ demand_id: id, message: applyMsg, quoted_rate: quotedRate, quoted_days: quotedDays || undefined, quote_amount: quoteAmount || undefined }),
       });
       const data = await res.json();
       if (res.ok) { toast.success('Application submitted!'); setApplyMsg(''); }
@@ -100,10 +106,7 @@ export default function ProjectDetail() {
     <>
       <Head><title>{project.title} | TalEngineer</title></Head>
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}>⚙️ TalEngineer</Link>
-        <Link href="/talent" className={styles.btnBack}>← Talent Hub</Link>
-      </header>
+      <Navbar lang={lang} onLangChange={setLang} />
 
       <div className={styles.wrap}>
         {/* ── Project header ── */}
@@ -152,6 +155,43 @@ export default function ProjectDetail() {
           <div className={styles.card}>
             <h3 className={styles.sectionTitle}>🙋 Apply to This Project</h3>
             <form onSubmit={handleApply}>
+              {/* Quote fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Your Rate</label>
+                  <input
+                    className={styles.textarea}
+                    style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13 }}
+                    value={quotedRate}
+                    onChange={e => setQuotedRate(e.target.value)}
+                    placeholder="e.g. $80/hr or $1200 flat"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Est. Days</label>
+                  <input
+                    type="number"
+                    className={styles.textarea}
+                    style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13 }}
+                    value={quotedDays}
+                    onChange={e => setQuotedDays(e.target.value)}
+                    placeholder="e.g. 3"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Total Quote (USD)</label>
+                  <input
+                    type="number"
+                    className={styles.textarea}
+                    style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13 }}
+                    value={quoteAmount}
+                    onChange={e => setQuoteAmount(e.target.value)}
+                    placeholder="e.g. 1200"
+                    min="0"
+                  />
+                </div>
+              </div>
               <textarea
                 className={styles.textarea}
                 rows={4}
@@ -160,7 +200,7 @@ export default function ProjectDetail() {
                 placeholder="Introduce yourself and explain why you're a great fit for this project…"
               />
               <button type="submit" className={styles.btnApply} disabled={applying}>
-                {applying ? 'Submitting…' : 'Submit Application'}
+                {applying ? 'Submitting…' : 'Submit Proposal'}
               </button>
             </form>
           </div>
@@ -188,6 +228,14 @@ export default function ProjectDetail() {
                         <span>·</span>
                         <span>{app.talents?.rate}</span>
                       </div>
+                      {/* Quote details */}
+                      {(app.quoted_rate || app.quoted_days || app.quote_amount) && (
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '6px 0' }}>
+                          {app.quoted_rate   && <span style={{ background: 'rgba(0,86,179,.08)', color: 'var(--primary)', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>💰 {app.quoted_rate}</span>}
+                          {app.quoted_days   && <span style={{ background: 'rgba(16,185,129,.08)', color: '#059669', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>📅 {app.quoted_days}d</span>}
+                          {app.quote_amount  && <span style={{ background: 'rgba(245,158,11,.08)', color: '#d97706', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>🧾 ${Number(app.quote_amount).toLocaleString()} total</span>}
+                        </div>
+                      )}
                       {app.message && <p className={styles.appMsg}>{app.message}</p>}
                     </div>
                     <div className={styles.appActions}>

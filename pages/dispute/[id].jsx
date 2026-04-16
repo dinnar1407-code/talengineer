@@ -36,7 +36,8 @@ export default function DisputePage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/disputes/${id}`)
+    const token = (() => { try { return JSON.parse(localStorage.getItem(LS_USER_KEY) || '{}').token || ''; } catch { return ''; } })();
+    fetch(`/api/disputes/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.json())
       .then(d => {
         setDispute(d.data || null);

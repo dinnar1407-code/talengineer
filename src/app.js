@@ -80,6 +80,8 @@ const disputesRoutes       = require('./routes/disputes');
 const enterpriseRoutes     = require('./routes/enterprise');
 const reviewsRoutes        = require('./routes/reviews');
 const messagesRoutes       = require('./routes/messages');
+const notificationsRoutes  = require('./routes/notifications');
+const kycRoutes            = require('./routes/kyc');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -96,6 +98,8 @@ app.use('/api/disputes',        disputesRoutes);
 app.use('/api/enterprise',      enterpriseRoutes);
 app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/messages',        messagesRoutes);
+app.use('/api/notifications',   notificationsRoutes);
+app.use('/api/kyc',             kycRoutes);
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));

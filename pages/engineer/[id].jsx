@@ -353,6 +353,36 @@ export default function EngineerProfile() {
             }
           </div>
 
+          {/* Portfolio */}
+          {Array.isArray(engineer.portfolio_images) && engineer.portfolio_images.length > 0 && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Work Portfolio</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 10 }}>
+                {engineer.portfolio_images.map((item, i) => (
+                  <a
+                    key={i}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#f3f4f6', position: 'relative', textDecoration: 'none' }}
+                  >
+                    <img
+                      src={item.url}
+                      alt={item.caption || `Work sample ${i + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      onError={e => { e.target.parentElement.style.display = 'none'; }}
+                    />
+                    {item.caption && (
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,.7))', color: '#fff', fontSize: 11, padding: '16px 8px 6px', lineHeight: 1.3 }}>
+                        {item.caption}
+                      </div>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           <a
             href={`mailto:${engineer.contact}?subject=TalEngineer Project Inquiry for ${encodeURIComponent(engineer.name)}`}
             className={styles.btnContact}
