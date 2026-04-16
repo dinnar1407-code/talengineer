@@ -11,6 +11,7 @@ export default function Admin() {
   const [stats, setStats]       = useState(null);
   const [loading, setLoading]   = useState(false);
   const [activeTab, setActiveTab] = useState('users');
+  const [certs, setCerts]         = useState(null);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -54,11 +55,33 @@ export default function Admin() {
 
   const { counts, revenue, recent } = stats;
 
+  async function loadCerts() {
+    if (certs !== null) return;
+    try {
+      const res  = await fetch('/api/certifications?status=pending', { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setCerts(data.data || []);
+    } catch { setCerts([]); }
+  }
+
+  async function reviewCert(certId, status) {
+    try {
+      await fetch(`/api/certifications/${certId}/review`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ status }),
+      });
+      setCerts(prev => prev.filter(c => c.id !== certId));
+      toast.success(status === 'verified' ? 'Certification verified.' : 'Certification rejected.');
+    } catch { toast.error('Failed to update.'); }
+  }
+
   const TABS = [
     { id: 'users',   label: `Users (${counts.users})` },
     { id: 'demands', label: `Projects (${counts.demands})` },
     { id: 'talents', label: `Engineers (${counts.talents})` },
     { id: 'ledgers', label: `Ledger (${counts.ledgers})` },
+    { id: 'certs',   label: 'Certifications' },
   ];
 
   return (
@@ -86,7 +109,7 @@ export default function Admin() {
         {/* Tabs */}
         <div className={styles.tabs}>
           {TABS.map(t => (
-            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => setActiveTab(t.id)}>{t.label}</button>
+            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); }}>{t.label}</button>
           ))}
         </div>
 
@@ -148,6 +171,34 @@ export default function Admin() {
                     <td className={styles.muted}>{new Date(t.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))
+              }
+            </tbody>
+          </table>
+        )}
+
+        {/* Certifications */}
+        {activeTab === 'certs' && (
+          <table className={styles.table}>
+            <thead><tr><th>Engineer</th><th>Certification</th><th>Type</th><th>Number</th><th>Expiry</th><th>File</th><th>Action</th></tr></thead>
+            <tbody>
+              {certs === null
+                ? <tr><td colSpan={7} className={styles.empty}>Loading…</td></tr>
+                : certs.length === 0
+                  ? <tr><td colSpan={7} className={styles.empty}>No pending certifications.</td></tr>
+                  : certs.map(c => (
+                    <tr key={c.id}>
+                      <td style={{ fontWeight: 600 }}>{c.talents?.name}<br /><span className={styles.muted}>{c.talents?.contact}</span></td>
+                      <td>{c.cert_name}</td>
+                      <td><span className={`${styles.badge} ${styles.badgeGray}`}>{c.cert_type}</span></td>
+                      <td className={styles.muted}>{c.cert_number || '—'}</td>
+                      <td className={styles.muted}>{c.expiry_date ? new Date(c.expiry_date).toLocaleDateString() : '—'}</td>
+                      <td>{c.file_url ? <a href={c.file_url} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontSize: 12 }}>View ↗</a> : '—'}</td>
+                      <td style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => reviewCert(c.id, 'verified')} style={{ background: 'var(--success)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✅ Verify</button>
+                        <button onClick={() => reviewCert(c.id, 'rejected')} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✗ Reject</button>
+                      </td>
+                    </tr>
+                  ))
               }
             </tbody>
           </table>

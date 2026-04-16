@@ -522,7 +522,7 @@ export default function Finance() {
                         <span className={`${styles.statusBadge} ${styles['status_' + (m.status || 'locked')]}`}>{(m.status || 'locked').toUpperCase()}</span>
                         {currentUser?.role === 'employer' && m.status === 'locked' && <button className={styles.btnFund} onClick={() => fundMilestone(m.id, modalDemandId, m.amount, m.phase_name)}>Fund via Stripe</button>}
                         {currentUser?.role === 'employer' && m.status === 'funded' && <button className={styles.btnRelease} onClick={() => releaseMilestone(m.id, modalDemandId)}>🛡️ Release Funds</button>}
-                        {currentUser?.role === 'engineer' && m.status === 'funded' && <button className={styles.btnAction} onClick={() => toast.info('AI-QC Upload coming soon.')}>📸 AI-QC Upload</button>}
+                        {currentUser?.role === 'engineer' && m.status === 'funded' && <a href={`/workorder/${m.id}`} className={styles.btnAction} style={{ display: 'block', marginTop: 8, textAlign: 'center', textDecoration: 'none', fontSize: 12 }}>📍 Work Order</a>}
                         {m.status === 'released' && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Platform Fee Deducted</div>}
                       </div>
                     </li>

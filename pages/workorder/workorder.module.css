@@ -1,0 +1,45 @@
+.header { background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:50; }
+.logo { font-size:18px; font-weight:800; }
+.statusChip { font-size:12px; background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:20px; font-weight:600; }
+
+.wrap { max-width:480px; margin:0 auto; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }
+
+.spinner { width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; margin:60px auto 16px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+
+.card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.doneCard { text-align:center; padding:32px 20px; }
+.cardLabel { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+.cardTitle { font-size:18px; font-weight:800; margin-bottom:6px; }
+.cardSub { font-size:14px; color:var(--muted); }
+
+.stepTitle { font-size:16px; font-weight:700; margin-bottom:8px; }
+.stepDesc { font-size:14px; color:var(--muted); margin-bottom:16px; line-height:1.5; }
+
+.btnPrimary { display:block; width:100%; padding:14px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:16px; cursor:pointer; margin-top:12px; }
+.btnPrimary:hover { background:#004494; }
+.btnPrimary:disabled { opacity:0.6; cursor:not-allowed; }
+
+.btnGPS { display:block; width:100%; padding:12px; background:var(--secondary); border:1px solid var(--border); border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; margin-bottom:12px; text-align:left; color:var(--text-dark); }
+.btnGPS:hover { border-color:var(--primary); }
+
+.btnCamera { display:block; width:100%; padding:14px; background:#0f172a; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:14px; }
+.btnCamera:hover { background:#1e293b; }
+
+.btnApprove { display:block; width:100%; padding:14px; background:var(--success); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:16px; cursor:pointer; margin-top:16px; }
+.btnApprove:hover { background:#059669; }
+.btnApprove:disabled { opacity:0.6; cursor:not-allowed; }
+
+.photoGrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0; }
+.photoThumb { position:relative; border-radius:6px; overflow:hidden; aspect-ratio:1; }
+.photoThumb img { width:100%; height:100%; object-fit:cover; }
+.photoThumb button { position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer; font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; }
+
+.textarea { width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:14px; resize:vertical; box-sizing:border-box; line-height:1.5; }
+.textarea:focus { outline:none; border-color:var(--primary); }
+
+.notesBlock { background:var(--secondary); border-radius:8px; padding:14px; margin-bottom:16px; }
+.notesBlock p { font-size:14px; line-height:1.6; margin:4px 0 0; }
+
+.timestamp { font-size:12px; color:var(--muted); text-align:center; padding:8px; }
