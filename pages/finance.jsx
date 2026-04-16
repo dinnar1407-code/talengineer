@@ -337,7 +337,7 @@ export default function Finance() {
 
             <div className={styles.orDivider}><span>{d.lblOr}</span></div>
             <div className={styles.socialGroup}>
-              <button className={styles.btnGoogle} onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/finance' } })}>
+              <button className={styles.btnGoogle} onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin) + '/finance' } })}>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width={16} height={16} alt="Google" /> Google
               </button>
               <button className={styles.btnLinkedIn} onClick={() => toast.info('LinkedIn OAuth integration pending.')}>
