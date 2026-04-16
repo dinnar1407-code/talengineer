@@ -1,0 +1,14 @@
+{
+  "/": "pages/index.html",
+  "/_app": "pages/_app.js",
+  "/_document": "pages/_document.js",
+  "/_error": "pages/_error.js",
+  "/admin": "pages/admin.html",
+  "/engineer/[id]": "pages/engineer/[id].html",
+  "/finance": "pages/finance.html",
+  "/project/[id]": "pages/project/[id].html",
+  "/reset-password": "pages/reset-password.html",
+  "/talent": "pages/talent.html",
+  "/warroom": "pages/warroom.html",
+  "/404": "pages/404.html"
+}

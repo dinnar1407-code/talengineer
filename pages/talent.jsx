@@ -5,6 +5,8 @@ import ChatBot from '../components/ChatBot';
 import { useToast } from '../components/Toast';
 import styles from './talent.module.css';
 
+const PAGE_SIZE = 12;
+
 const DICT = {
   en: {
     navTalent: 'Find Engineers', navLogin: 'Sign In / Dashboard',
@@ -48,10 +50,22 @@ export default function Talent() {
   const [demands, setDemands]  = useState(null); // null = loading
   const [talents, setTalents]  = useState(null); // null = loading
 
+  // Current user (for Apply button)
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Talent filters
   const [filterRegion, setFilterRegion] = useState('all');
   const [filterSkills, setFilterSkills] = useState('');
   const [filterScore,  setFilterScore]  = useState('');
+
+  // Pagination
+  const [talentPage, setTalentPage]  = useState(0);
+  const [talentTotal, setTalentTotal] = useState(0);
+
+  // Apply modal
+  const [applyDemand, setApplyDemand] = useState(null); // demand object
+  const [applyMsg, setApplyMsg]       = useState('');
+  const [applying, setApplying]       = useState(false);
 
   // Post project form
   const [rawText, setRawText]   = useState('');
@@ -69,6 +83,8 @@ export default function Talent() {
     const saved = localStorage.getItem('tal_lang') || 'en';
     setLangState(saved);
     loadDemands();
+    const stored = localStorage.getItem('tal_user');
+    if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
 
   function setLang(l) {
@@ -84,17 +100,39 @@ export default function Talent() {
     } catch { setDemands([]); }
   }
 
-  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore) {
+  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore, page = 0) {
     setTalents(null);
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (region && region !== 'all') params.set('region', region);
       if (skills.trim()) params.set('skills', skills.trim());
       if (score) params.set('min_score', score);
       const res  = await fetch('/api/talent/list?' + params.toString());
       const data = await res.json();
       setTalents(data.data || []);
+      setTalentTotal(data.total || 0);
+      setTalentPage(page);
     } catch { setTalents([]); toast.error('Failed to load engineers.'); }
+  }
+
+  async function submitApply(e) {
+    e.preventDefault();
+    if (!currentUser?.token) { toast.error('Please sign in on the Dashboard first.'); return; }
+    setApplying(true);
+    try {
+      const res  = await fetch('/api/demand/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ demand_id: applyDemand.id, message: applyMsg }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Application submitted! The employer will be notified.');
+        setApplyDemand(null);
+        setApplyMsg('');
+      } else toast.error(data.error);
+    } catch { toast.error('Network error.'); }
+    setApplying(false);
   }
 
   function applyFilters(e) {
@@ -244,18 +282,24 @@ export default function Talent() {
                   : demands.map(item => (
                     <div key={item.id} className={styles.card}>
                       <div className={styles.cardTitle}>
-                        <span>{item.title}</span>
+                        <Link href={`/project/${item.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{item.title}</Link>
                         <span style={{ fontSize: 14, color: 'var(--success)' }}>{item.budget}</span>
                       </div>
                       <div className={styles.cardMeta}>
                         <span className={styles.badge}>📍 {item.location || 'N/A'}</span>
                         <span className={styles.badge}>⚙️ {item.role_required}</span>
-                        <span className={styles.badge}>📋 Escrow Milestone Supported</span>
+                        <span className={styles.badge}>📋 Escrow Milestone</span>
                       </div>
                       <div className={styles.cardDesc}>{item.description}</div>
                       <div className={styles.cardFooter}>
                         <span className={styles.dateLabel}>Posted: {new Date(item.created_at).toLocaleDateString()}</span>
-                        <a href={`mailto:${item.contact}?subject=Nexus Inquiry: ${encodeURIComponent(item.title)}`} className={styles.btnAction}>Apply Now</a>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Link href={`/project/${item.id}`} className={styles.btnAction} style={{ background: '#6b7280' }}>Details</Link>
+                          {currentUser?.role === 'engineer'
+                            ? <button className={styles.btnAction} onClick={() => { setApplyDemand(item); setApplyMsg(''); }}>Apply</button>
+                            : <a href={`mailto:${item.contact}?subject=TalEngineer Inquiry: ${encodeURIComponent(item.title)}`} className={styles.btnAction}>Apply Now</a>
+                          }
+                        </div>
                       </div>
                     </div>
                   ))
@@ -333,15 +377,22 @@ export default function Talent() {
                 <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); loadTalent('all', '', ''); }}>Clear</button>
               </form>
 
+              {/* Pagination info */}
+              {talentTotal > PAGE_SIZE && talents !== null && (
+                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--muted)' }}>
+                  Showing {talentPage * PAGE_SIZE + 1}–{Math.min((talentPage + 1) * PAGE_SIZE, talentTotal)} of {talentTotal} engineers
+                </div>
+              )}
+
               {talents === null
                 ? [0,1,2].map(i => <div key={i} className={styles.cardSkeleton} />)
                 : talents.length === 0
-                  ? <p className={styles.loading}>No engineers available at the moment.</p>
+                  ? <p className={styles.loading}>No engineers match your search.</p>
                   : talents.map(t => (
                     <div key={t.id} className={styles.card}>
                       <div className={styles.cardTitle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {t.name}
+                          <Link href={`/engineer/${t.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{t.name}</Link>
                           {t.verified_score >= 80 && (
                             <span className={styles.verifiedBadge}>🛡️ Nexus Verified ({t.verified_score})</span>
                           )}
@@ -356,12 +407,24 @@ export default function Talent() {
                       <div className={styles.cardDesc}>{t.bio}</div>
                       <div className={styles.cardFooter}>
                         <span className={styles.dateLabel}>Joined: {new Date(t.created_at).toLocaleDateString()}</span>
-                        <a href={`mailto:${t.contact}?subject=Talengineer Match: Project Inquiry for ${encodeURIComponent(t.name)}`} className={styles.btnAction}>Invite to Project</a>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <Link href={`/engineer/${t.id}`} className={styles.btnAction} style={{ background: '#6b7280' }}>Profile</Link>
+                          <a href={`mailto:${t.contact}?subject=TalEngineer Inquiry for ${encodeURIComponent(t.name)}`} className={styles.btnAction}>Invite</a>
+                        </div>
                       </div>
                     </div>
                   ))
               }
-            </div>
+
+              {/* Pagination controls */}
+              {talentTotal > PAGE_SIZE && talents !== null && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 24 }}>
+                  <button className={styles.btnClear} disabled={talentPage === 0} onClick={() => loadTalent(filterRegion, filterSkills, filterScore, talentPage - 1)}>← Prev</button>
+                  <span style={{ lineHeight: '36px', fontSize: 13, color: 'var(--muted)' }}>Page {talentPage + 1} / {Math.ceil(talentTotal / PAGE_SIZE)}</span>
+                  <button className={styles.btnClear} disabled={(talentPage + 1) * PAGE_SIZE >= talentTotal} onClick={() => loadTalent(filterRegion, filterSkills, filterScore, talentPage + 1)}>Next →</button>
+                </div>
+              )}
+            </div>{/* end mainCol */}
             <div className={styles.sideCol}>
               <form className={styles.postForm} onSubmit={submitProfile}>
                 <h3>{d.formTitleTalent}</h3>
@@ -387,6 +450,34 @@ export default function Talent() {
           </div>
         )}
       </div>
+
+      {/* Apply Modal */}
+      {applyDemand && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && setApplyDemand(null)}>
+          <form style={{ background: '#fff', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }} onSubmit={submitApply}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>Apply to Project</h3>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>{applyDemand.title}</div>
+              </div>
+              <span style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setApplyDemand(null)}>×</span>
+            </div>
+            <textarea
+              rows={5}
+              value={applyMsg}
+              onChange={e => setApplyMsg(e.target.value)}
+              placeholder="Introduce yourself and explain why you're a great fit for this project…"
+              style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', marginBottom: 14 }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" style={{ flex: 1, padding: 10, background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setApplyDemand(null)}>Cancel</button>
+              <button type="submit" className={styles.btnAction} style={{ flex: 2, padding: 10 }} disabled={applying}>
+                {applying ? 'Submitting…' : 'Submit Application'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </>
   );
 }

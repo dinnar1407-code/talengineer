@@ -38,6 +38,20 @@ export default function Finance() {
   const [modalDemandId, setModalDemandId] = useState(null);
   const [milestones, setMilestones]       = useState(null);
 
+  // Stripe Connect (engineers)
+  const [connectStatus, setConnectStatus] = useState(null); // null | 'not_connected' | 'pending' | 'active'
+  const [connecting, setConnecting]       = useState(false);
+
+  // Applicants modal (employers)
+  const [applicantsDemandId, setApplicantsDemandId] = useState(null);
+  const [applicants, setApplicants]                 = useState(null);
+  const [assigning, setAssigning]                   = useState(null);
+
+  // Forgot password
+  const [showForgotPw, setShowForgotPw] = useState(false);
+  const [forgotEmail, setForgotEmail]   = useState('');
+  const [forgotSent, setForgotSent]     = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem('tal_lang') || 'en';
     setLangState(saved);
@@ -50,6 +64,16 @@ export default function Finance() {
         setCurrentUser(user);
         loadLedger(user);
       } catch { localStorage.removeItem(LS_USER_KEY); }
+    }
+
+    // ── Handle Stripe Connect redirect back ──────────────────────────────────
+    const connectParam = new URLSearchParams(window.location.search).get('connect');
+    if (connectParam === 'success') {
+      toast.success('Stripe Connect setup complete! You can now receive payouts.');
+      window.history.replaceState({}, document.title, '/finance');
+    } else if (connectParam === 'refresh') {
+      toast.info('Stripe Connect setup interrupted. Please try again.');
+      window.history.replaceState({}, document.title, '/finance');
     }
 
     // ── Handle Stripe redirect back ───────────────────────────────────────────
@@ -109,6 +133,7 @@ export default function Finance() {
     localStorage.setItem(LS_USER_KEY, JSON.stringify(userData));
     setCurrentUser(userData);
     loadLedger(userData);
+    if (userData.role === 'engineer' && userData.token) loadConnectStatus(userData.token);
   }
 
   function setLang(l) { setLangState(l); localStorage.setItem('tal_lang', l); }
@@ -134,6 +159,57 @@ export default function Finance() {
     setLedger(null);
     setMetrics({ escrow: 0, released: 0, active: 0 });
     toast.info('Signed out.');
+  }
+
+  async function loadConnectStatus(token) {
+    try {
+      const res  = await fetch('/api/payment/connect/status', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setConnectStatus(data.status || 'not_connected');
+    } catch { setConnectStatus('not_connected'); }
+  }
+
+  async function startConnect() {
+    if (!currentUser?.token) { toast.error('Please sign in first.'); return; }
+    setConnecting(true);
+    try {
+      const res  = await fetch('/api/payment/connect/onboard', { method: 'POST', headers: { Authorization: `Bearer ${currentUser.token}` } });
+      const data = await res.json();
+      if (res.ok && data.url) { window.location.href = data.url; }
+      else toast.error(data.error || 'Failed to start Stripe setup.');
+    } catch { toast.error('Network error.'); }
+    setConnecting(false);
+  }
+
+  async function loadApplicants(demandId) {
+    setApplicantsDemandId(demandId);
+    setApplicants(null);
+    try {
+      const res  = await fetch(`/api/demand/${demandId}/applications`, { headers: { Authorization: `Bearer ${currentUser.token}` } });
+      const data = await res.json();
+      setApplicants(data.data || []);
+    } catch { setApplicants([]); toast.error('Failed to load applications.'); }
+  }
+
+  async function assignEngineer(demandId, engineerId) {
+    setAssigning(engineerId);
+    try {
+      const res  = await fetch('/api/demand/assign', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` }, body: JSON.stringify({ demand_id: demandId, engineer_id: engineerId }) });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Engineer assigned! Email notification sent.');
+        setApplicants(prev => prev.map(a => ({ ...a, status: a.talents?.id === engineerId ? 'accepted' : a.status === 'pending' ? 'rejected' : a.status })));
+      } else toast.error(data.error);
+    } catch { toast.error('Network error.'); }
+    setAssigning(null);
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    try {
+      await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: forgotEmail }) });
+      setForgotSent(true);
+    } catch { toast.error('Network error.'); }
   }
 
   async function loadLedger(user) {
@@ -220,22 +296,44 @@ export default function Finance() {
               </div>
               <button className={styles.langToggle} onClick={() => setLang(lang === 'en' ? 'zh' : lang === 'zh' ? 'es' : 'en')}>ZH / ES</button>
             </div>
-            <form onSubmit={handleLogin}>
-              {authMode === 'signup' && (
-                <>
-                  <FormGroup label={d.lblName}><input value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" /></FormGroup>
-                  <FormGroup label={d.lblRole}>
-                    <select value={role} onChange={e => setRole(e.target.value)}>
-                      <option value="employer">Supplier / Project Owner</option>
-                      <option value="engineer">Automation Engineer</option>
-                    </select>
+            {showForgotPw ? (
+              forgotSent ? (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📧</div>
+                  <p>Check your email for a reset link.</p>
+                  <button className={styles.btnPrimary} onClick={() => { setShowForgotPw(false); setForgotSent(false); }}>Back to Sign In</button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword}>
+                  <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 16 }}>Enter your email and we'll send a reset link.</p>
+                  <FormGroup label="Email Address">
+                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="your@email.com" required />
                   </FormGroup>
-                </>
-              )}
-              <FormGroup label={d.lblEmail}><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required /></FormGroup>
-              <FormGroup label={d.lblPassword}><input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required /></FormGroup>
-              <button type="submit" className={styles.btnPrimary} disabled={logging}>{logging ? '...' : authMode === 'signin' ? d.btnLogin : d.btnCreate}</button>
-            </form>
+                  <button type="submit" className={styles.btnPrimary}>Send Reset Link</button>
+                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', width: '100%', marginTop: 12, fontSize: 13 }} onClick={() => setShowForgotPw(false)}>← Back to Sign In</button>
+                </form>
+              )
+            ) : (
+              <form onSubmit={handleLogin}>
+                {authMode === 'signup' && (
+                  <>
+                    <FormGroup label={d.lblName}><input value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" /></FormGroup>
+                    <FormGroup label={d.lblRole}>
+                      <select value={role} onChange={e => setRole(e.target.value)}>
+                        <option value="employer">Supplier / Project Owner</option>
+                        <option value="engineer">Automation Engineer</option>
+                      </select>
+                    </FormGroup>
+                  </>
+                )}
+                <FormGroup label={d.lblEmail}><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required /></FormGroup>
+                <FormGroup label={d.lblPassword}><input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required /></FormGroup>
+                <button type="submit" className={styles.btnPrimary} disabled={logging}>{logging ? '...' : authMode === 'signin' ? d.btnLogin : d.btnCreate}</button>
+                {authMode === 'signin' && (
+                  <button type="button" style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', width: '100%', marginTop: 10, fontSize: 13 }} onClick={() => setShowForgotPw(true)}>Forgot password?</button>
+                )}
+              </form>
+            )}
 
             <div className={styles.orDivider}><span>{d.lblOr}</span></div>
             <div className={styles.socialGroup}>
@@ -290,6 +388,23 @@ export default function Finance() {
             <p>{d.dashSub}</p>
           </div>
 
+          {/* ── Stripe Connect Banner (engineers only) ── */}
+          {currentUser.role === 'engineer' && connectStatus && connectStatus !== 'active' && (
+            <div style={{ background: connectStatus === 'pending' ? 'rgba(244,196,48,0.08)' : 'rgba(0,86,179,0.06)', border: `1px solid ${connectStatus === 'pending' ? 'rgba(244,196,48,0.3)' : 'rgba(0,86,179,0.2)'}`, borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  {connectStatus === 'pending' ? '⏳ Stripe Payout Setup Incomplete' : '💳 Set Up Stripe Payout Account'}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  {connectStatus === 'pending' ? 'Please complete your Stripe account setup to receive milestone payments.' : 'Connect Stripe to receive escrow payouts when milestones are released.'}
+                </div>
+              </div>
+              <button onClick={startConnect} disabled={connecting} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {connecting ? 'Redirecting…' : connectStatus === 'pending' ? 'Complete Setup' : 'Connect Stripe'}
+              </button>
+            </div>
+          )}
+
           {/* Metrics */}
           <div className={styles.metrics}>
             {ledger === null
@@ -326,12 +441,60 @@ export default function Finance() {
                       <td style={{ color: 'var(--muted)' }}>{currentUser.role === 'employer' ? item.engineer_email : item.employer_email || 'Pending Match'}</td>
                       <td style={{ fontWeight: 600 }}>${(item.total_amount || 0).toLocaleString()}</td>
                       <td><span className={`${styles.statusBadge} ${styles['status_' + item.status]}`}>{item.status.toUpperCase()}</span></td>
-                      <td><button className={styles.btnAction} onClick={() => openMilestones(item.demand_id)}>View Milestones</button></td>
+                      <td style={{ display: 'flex', gap: 8 }}>
+                        <button className={styles.btnAction} onClick={() => openMilestones(item.demand_id)}>Milestones</button>
+                        {currentUser?.role === 'employer' && <button className={styles.btnAction} style={{ background: '#6b7280' }} onClick={() => loadApplicants(item.demand_id)}>Applicants</button>}
+                      </td>
                     </tr>
                   ))
               }
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Applicants Modal */}
+      {applicantsDemandId && (
+        <div className={styles.modal} onClick={e => e.target === e.currentTarget && setApplicantsDemandId(null)}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <span>Applications for #{applicantsDemandId}</span>
+              <span className={styles.modalClose} onClick={() => setApplicantsDemandId(null)}>×</span>
+            </div>
+            {applicants === null
+              ? [0,1,2].map(i => <div key={i} className={styles.msItemSkeleton} />)
+              : applicants.length === 0
+                ? <p className={styles.emptyCell}>No applications yet.</p>
+                : applicants.map(app => (
+                  <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                        {app.talents?.name}
+                        {(app.talents?.verified_score || 0) >= 80 && <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(16,185,129,0.1)', color: 'var(--success)', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)', fontWeight: 600 }}>🛡️ Verified {app.talents.verified_score}</span>}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: app.message ? 6 : 0 }}>
+                        {app.talents?.region} · {app.talents?.rate}
+                      </div>
+                      {app.message && <div style={{ fontSize: 13, fontStyle: 'italic', color: '#374151' }}>{app.message}</div>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
+                      {app.status === 'accepted'
+                        ? <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>✅ Assigned</span>
+                        : app.status === 'rejected'
+                          ? <span style={{ fontSize: 12, color: 'var(--muted)' }}>Declined</span>
+                          : <>
+                            <a href={`/engineer/${app.talents?.id}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--primary)', border: '1px solid var(--primary)', padding: '4px 10px', borderRadius: 4, textDecoration: 'none', fontWeight: 600 }}>Profile</a>
+                            <button className={styles.btnRelease} disabled={assigning === app.talents?.id} onClick={() => assignEngineer(applicantsDemandId, app.talents?.id)} style={{ margin: 0, fontSize: 12 }}>
+                              {assigning === app.talents?.id ? '…' : 'Assign'}
+                            </button>
+                          </>
+                      }
+                    </div>
+                  </div>
+                ))
+            }
+            <button className={styles.btnPrimary} style={{ marginTop: 16 }} onClick={() => setApplicantsDemandId(null)}>Close</button>
+          </div>
         </div>
       )}
 

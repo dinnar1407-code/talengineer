@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const { getClient } = require('../config/db');
+const { emailPasswordReset } = require('../services/email');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
@@ -154,6 +155,60 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('[Auth] Login error:', err);
     res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
+// ── Forgot Password ──────────────────────────────────────────────────────────
+
+router.post('/forgot-password', async (req, res) => {
+  // Always respond OK to avoid email enumeration
+  res.json({ status: 'ok', message: 'If that email is registered, you will receive a reset link shortly.' });
+
+  try {
+    const { email } = req.body;
+    if (!email) return;
+
+    const supabase = getClient();
+    const { data: user } = await supabase.from('users').select('id, email').eq('email', email).single();
+    if (!user) return;
+
+    const resetToken = jwt.sign({ email: user.email, type: 'reset' }, JWT_SECRET, { expiresIn: '1h' });
+    const domain = process.env.DOMAIN || 'http://localhost:4000';
+    const resetUrl = `${domain}/reset-password?token=${resetToken}`;
+
+    emailPasswordReset({ userEmail: user.email, resetUrl }).catch(console.error);
+  } catch (err) {
+    console.error('[Auth] Forgot password error:', err);
+  }
+});
+
+// ── Reset Password ────────────────────────────────────────────────────────────
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Missing token or password' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return res.status(400).json({ error: 'Reset link has expired or is invalid. Please request a new one.' });
+    }
+
+    if (decoded.type !== 'reset') return res.status(400).json({ error: 'Invalid reset token' });
+
+    const supabase = getClient();
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const { error } = await supabase.from('users').update({ password: passwordHash }).eq('email', decoded.email);
+    if (error) throw error;
+
+    console.log(`[Auth] Password reset for ${decoded.email}`);
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error('[Auth] Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password. Please try again.' });
   }
 });
 

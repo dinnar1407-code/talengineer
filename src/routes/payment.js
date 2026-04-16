@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { emailMilestoneFunded, emailMilestoneReleased, emailPaymentFailed } = require('../services/email');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -143,6 +144,14 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
 
     console.log(`[Payment] Milestone ${milestone_id} released. Total: $${totalAmount}, Fee: $${platformFee}, Payout: $${engineerPayout}`);
 
+    // Notify engineer
+    if (demand?.assigned_engineer_id) {
+      const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', demand.assigned_engineer_id).single();
+      if (talent?.contact) {
+        emailMilestoneReleased({ engineerEmail: talent.contact, engineerName: talent.name, phaseName: milestone.phase_name, payout: engineerPayout }).catch(console.error);
+      }
+    }
+
     res.json({
       status: 'ok',
       payout_details: {
@@ -201,6 +210,18 @@ router.post('/webhook', async (req, res) => {
       }
 
       console.log(`[Webhook] Milestone ${milestoneId} funded via Stripe webhook.`);
+
+      // Notify assigned engineer
+      if (milestoneId && demandId) {
+        const { data: demand } = await supabase.from('demands').select('title, assigned_engineer_id').eq('id', demandId).single();
+        if (demand?.assigned_engineer_id) {
+          const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', demand.assigned_engineer_id).single();
+          const { data: ms } = await supabase.from('project_milestones').select('phase_name, amount').eq('id', milestoneId).single();
+          if (talent?.contact && ms) {
+            emailMilestoneFunded({ engineerEmail: talent.contact, engineerName: talent.name, projectTitle: demand.title, phaseName: ms.phase_name, amount: ms.amount }).catch(console.error);
+          }
+        }
+      }
     }
   }
 
@@ -226,6 +247,17 @@ router.post('/webhook', async (req, res) => {
         .update({ status: 'payment_failed' })
         .eq('id', demandId)
         .eq('status', 'open');
+    }
+
+    // Notify employer
+    if (milestoneId) {
+      const { data: ms } = await supabase.from('project_milestones').select('phase_name, demand_id').eq('id', milestoneId).single();
+      if (ms) {
+        const { data: demand } = await supabase.from('demands').select('title, contact').eq('id', ms.demand_id).single();
+        if (demand?.contact) {
+          emailPaymentFailed({ employerEmail: demand.contact, projectTitle: demand.title, phaseName: ms.phase_name }).catch(console.error);
+        }
+      }
     }
   }
 

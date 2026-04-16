@@ -72,14 +72,16 @@ const demandRoutes  = require('./routes/demand');
 const paymentRoutes = require('./routes/payment');
 const iotRoutes     = require('./routes/iot');
 const adminRoutes   = require('./routes/admin');
+const connectRoutes = require('./routes/connect');
 
-app.use('/api/talent',  talentRoutes);
-app.use('/api/finance', financeRoutes);
-app.use('/api/auth',    authRoutes);
-app.use('/api/demand',  demandRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/iot',     iotRoutes);
-app.use('/api/admin',   adminRoutes);
+app.use('/api/talent',          talentRoutes);
+app.use('/api/finance',         financeRoutes);
+app.use('/api/auth',            authRoutes);
+app.use('/api/demand',          demandRoutes);
+app.use('/api/payment',         paymentRoutes);
+app.use('/api/iot',             iotRoutes);
+app.use('/api/admin',           adminRoutes);
+app.use('/api/payment/connect', connectRoutes);
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));
