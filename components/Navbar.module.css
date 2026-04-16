@@ -1,0 +1,203 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #111);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navLink {
+  font-size: 14px;
+  color: var(--muted, #6b7280);
+  text-decoration: none;
+  transition: color .15s;
+  white-space: nowrap;
+}
+
+.navLink:hover { color: var(--text, #111); }
+
+.btnSignIn {
+  background: var(--primary, #0056b3);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s;
+}
+
+.btnSignIn:hover { background: #004494; }
+
+/* User menu */
+.userMenu {
+  position: relative;
+}
+
+.avatarBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 24px;
+  padding: 4px 12px 4px 4px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.avatarBtn:hover {
+  border-color: var(--primary, #0056b3);
+  background: rgba(0,86,179,.04);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #111);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userRole {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chevron {
+  font-size: 9px;
+  color: var(--muted, #9ca3af);
+  margin-left: 2px;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  min-width: 200px;
+  overflow: hidden;
+  z-index: 300;
+}
+
+.dropdownHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  background: rgba(0,0,0,.02);
+}
+
+.dropdownEmail {
+  font-size: 12px;
+  color: var(--muted, #6b7280);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownRoleBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--text, #111);
+  text-decoration: none;
+  transition: background .1s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdownItem:hover { background: rgba(0,0,0,.04); }
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--border, #e5e7eb);
+  margin: 4px 0;
+}
+
+/* Lang buttons */
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border, #e5e7eb);
+}
+
+.langBtn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #9ca3af);
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color .15s;
+}
+
+.langBtn:hover { color: var(--text, #111); }
+.langActive    { color: var(--primary, #0056b3) !important; }
+
+/* Mobile: hide nav links on small screens */
+@media (max-width: 600px) {
+  .navLink { display: none; }
+  .userName { max-width: 80px; }
+}

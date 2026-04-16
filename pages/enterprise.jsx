@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Navbar from '../components/Navbar';
 import { useToast } from '../components/Toast';
 import styles from './enterprise.module.css';
 
@@ -74,14 +75,7 @@ export default function Enterprise() {
         <meta name="description" content="Talengineer Enterprise API — bulk post projects, access rate benchmarks, and manage engineers programmatically." />
       </Head>
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
-        <nav className={styles.nav}>
-          <Link href="/talent">Find Engineers</Link>
-          <Link href="/rates">Rate Benchmarks</Link>
-          <Link href="/finance">{currentUser ? 'Dashboard' : 'Sign In'}</Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <div className={styles.hero}>
         <div className={styles.heroInner}>

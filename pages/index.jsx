@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Navbar from '../components/Navbar';
 import styles from './index.module.css';
 
 const DICT = {
@@ -175,25 +176,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header */}
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
-        <nav className={styles.navLinks}>
-          <Link href="/#how-it-works">{d.navHow}</Link>
-          <Link href="/talent">{d.navTalent}</Link>
-          <Link href="/finance" className={styles.btnLogin}>{d.navLogin}</Link>
-          <div className={styles.divider} />
-          {['en', 'zh', 'es'].map((l) => (
-            <button
-              key={l}
-              className={`${styles.langBtn} ${lang === l ? styles.active : ''}`}
-              onClick={() => setLang(l)}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </nav>
-      </header>
+      <Navbar lang={lang} onLangChange={setLang} />
 
       {/* Hero */}
       <section className={styles.hero}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Navbar from '../components/Navbar';
 import ChatBot from '../components/ChatBot';
 import { useToast } from '../components/Toast';
 import styles from './talent.module.css';
@@ -248,17 +249,7 @@ export default function Talent() {
       <Head><title>Talent & Projects | Talengineer</title></Head>
       <ChatBot />
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
-        <nav className={styles.navLinks}>
-          <Link href="/talent">{d.navTalent}</Link>
-          <Link href="/finance" className={styles.btnLogin}>{d.navLogin}</Link>
-          <div className={styles.divider} />
-          {['en', 'zh', 'es'].map(l => (
-            <button key={l} className={`${styles.langBtn} ${lang === l ? styles.active : ''}`} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
-          ))}
-        </nav>
-      </header>
+      <Navbar lang={lang} onLangChange={setLang} />
 
       <div className={styles.container}>
         <div className={styles.headerBlock}>

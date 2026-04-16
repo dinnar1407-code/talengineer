@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Navbar from '../components/Navbar';
 import styles from './rates.module.css';
 
 export default function Rates() {
@@ -31,13 +32,7 @@ export default function Rates() {
         <meta name="description" content="Live market rates for automation and industrial engineers by region. Compare $USD/hr rates for PLC, SCADA, robotics, and electrical engineering." />
       </Head>
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
-        <nav className={styles.nav}>
-          <Link href="/talent">Find Engineers</Link>
-          <Link href="/finance" className={styles.btnCta}>Post a Project</Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <div className={styles.hero}>
         <div className={styles.heroInner}>

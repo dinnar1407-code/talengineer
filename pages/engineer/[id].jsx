@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import Navbar from '../../components/Navbar';
 import styles from './engineer.module.css';
 
 const CERT_TYPES = ['OSHA-10', 'OSHA-30', 'Electrical License', 'Siemens Certified', 'Rockwell/Allen-Bradley', 'Fanuc Robotics', 'CSIA Certified', 'PMP', 'General Liability Insurance', 'Workers Comp Insurance', 'Other'];
@@ -189,10 +190,7 @@ export default function EngineerProfile() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </Head>
 
-      <header className={styles.header}>
-        <Link href="/" className={styles.logo}>⚙️ TalEngineer</Link>
-        <Link href="/talent" className={styles.btnBack}>← Talent Hub</Link>
-      </header>
+      <Navbar />
 
       <div className={styles.wrap}>
         <div className={styles.card}>
