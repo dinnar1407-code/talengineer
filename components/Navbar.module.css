@@ -329,6 +329,9 @@
 
 /* Mobile: hide nav links on small screens */
 @media (max-width: 600px) {
-  .navLink { display: none; }
-  .userName { max-width: 80px; }
+  .navLink   { display: none; }
+  .userInfo  { display: none; }
+  .divider   { display: none; }
+  .nav       { gap: 8px; }
+  .langSelect { font-size: 11px; padding: 3px 6px; }
 }
