@@ -40,7 +40,7 @@ export default function Finance() {
 
   // Role selection modal (for Google OAuth users)
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [pendingOAuthUser, setPendingOAuthUser] = useState(null);
+  const [pendingOAuthSession, setPendingOAuthSession] = useState(null);
   const [oauthRole, setOauthRole] = useState('employer');
 
   // Milestone modal
@@ -118,39 +118,49 @@ export default function Finance() {
 
     // ── Supabase OAuth session ────────────────────────────────────────────────
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !stored) handleOAuthUser(session.user);
+      if (session?.user && !stored) handleOAuthSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) handleOAuthUser(session.user);
+      if (session?.user) handleOAuthSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  function handleOAuthUser(user) {
-    // Check if we already have a role stored for this OAuth user
-    const storedRole = localStorage.getItem(`tal_role_${user.email}`);
+  function handleOAuthSession(session) {
+    const storedRole = localStorage.getItem(`tal_role_${session.user.email}`);
     if (storedRole) {
-      const userData = buildOAuthUser(user, storedRole);
-      persistAndSet(userData);
+      fetchOAuthToken(session.access_token, session.user, storedRole);
     } else {
-      // First time OAuth login → ask for role
-      setPendingOAuthUser(user);
+      setPendingOAuthSession(session);
       setShowRoleModal(true);
     }
   }
 
-  function confirmOAuthRole() {
-    const userData = buildOAuthUser(pendingOAuthUser, oauthRole);
-    localStorage.setItem(`tal_role_${pendingOAuthUser.email}`, oauthRole);
-    persistAndSet(userData);
-    setShowRoleModal(false);
-    setPendingOAuthUser(null);
+  async function fetchOAuthToken(accessToken, user, roleVal) {
+    try {
+      const res = await fetch('/api/auth/oauth-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: accessToken, role: roleVal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      localStorage.setItem(`tal_role_${data.email}`, data.role);
+      persistAndSet({ email: data.email, name: data.name, role: data.role, token: data.token });
+    } catch (err) {
+      console.error('[OAuth] Token exchange failed:', err);
+      toast.error('Google login failed. Please try again.');
+    }
   }
 
-  function buildOAuthUser(user, roleVal) {
-    return { email: user.email, name: user.user_metadata?.full_name || user.email.split('@')[0], role: roleVal };
+  function confirmOAuthRole() {
+    const session = pendingOAuthSession;
+    localStorage.setItem(`tal_role_${session.user.email}`, oauthRole);
+    fetchOAuthToken(session.access_token, session.user, oauthRole);
+    setShowRoleModal(false);
+    setPendingOAuthSession(null);
   }
 
   function persistAndSet(userData) {

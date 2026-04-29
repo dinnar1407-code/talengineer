@@ -327,11 +327,16 @@
 .langSelect:hover  { border-color: var(--primary, #0056b3); }
 .langSelect:focus  { outline: none; border-color: var(--primary, #0056b3); }
 
-/* Mobile: hide nav links on small screens */
-@media (max-width: 600px) {
-  .navLink   { display: none; }
-  .userInfo  { display: none; }
-  .divider   { display: none; }
-  .nav       { gap: 8px; }
-  .langSelect { font-size: 11px; padding: 3px 6px; }
+/* Mobile */
+@media (max-width: 640px) {
+  .header     { padding: 0 12px; }
+  .navLink    { display: none; }
+  .userInfo   { display: none; }
+  .chevron    { display: none; }
+  .divider    { display: none; }
+  .nav        { gap: 6px; }
+  .avatarBtn  { padding: 4px; border-radius: 50%; }
+  .bellBtn    { width: 30px; height: 30px; font-size: 14px; }
+  .btnSignIn  { padding: 6px 12px; font-size: 13px; }
+  .langSelect { font-size: 12px; padding: 4px 4px; max-width: 52px; }
 }

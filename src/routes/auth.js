@@ -158,6 +158,52 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ── OAuth Token Exchange ─────────────────────────────────────────────────────
+// Called after Supabase OAuth to exchange a Supabase session for our own JWT
+
+router.post('/oauth-token', async (req, res) => {
+  try {
+    const { access_token, role } = req.body;
+    if (!access_token || !role) return res.status(400).json({ error: 'Missing access_token or role' });
+    if (!['employer', 'engineer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+
+    const supabase = getClient();
+
+    // Verify Supabase session
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(access_token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired session' });
+
+    // Find or create user in our users table
+    let { data: dbUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', user.email)
+      .single();
+
+    if (!dbUser) {
+      const name = user.user_metadata?.full_name || user.email.split('@')[0];
+      const { data: newUser, error: insertErr } = await supabase
+        .from('users')
+        .insert([{ email: user.email, role, name, password: '' }])
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
+      dbUser = newUser;
+    }
+
+    const token = jwt.sign(
+      { userId: dbUser.id, email: dbUser.email, role: dbUser.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({ status: 'ok', token, email: dbUser.email, role: dbUser.role, name: dbUser.name });
+  } catch (err) {
+    console.error('[Auth] OAuth token exchange error:', err);
+    res.status(500).json({ error: 'Authentication failed. Please try again.' });
+  }
+});
+
 // ── Forgot Password ──────────────────────────────────────────────────────────
 
 router.post('/forgot-password', async (req, res) => {
