@@ -1,2 +1,26 @@
+# 依赖
 node_modules/
-.env
+
+# 构建产物
+.next/
+*.tsbuildinfo
+
+# 环境变量（含密钥，绝不入库；仅保留示例文件）
+.env*
+!.env.example
+
+# 日志
+*.log
+
+# 本地数据库（含真实用户数据，禁止提交）
+data/*.db
+
+# 系统文件
+.DS_Store
+
+# 工具/部署本地状态
+.omc/
+.vercel
+
+# 一次性脚本（曾硬编码 API 密钥，禁止再次提交）
+send_moltbook*.py
