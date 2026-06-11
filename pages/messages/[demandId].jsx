@@ -34,9 +34,26 @@ export default function MessageThread() {
   useEffect(() => {
     if (!demandId || !currentUser) return;
     loadThread();
-    // Poll for new messages every 5 seconds
-    pollRef.current = setInterval(loadThread, 5000);
-    return () => clearInterval(pollRef.current);
+    // 轮询间隔 15 秒：全局限流为每 IP 15 分钟 100 次，原 5 秒轮询约 8 分钟就会耗尽配额导致全站 429
+    const startPolling = () => {
+      clearInterval(pollRef.current);
+      pollRef.current = setInterval(loadThread, 15000);
+    };
+    // 页面隐藏时暂停轮询省掉无效请求，回到前台先立即刷新一次再恢复轮询
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadThread();
+        startPolling();
+      } else {
+        clearInterval(pollRef.current);
+      }
+    };
+    if (document.visibilityState === 'visible') startPolling();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [demandId, currentUser]);
 
   useEffect(() => {
@@ -54,11 +71,21 @@ export default function MessageThread() {
         setDemand(data.demand);
         setMessages(data.data || []);
         setLoading(false);
+        maybeMarkRead(data.data || []);
       } else {
         toast.error(data.error || 'Failed to load messages.');
         setLoading(false);
       }
     } catch { setLoading(false); }
+  }
+
+  // 标记已读只在页面可见且确实拉到对方未读消息时才发，避免每次轮询都对数据库产生一次 UPDATE 写
+  function maybeMarkRead(msgs) {
+    if (document.visibilityState !== 'visible') return;
+    if (!msgs.some(m => m.sender_email !== currentUser.email && !m.read)) return;
+    fetch(`/api/messages/thread/${demandId}?markRead=1`, {
+      headers: { Authorization: `Bearer ${currentUser.token}` },
+    }).catch(() => {});
   }
 
   async function sendMessage(e) {

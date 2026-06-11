@@ -27,13 +27,15 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
 
     if (error) throw error;
 
-    // Mark unread messages as read for this user
-    await supabase
-      .from('messages')
-      .update({ read: true })
-      .eq('demand_id', req.params.demandId)
-      .neq('sender_email', req.user.email)
-      .eq('read', false);
+    // 仅当显式带 ?markRead=1 时才标记已读，普通轮询只读不写，避免每次轮询都触发 UPDATE
+    if (req.query.markRead === '1') {
+      await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('demand_id', req.params.demandId)
+        .neq('sender_email', req.user.email)
+        .eq('read', false);
+    }
 
     res.json({ status: 'ok', demand: { id: demand.id, title: demand.title }, data: msgs || [] });
   } catch (err) {

@@ -99,7 +99,11 @@ async function main() {
         const messages = supabase
           ? (await supabase.from('project_messages').select('*').eq('demand_id', projectId).limit(50)).data
           : [];
-        const report = await generateDailyReport(messages || []);
+        // generateDailyReport 期望字符串形式的聊天记录，直接传对象数组会在 prompt 里变成 [object Object]（拼接方式与 server.js 一致）
+        const historyText = messages && messages.length > 0
+          ? messages.map((m) => `[${m.sender_name}]: ${m.original_text}`).join('\n')
+          : '(No recent chat history found. Provide general status assuming project just started.)';
+        const report = await generateDailyReport(historyText);
         io.to(`project_${projectId}`).emit('message', {
           isAIPM: true,
           senderName: '🤖 AI-PM Daily Report',
@@ -127,12 +131,19 @@ async function main() {
 
     socket.on('uploadQualityImage', async ({ projectId, imageData, context }) => {
       try {
-        const analysis = await analyzeQualityImage(imageData, context);
+        // analyzeQualityImage 签名为 (base64Data, mimeType, projectContext)：需先把前端传来的 dataURL 拆成 mimeType 与纯 base64（与 server.js 一致）
+        const parts = imageData.split(';');
+        const mimeType = parts[0].split(':')[1];
+        const base64Data = parts[1].split(',')[1];
+        const analysis = await analyzeQualityImage(base64Data, mimeType, context || '');
+        // 返回值是 {verdict, feedback_es, feedback_zh} 对象，需拼成文本再发给前端，否则会显示 [object Object]
+        const qcMessageEs = `**Verdict: ${analysis.verdict}**<br/>${analysis.feedback_es}`;
+        const qcMessageZh = `**质检结果: ${analysis.verdict}**<br/>${analysis.feedback_zh}`;
         io.to(`project_${projectId}`).emit('message', {
           isIOT: true,
           senderName: '📷 AI Quality Control',
-          originalText: analysis,
-          translatedText: analysis,
+          originalText: qcMessageEs,
+          translatedText: qcMessageZh,
         });
       } catch (err) {
         socket.emit('messageError', { error: 'Failed to analyse image.' });

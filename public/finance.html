@@ -573,18 +573,36 @@
       const demandId = urlParams.get('demand_id');
       
       if (sessionId && msId) {
+          // confirm-funding 需要雇主 JWT：本页登录态只存内存（刷新即丢），回退读 Next.js 页面写入的 tal_user
+          let token = currentUser && currentUser.token;
+          if (!token) {
+            try { token = (JSON.parse(localStorage.getItem('tal_user') || 'null') || {}).token; } catch(e) {}
+          }
           try {
-             // In a real app, the webhook handles the DB update. 
-             // We do a temporary client-side confirmation for this prototype.
-             await fetch('/api/payment/confirm-funding', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sessionId, milestone_id: msId, demand_id: demandId })
-             });
-             alert("Payment Confirmed! Funds are securely locked in Escrow.");
+             if (!token) {
+               // 拿不到 token 无法通过后端鉴权，不发请求也不谎报成功，如实提示待确认
+               alert("Payment received. Please sign in to confirm escrow status, or contact support if it stays pending.");
+             } else {
+               // In a real app, the webhook handles the DB update.
+               // We do a temporary client-side confirmation for this prototype.
+               const res = await fetch('/api/payment/confirm-funding', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                  body: JSON.stringify({ session_id: sessionId, milestone_id: msId, demand_id: demandId })
+               });
+               // 按后端结果提示：确认失败时不谎报托管成功
+               if (res.ok) {
+                 alert("Payment Confirmed! Funds are securely locked in Escrow.");
+               } else {
+                 alert("Payment received, but escrow confirmation is still pending. Please refresh later or contact support.");
+               }
+             }
              // Clean URL
              window.history.replaceState({}, document.title, "/finance");
-          } catch(e) {}
+          } catch(e) {
+             alert("Payment received, but escrow confirmation is still pending. Please refresh later or contact support.");
+             window.history.replaceState({}, document.title, "/finance");
+          }
       }
     }
 

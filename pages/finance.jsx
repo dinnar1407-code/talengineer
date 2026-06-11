@@ -78,9 +78,11 @@ export default function Finance() {
   useEffect(() => {
     // ── Restore session from localStorage (email/password login) ─────────────
     const stored = localStorage.getItem(LS_USER_KEY);
+    let restoredUser = null; // 保存恢复的登录态，供下方 Stripe 回跳确认托管时取 JWT token
     if (stored) {
       try {
         const user = JSON.parse(stored);
+        restoredUser = user;
         setCurrentUser(user);
         loadLedger(user);
         loadMyDemands(user);
@@ -106,12 +108,25 @@ export default function Finance() {
     const msId      = params.get('milestone_id');
     const demandId  = params.get('demand_id');
     if (sessionId && msId) {
+      // 后端 confirm-funding 已要求雇主 JWT 鉴权，必须带上恢复登录态里的 token
+      const token = restoredUser?.token;
       fetch('/api/payment/confirm-funding', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ session_id: sessionId, milestone_id: msId, demand_id: demandId }),
-      }).catch(() => {}).finally(() => {
-        toast.success('Payment confirmed! Funds are securely locked in Escrow.');
+      }).then((res) => {
+        // 只有后端确认成功才报成功，失败时如实提示待确认，避免谎报托管完成
+        if (res.ok) {
+          toast.success('Payment confirmed! Funds are securely locked in Escrow.');
+        } else {
+          toast.error('Payment received, but escrow confirmation is still pending. Please refresh later or contact support.');
+        }
+      }).catch(() => {
+        toast.error('Payment received, but escrow confirmation is still pending. Please refresh later or contact support.');
+      }).finally(() => {
         window.history.replaceState({}, document.title, '/finance');
       });
     }

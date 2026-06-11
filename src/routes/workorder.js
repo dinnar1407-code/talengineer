@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const crypto  = require('crypto'); // 用于生成放款幂等键的随机后缀
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { emailMilestoneReleased, emailRequestReview } = require('../services/email');
@@ -98,25 +99,58 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
     if (ms.status === 'released') return res.json({ status: 'ok', idempotent: true });
 
+    // ── Verify requester is the employer for this demand ────────────────────
+    // 放款是雇主专属操作：校验调用者就是该需求的雇主，防止任意登录用户越权放款
+    const { data: demand, error: demandErr } = await supabase.from('demands').select('employer_id, assigned_engineer_id').eq('id', ms.demand_id).single();
+    if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
     const { data: checkin } = await supabase.from('work_order_checkins').select('*').eq('milestone_id', req.params.milestoneId).eq('status', 'completed').single();
     if (!checkin) return res.status(400).json({ error: 'Engineer has not submitted work for review yet.' });
 
     const totalAmount   = parseFloat(ms.amount) || 0;
     const engineerPayout = totalAmount * (1 - PLATFORM_FEE);
 
-    const { data: demand } = await supabase.from('demands').select('assigned_engineer_id').eq('id', ms.demand_id).single();
+    // ── Idempotency guard: atomically claim the milestone before transferring ──
+    // 原子抢占：仅当仍为 funded 时置为中间态 releasing（而非直接 released），并发重复请求抢不到行直接退出；
+    // 进程若在转账前崩溃，状态停在 releasing 可被发现处理，不会被标成 released 造成静默漏付
+    const { data: claimed, error: claimErr } = await supabase
+      .from('project_milestones')
+      .update({ status: 'releasing' })
+      .eq('id', ms.id)
+      .eq('status', 'funded') // only claim if still funded (race condition guard)
+      .select('id');
+    if (claimErr) throw claimErr;
+    if (!claimed?.length) {
+      return res.status(409).json({ error: 'Milestone is not in funded status or is already being released.' });
+    }
+
+    // 抢占成功后才生成幂等键：并发安全由 funded→releasing 原子抢占保证，随机后缀避免失败重试被 Stripe 旧幂等记录卡住
+    const idempotencyKey = `release-${ms.id}-${crypto.randomUUID()}`;
+
     let stripeTransferId = null;
 
     if (demand?.assigned_engineer_id && process.env.STRIPE_SECRET_KEY) {
       const { data: talent } = await supabase.from('talents').select('stripe_account_id, name, contact').eq('id', demand.assigned_engineer_id).single();
       if (talent?.stripe_account_id) {
-        const transfer = await stripe.transfers.create({
-          amount: Math.round(engineerPayout * 100),
-          currency: 'usd',
-          destination: talent.stripe_account_id,
-          description: `TalEngineer payout: ${ms.phase_name}`,
-          metadata: { milestone_id: String(ms.id), demand_id: String(ms.demand_id) },
-        });
+        let transfer;
+        try {
+          transfer = await stripe.transfers.create({
+            amount: Math.round(engineerPayout * 100),
+            currency: 'usd',
+            destination: talent.stripe_account_id,
+            description: `TalEngineer payout: ${ms.phase_name}`,
+            metadata: { milestone_id: String(ms.id), demand_id: String(ms.demand_id) },
+          }, { idempotencyKey });
+        } catch (transferErr) {
+          // 转账失败回滚 releasing→funded，释放守卫以便后续重试，避免标记放款却没有真实打款
+          const { error: rollbackErr } = await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', ms.id).eq('status', 'releasing');
+          // 回滚失败会让里程碑卡死在 releasing（无人能重试放款），必须高优先级告警人工修库
+          if (rollbackErr) {
+            console.error(`[WorkOrder] CRITICAL: failed to roll back milestone ${ms.id} from releasing to funded:`, rollbackErr.message);
+          }
+          throw transferErr;
+        }
         stripeTransferId = transfer.id;
         emailMilestoneReleased({ engineerEmail: talent.contact, engineerName: talent.name, phaseName: ms.phase_name, payout: engineerPayout }).catch(console.error);
       }
@@ -133,7 +167,17 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
       }
     }
 
-    await supabase.from('project_milestones').update({ status: 'released', ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) }).eq('id', ms.id);
+    // 转账成功后才终结状态：.eq('status','releasing') 守卫确保只有持有抢占权的请求能落库 released
+    const { data: finalized, error: finalizeErr } = await supabase
+      .from('project_milestones')
+      .update({ status: 'released', ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) })
+      .eq('id', ms.id)
+      .eq('status', 'releasing')
+      .select('id');
+    // 资金已转出但状态未落库（error 或 0 行命中均算失败，与 payment.js 一致）：高优先级告警，需人工核对该里程碑
+    if (finalizeErr || !finalized || finalized.length === 0) {
+      console.error(`[WorkOrder] CRITICAL: milestone ${ms.id} transfer ${stripeTransferId || 'n/a'} succeeded but finalize to released failed:`, finalizeErr?.message || 'no rows updated');
+    }
     await supabase.from('work_order_checkins').update({ status: 'approved' }).eq('milestone_id', ms.id);
 
     // Send review request email to employer

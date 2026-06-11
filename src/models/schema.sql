@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS project_milestones (
     phase_name VARCHAR(255) NOT NULL,
     percentage DECIMAL(5,2) NOT NULL, -- e.g. 0.10 for 10%
     amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'locked' CHECK (status IN ('locked', 'funded', 'completed', 'released')),
+    -- 状态集合与代码保持一致：releasing（放款抢占守卫）、payment_failed（付款失败可重试）、disputed（争议冻结）
+    status VARCHAR(50) DEFAULT 'locked' CHECK (status IN ('locked', 'funded', 'releasing', 'completed', 'released', 'payment_failed', 'disputed')),
     deliverables_req TEXT,
     stripe_payment_intent VARCHAR(255), -- ID of the held funds
     completed_at TIMESTAMP WITH TIME ZONE

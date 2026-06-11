@@ -2,6 +2,8 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+// 共享管理员口令中间件：替换原先内联的明文 !== 比较（恒时比较 + fail-closed）
+const { requireAdmin } = require('../middleware/adminAuth');
 
 // ── Submit a certification ────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
@@ -55,10 +57,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 // ── Admin: verify or reject ───────────────────────────────────────────────────
-router.put('/:id/review', async (req, res) => {
-  const adminPwd = process.env.ADMIN_PASSWORD;
-  if (!adminPwd || req.headers['x-admin-password'] !== adminPwd) return res.status(401).json({ error: 'Unauthorized' });
-
+router.put('/:id/review', requireAdmin, async (req, res) => {
   try {
     const supabase = getClient();
     const { status, admin_notes } = req.body;
@@ -79,10 +78,7 @@ router.put('/:id/review', async (req, res) => {
 });
 
 // ── Admin: list pending certs ─────────────────────────────────────────────────
-router.get('/', async (req, res) => {
-  const adminPwd = process.env.ADMIN_PASSWORD;
-  if (!adminPwd || req.headers['x-admin-password'] !== adminPwd) return res.status(401).json({ error: 'Unauthorized' });
-
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const supabase = getClient();
     const statusFilter = req.query.status || 'pending';

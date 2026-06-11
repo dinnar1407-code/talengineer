@@ -296,6 +296,26 @@ router.post('/assign', requireAuth, async (req, res) => {
     const { demand_id, engineer_id } = req.body;
     if (!demand_id || !engineer_id) return res.status(400).json({ error: 'Missing demand_id or engineer_id' });
 
+    // Verify requester owns this demand
+    // 防 IDOR：只有该需求的雇主本人才能指派工程师
+    const { data: demand, error: demandErr } = await supabase
+      .from('demands')
+      .select('employer_id, title, contact')
+      .eq('id', demand_id)
+      .single();
+    if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    // Verify the engineer actually applied to this demand
+    // 防止把未申请该项目的工程师（含攻击者自指派）设为收款方
+    const { data: application, error: appErr } = await supabase
+      .from('demand_applications')
+      .select('id')
+      .eq('demand_id', demand_id)
+      .eq('engineer_id', engineer_id)
+      .single();
+    if (appErr || !application) return res.status(400).json({ error: 'Engineer has not applied to this project.' });
+
     // Assign engineer
     await supabase.from('demands').update({ assigned_engineer_id: engineer_id, status: 'in_progress' }).eq('id', demand_id);
 
@@ -305,7 +325,6 @@ router.post('/assign', requireAuth, async (req, res) => {
 
     // Notify engineer (email + in-app)
     const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', engineer_id).single();
-    const { data: demand } = await supabase.from('demands').select('title, contact').eq('id', demand_id).single();
     if (talent?.contact && demand?.title) {
       emailEngineerAssigned({ engineerEmail: talent.contact, engineerName: talent.name, projectTitle: demand.title, clientContact: demand.contact }).catch(console.error);
       createNotification({

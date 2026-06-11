@@ -27,18 +27,9 @@ app.use(cors({
 }));
 
 // ── Body parser ───────────────────────────────────────────────────────────────
-// Preserve raw body for Stripe webhook signature verification
-app.use((req, res, next) => {
-  if (req.path === '/api/payment/webhook') {
-    let data = '';
-    req.setEncoding('utf8');
-    req.on('data', chunk => { data += chunk; });
-    req.on('end', () => { req.rawBody = data; next(); });
-  } else {
-    next();
-  }
-});
-
+// Stripe 验签需要原始字节：webhook 路径在 express.json 之前单独用 express.raw 解析，
+// req.body 为原始 Buffer；解析后 body-parser 标记 req._body，后面的 express.json 不会二次读流导致 500
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -100,6 +91,9 @@ app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/messages',        messagesRoutes);
 app.use('/api/notifications',   notificationsRoutes);
 app.use('/api/kyc',             kycRoutes);
+
+// 未匹配的 /api/* 统一返回 404 JSON，避免落入下面的 catch-all 被当成页面返回 200 HTML
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ── Page routes ───────────────────────────────────────────────────────────────
 app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));

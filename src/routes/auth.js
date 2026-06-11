@@ -120,6 +120,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    // 空密码账户是 OAuth 注册用户（见 /oauth-token 写入 password: ''），禁止密码登录，防止任意密码绕过鉴权
+    if (!user.password) {
+      return res.status(401).json({ error: 'This account uses Google sign-in. Please log in with Google.' });
+    }
+
     // Handle legacy accounts (plain SHA256 hash — migrate on first login)
     let passwordValid = false;
     const isBcrypt = user.password?.startsWith('$2');
@@ -130,7 +135,7 @@ router.post('/login', async (req, res) => {
       // Legacy SHA256 — verify then migrate to bcrypt
       const crypto = require('crypto');
       const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
-      if (user.password === legacyHash || !user.password) {
+      if (user.password === legacyHash) {
         passwordValid = true;
         // Migrate to bcrypt silently
         const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);

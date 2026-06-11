@@ -1,15 +1,8 @@
 const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
-
-// Simple admin password guard (set ADMIN_PASSWORD in Railway env vars)
-function requireAdmin(req, res, next) {
-  const adminPwd = process.env.ADMIN_PASSWORD;
-  if (!adminPwd) return res.status(503).json({ error: 'Admin not configured.' });
-  const provided = req.headers['x-admin-password'] || req.query.pwd;
-  if (provided !== adminPwd) return res.status(401).json({ error: 'Unauthorized.' });
-  next();
-}
+// 管理员口令校验已提炼为共享中间件（已移除 query.pwd 通道，仅接受 header：SHA-256 恒时比较 + 未配置 503 fail-closed）
+const { requireAdmin } = require('../middleware/adminAuth');
 
 // GET /api/admin/stats
 router.get('/stats', requireAdmin, async (req, res) => {
