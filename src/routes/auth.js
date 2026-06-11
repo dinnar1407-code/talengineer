@@ -39,7 +39,7 @@ router.post('/register', async (req, res) => {
     // Validate input
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0].message });
+      return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
     const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel } = parsed.data;
@@ -104,7 +104,7 @@ router.post('/login', async (req, res) => {
     // Validate input
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0].message });
+      return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
     const { email, password } = parsed.data;
