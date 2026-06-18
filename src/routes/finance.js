@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { assertDemandParticipant } = require('../middleware/ownership');
 
 // ── Ledger: get financial records for current user ────────────────────────────
 router.get('/ledger', requireAuth, async (req, res) => {
@@ -33,6 +34,13 @@ router.get('/milestones', requireAuth, async (req, res) => {
     if (!demand_id) {
       return res.status(400).json({ error: 'demand_id is required' });
     }
+
+    // ── 归属校验：里程碑含金额/托管信息，只有当事方能看 ──────────────────────
+    // 防 IDOR：原代码任意登录用户改 demand_id 就能读他人项目的里程碑金额。
+    // 允许该 demand 的雇主、或对其申请过/被指派的工程师、或 admin；其余 403。
+    const { allowed, demand } = await assertDemandParticipant(supabase, demand_id, req.user);
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
 
     const { data, error } = await supabase
       .from('project_milestones')

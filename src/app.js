@@ -7,6 +7,14 @@ require('dotenv').config();
 
 const app = express();
 
+// ── Trust proxy（信任反向代理）────────────────────────────────────────────────
+// 部署在 Railway 上时，请求先经过它的一层反向代理再到达本应用，客户端真实 IP 被放在
+// X-Forwarded-For 头里。若不开启 trust proxy，express 会把代理自己的 IP 当成客户端 IP，
+// 导致 express-rate-limit 对所有用户共用同一个 IP 限流（要么误伤、要么形同虚设）。
+// 这里设为 1（只信任最靠近应用的"第 1 跳"代理），而不是 true：
+// true 会无条件信任整条 X-Forwarded-For 链，攻击者可伪造该头绕过基于 IP 的限流。
+app.set('trust proxy', 1);
+
 // ── CORS: whitelist only known origins ───────────────────────────────────────
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:4000')
   .split(',')

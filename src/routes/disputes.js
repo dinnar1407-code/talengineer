@@ -3,6 +3,7 @@ const router  = express.Router();
 const crypto  = require('crypto'); // 用于生成纠纷放款幂等键的随机后缀
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { assertDemandParticipant } = require('../middleware/ownership');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // 共享管理员口令中间件：替换原先本地的明文 !== 比较（恒时比较 + fail-closed）
@@ -18,8 +19,16 @@ router.post('/', requireAuth, async (req, res) => {
     if (!milestone_id || !reason) return res.status(400).json({ error: 'Missing milestone_id or reason' });
 
     // Check milestone is funded (can't dispute locked or released)
-    const { data: ms } = await supabase.from('project_milestones').select('status').eq('id', milestone_id).single();
+    const { data: ms } = await supabase.from('project_milestones').select('status, demand_id').eq('id', milestone_id).single();
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
+
+    // ── 当事方校验：必须在冻结里程碑之前 ─────────────────────────────────────
+    // 防止任意登录用户对他人 funded 里程碑开纠纷（开纠纷会把里程碑冻结成 disputed）。
+    // 仅该 milestone 对应 demand 的雇主或已指派工程师可开，否则 403。
+    const { allowed, demand } = await assertDemandParticipant(supabase, ms.demand_id, req.user, { requireAssigned: true });
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     if (!['funded', 'completed'].includes(ms.status)) return res.status(400).json({ error: `Cannot dispute a milestone with status: ${ms.status}` });
 
     // Only one open dispute per milestone
@@ -29,8 +38,11 @@ router.post('/', requireAuth, async (req, res) => {
     // Freeze milestone
     await supabase.from('project_milestones').update({ status: 'disputed' }).eq('id', milestone_id);
 
+    // demand_id 必须来自里程碑的可信数据（ms.demand_id），而非请求体。
+    // 若从 req.body 取，攻击者可传合法 milestone_id + 不同 demand_id，写入错配纠纷，
+    // 导致后续裁决转账路由查错 demand、打款给错方或打款失败。
     const { data, error } = await supabase.from('disputes').insert({
-      milestone_id, demand_id, reason, opened_by_email: req.user.email, status: 'open',
+      milestone_id, demand_id: ms.demand_id, reason, opened_by_email: req.user.email, status: 'open',
     }).select().single();
     if (error) throw error;
 
@@ -42,9 +54,23 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // ── Get dispute by milestone ──────────────────────────────────────────────────
-router.get('/milestone/:milestoneId', async (req, res) => {
+router.get('/milestone/:milestoneId', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
+
+    // ── 归属校验：原路由完全无鉴权，先经 milestone → demand 反查当事方 ───────
+    // 由 milestone 取所属 demand_id，再判定调用者是否当事方（雇主/工程师/admin）。
+    const { data: ms } = await supabase
+      .from('project_milestones')
+      .select('demand_id')
+      .eq('id', req.params.milestoneId)
+      .single();
+    if (!ms) return res.status(404).json({ error: 'Milestone not found' });
+
+    const { allowed, demand } = await assertDemandParticipant(supabase, ms.demand_id, req.user);
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     const { data, error } = await supabase
       .from('disputes')
       .select('*')
@@ -61,7 +87,7 @@ router.get('/milestone/:milestoneId', async (req, res) => {
 });
 
 // ── Get dispute by id ─────────────────────────────────────────────────────────
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
     const { data, error } = await supabase
@@ -70,6 +96,12 @@ router.get('/:id', async (req, res) => {
       .eq('id', req.params.id)
       .single();
     if (error || !data) return res.status(404).json({ error: 'Dispute not found' });
+
+    // ── 归属校验：原路由完全无鉴权，按纠纷所属 demand 判定当事方 ─────────────
+    // 纠纷行自带 demand_id，直接据此判定调用者是否当事方（雇主/工程师/admin），非当事方 403。
+    const { allowed } = await assertDemandParticipant(supabase, data.demand_id, req.user);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
     res.json({ status: 'ok', data });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -80,10 +112,30 @@ router.get('/:id', async (req, res) => {
 router.put('/:id/evidence', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { evidence, party } = req.body; // party: 'employer' | 'engineer'
-    if (!['employer', 'engineer'].includes(party)) return res.status(400).json({ error: 'party must be employer or engineer' });
+    const { evidence } = req.body;
+    // 注意：不再信任请求体里的 party。party 必须由服务端按调用者的归属推断，
+    // 否则攻击者可声称自己是 employer，把证据写进对方那一侧的字段。
 
+    // 先取纠纷所属 demand_id，用于当事方判定。
+    const { data: dispute, error: dispErr } = await supabase
+      .from('disputes')
+      .select('id, demand_id')
+      .eq('id', req.params.id)
+      .single();
+    if (dispErr || !dispute) return res.status(404).json({ error: 'Dispute not found' });
+
+    // ── 当事方校验 + 服务端推断 party ───────────────────────────────────────
+    // 仅该 demand 的雇主或已指派工程师可提交证据；其余 403。
+    const { allowed, demand } = await assertDemandParticipant(supabase, dispute.demand_id, req.user, { requireAssigned: true });
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    // 由归属关系决定写入哪一侧：是该 demand 的雇主 → employer 侧；否则即为参与工程师 → engineer 侧。
+    // （admin 不是诉讼当事方，没有"自己一侧"的证据可提交。）
+    if (req.user.role === 'admin') return res.status(403).json({ error: 'Admins cannot submit party evidence.' });
+    const party = demand.employer_id === req.user.userId ? 'employer' : 'engineer';
     const field = party === 'employer' ? 'employer_evidence' : 'engineer_evidence';
+
     const { data, error } = await supabase
       .from('disputes')
       .update({ [field]: evidence, status: 'under_review' })

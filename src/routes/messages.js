@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { assertDemandParticipant } = require('../middleware/ownership');
 const { createNotification } = require('../services/notificationService');
 
 // ── Get thread for a demand ───────────────────────────────────────────────────
@@ -9,14 +10,21 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
 
-    // Verify user is party to this demand (employer or assigned engineer)
-    const { data: demand } = await supabase
+    // ── 归属校验：必须在任何消息读取 / markRead 写入之前 ─────────────────────
+    // 防 IDOR：原代码只校验登录、且 select 引用了 demands 上不存在的列
+    //（user_id / assigned_engineer_id）以及无外键的嵌套 talents(contact)，
+    // 既会报 relationship 错误，也让任意登录用户能读他人项目的聊天记录。
+    // 改用统一助手：雇主 / 参与工程师 / admin 才放行，否则 404（不存在）或 403（非当事方）。
+    const { allowed, demand } = await assertDemandParticipant(supabase, req.params.demandId, req.user);
+    if (!demand) return res.status(404).json({ error: 'Demand not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    // 标题用于前端展示：助手只取了 id/employer_id，这里单独补查 title。
+    const { data: demandMeta } = await supabase
       .from('demands')
-      .select('id, title, user_id, assigned_engineer_id, users(email), talents(contact)')
+      .select('id, title')
       .eq('id', req.params.demandId)
       .single();
-
-    if (!demand) return res.status(404).json({ error: 'Demand not found' });
 
     // Fetch messages
     const { data: msgs, error } = await supabase
@@ -37,7 +45,7 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
         .eq('read', false);
     }
 
-    res.json({ status: 'ok', demand: { id: demand.id, title: demand.title }, data: msgs || [] });
+    res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgs || [] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -55,6 +63,12 @@ router.post('/', requireAuth, async (req, res) => {
     if (content.length > 2000) {
       return res.status(400).json({ error: 'Message too long (max 2000 chars)' });
     }
+
+    // ── 归属校验：与"读消息"是同一孪生漏洞 ────────────────────────────────────
+    // 不校验写侧的当事方，任意登录用户可向他人项目的消息线程写入消息（骚扰/钓鱼），
+    // 也会让 inbox 里出现非当事方的消息，破坏消息可见性模型。
+    const { allowed } = await assertDemandParticipant(supabase, demand_id, req.user);
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
 
     const { data, error } = await supabase.from('messages').insert({
       demand_id,

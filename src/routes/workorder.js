@@ -3,6 +3,7 @@ const router  = express.Router();
 const crypto  = require('crypto'); // 用于生成放款幂等键的随机后缀
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { assertDemandParticipant } = require('../middleware/ownership');
 const { emailMilestoneReleased, emailRequestReview } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 
@@ -10,16 +11,23 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const PLATFORM_FEE = 0.15;
 
 // ── Get work order status for a milestone ─────────────────────────────────────
-router.get('/:milestoneId', async (req, res) => {
+router.get('/:milestoneId', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
+    // 注意：嵌套 select 去掉了 demands 上不存在的列 assigned_engineer_id（原值会让查询 500）。
     const { data: ms } = await supabase
       .from('project_milestones')
-      .select('*, demands(id, title, description, assigned_engineer_id)')
+      .select('*, demands(id, title, description)')
       .eq('id', req.params.milestoneId)
       .single();
 
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
+
+    // ── 归属校验：工单含项目细节，仅该 demand 的当事方/admin 可读 ────────────
+    // 防 IDOR：原路由完全无鉴权，任意人改 milestoneId 即可读他人工单。
+    const { allowed, demand } = await assertDemandParticipant(supabase, ms.demand_id, req.user);
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
 
     const { data: checkin } = await supabase
       .from('work_order_checkins')
@@ -202,17 +210,24 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
 });
 
 // ── Generate work order PDF (HTML print page) ─────────────────────────────────
-router.get('/:milestoneId/pdf', async (req, res) => {
+router.get('/:milestoneId/pdf', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
 
+    // 注意：嵌套 select 去掉了 demands 上不存在的列 assigned_engineer_id（原值会让查询 500）。
     const { data: ms } = await supabase
       .from('project_milestones')
-      .select('*, demands(id, title, description, region, contact, assigned_engineer_id)')
+      .select('*, demands(id, title, description, region, contact)')
       .eq('id', req.params.milestoneId)
       .single();
 
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
+
+    // ── 归属校验：工单 PDF 含金额/联系方式，仅该 demand 的当事方/admin 可下载 ──
+    // 防 IDOR：原路由完全无鉴权，任意人改 milestoneId 即可拉取他人工单 PDF。
+    const { allowed, demand } = await assertDemandParticipant(supabase, ms.demand_id, req.user);
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
 
     const { data: checkin } = await supabase
       .from('work_order_checkins')
@@ -220,9 +235,17 @@ router.get('/:milestoneId/pdf', async (req, res) => {
       .eq('milestone_id', req.params.milestoneId)
       .single();
 
+    // 工程师信息：demands 没有 assigned_engineer_id 列，改为通过 demand_applications
+    // 反查"已被指派（status=accepted）"的工程师 talent.id，再取其姓名/联系方式。
     let engineerName = 'N/A', engineerContact = '';
-    if (ms.demands?.assigned_engineer_id) {
-      const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', ms.demands.assigned_engineer_id).single();
+    const { data: acceptedApp } = await supabase
+      .from('demand_applications')
+      .select('engineer_id')
+      .eq('demand_id', ms.demand_id)
+      .eq('status', 'accepted')
+      .maybeSingle();
+    if (acceptedApp?.engineer_id) {
+      const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', acceptedApp.engineer_id).single();
       if (talent) { engineerName = talent.name; engineerContact = talent.contact; }
     }
 
