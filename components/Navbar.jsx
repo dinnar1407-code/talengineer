@@ -230,7 +230,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
   return (
     <header className={styles.header}>
       <Link href="/" className={styles.logo}>
-        <span>⚙️</span> Talengineer
+        <img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer
       </Link>
 
       <nav className={styles.nav}>

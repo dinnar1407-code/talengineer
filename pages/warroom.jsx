@@ -281,7 +281,7 @@ export default function WarRoom() {
       )}
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
+        <Link href="/" className={styles.logo}><img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer</Link>
         <div className={styles.headerSub}>{d.headerSub}</div>
       </header>
 

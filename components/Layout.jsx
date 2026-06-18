@@ -30,7 +30,7 @@ export default function Layout({ children, title = 'Talengineer', description = 
 
       <header className={styles.header}>
         <Link href="/" className={styles.logo}>
-          <span>⚙️</span> Talengineer
+          <img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer
         </Link>
         <nav className={styles.navLinks}>
           <Link href="/#how-it-works">How it Works</Link>

@@ -169,7 +169,7 @@ export default function Admin() {
       <Head><title>Admin Dashboard | Talengineer</title></Head>
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
+        <Link href="/" className={styles.logo}><img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer</Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>Admin Panel</span>
           <button className={styles.btnRefresh} onClick={refresh} disabled={loading}>↻ Refresh</button>

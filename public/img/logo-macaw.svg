@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a5bc4"/><stop offset="1" stop-color="#00367a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD64D"/><stop offset="1" stop-color="#F2A018"/>
+    </linearGradient>
+    <linearGradient id="feather" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#37A0F0"/><stop offset="1" stop-color="#1457A8"/>
+    </linearGradient>
+    <clipPath id="clip"><circle cx="256" cy="256" r="248"/></clipPath>
+  </defs>
+  <circle cx="256" cy="256" r="248" fill="url(#bg)"/>
+  <g clip-path="url(#clip)">
+    <!-- nape / neck feathers behind head (blue) -->
+    <path d="M165 165 Q92 240 122 384 Q152 404 178 360 Q150 280 205 205 Q200 175 165 165 Z" fill="url(#feather)"/>
+    <!-- gold head -->
+    <path d="M305 168 Q288 122 220 122 Q148 130 142 222 Q136 302 206 362 Q256 394 306 354 Q326 306 315 258 Q331 232 306 200 Z" fill="url(#gold)"/>
+    <!-- smooth blue crown cap over the top of the head -->
+    <path d="M308 174 Q298 126 222 124 Q150 130 145 212 Q176 176 224 180 Q272 184 308 174 Z" fill="url(#feather)"/>
+    <!-- white facial patch -->
+    <ellipse cx="234" cy="236" rx="76" ry="58" fill="#F5F2EB"/>
+    <path d="M174 224 Q216 218 288 228 M172 250 Q216 246 292 254 M180 274 Q222 272 286 276" stroke="#DAD0C0" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- eye -->
+    <circle cx="254" cy="230" r="25" fill="#16161f"/>
+    <circle cx="246" cy="222" r="8" fill="#fff"/>
+    <!-- upper beak (hooked) -->
+    <path d="M306 196 Q400 192 432 248 Q444 276 408 300 Q398 270 360 266 Q344 244 306 250 Q321 224 306 196 Z" fill="#1f1f2b"/>
+    <!-- lower beak -->
+    <path d="M313 254 Q359 262 389 290 Q357 316 319 304 Q307 282 313 254 Z" fill="#36364a"/>
+    <!-- beak sheen -->
+    <path d="M335 210 Q385 216 413 248" stroke="#50506a" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  <circle cx="256" cy="256" r="238" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="6"/>
+</svg>

@@ -131,7 +131,7 @@ export default function WorkOrder() {
       </Head>
 
       <div className={styles.header}>
-        <div className={styles.logo}>⚙️ TalEngineer</div>
+        <div className={styles.logo}><img src="/img/logo-macaw.svg" alt="" width={26} height={26} style={{ verticalAlign: "middle" }} /> TalEngineer</div>
         {checkin && <div className={styles.statusChip}>{STATUS_LABEL[checkin.status] || checkin.status}</div>}
       </div>
 

@@ -78,7 +78,7 @@ export default function DisputePage() {
       </Head>
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}><span>⚙️</span> Talengineer</Link>
+        <Link href="/" className={styles.logo}><img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer</Link>
         <Link href="/finance" className={styles.backLink}>← Back to Dashboard</Link>
       </header>
 
