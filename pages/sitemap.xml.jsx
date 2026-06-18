@@ -13,9 +13,11 @@ export async function getServerSideProps({ res }) {
     const { getClient } = require('../src/config/db');
     const supabase = getClient();
 
+    // 注：talents/demands 只有 created_at，没有 updated_at 列——
+    // 原来查 updated_at 会报错被 catch 吞掉，导致 sitemap 只剩静态页（缺 engineer/project 页，损 SEO）
     const [engRes, demRes] = await Promise.all([
-      supabase.from('talents').select('id, updated_at').order('id'),
-      supabase.from('demands').select('id, updated_at').eq('status', 'open').order('id'),
+      supabase.from('talents').select('id, created_at').order('id'),
+      supabase.from('demands').select('id, created_at').eq('status', 'open').order('id'),
     ]);
     engineers = engRes.data || [];
     demands   = demRes.data || [];
@@ -33,14 +35,14 @@ export async function getServerSideProps({ res }) {
     url: `/engineer/${e.id}`,
     priority: '0.7',
     changefreq: 'weekly',
-    lastmod: e.updated_at?.split('T')[0],
+    lastmod: e.created_at?.split('T')[0],
   }));
 
   const demandUrls = demands.map(d => ({
     url: `/project/${d.id}`,
     priority: '0.6',
     changefreq: 'weekly',
-    lastmod: d.updated_at?.split('T')[0],
+    lastmod: d.created_at?.split('T')[0],
   }));
 
   const allUrls = [...staticPages, ...engineerUrls, ...demandUrls];
