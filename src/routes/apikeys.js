@@ -26,6 +26,12 @@ module.exports.requireApiKey = requireApiKey;
 // ── Generate API key ──────────────────────────────────────────────────────────
 router.post('/generate', requireAuth, async (req, res) => {
   try {
+    // API Key（企业 API 接入）仅对 employer/企业账号与 admin 开放。
+    // 普通工程师 / 个人用户不发放 API 权限——他们用不到，且发了会扩大攻击面。
+    if (req.user.role !== 'employer' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'API keys are only available for employer/enterprise accounts.' });
+    }
+
     const supabase = getClient();
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Missing key name' });

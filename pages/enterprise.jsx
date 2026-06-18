@@ -114,8 +114,8 @@ export default function Enterprise() {
               </div>
             )}
 
-            {/* Key management */}
-            {currentUser ? (
+            {/* Key management — 仅企业/雇主(employer)与 admin 可见；普通工程师走下方"需雇主账户"提示 */}
+            {currentUser && (currentUser.role === 'employer' || currentUser.role === 'admin') ? (
               <div className={styles.section}>
                 <h2>{d.keysTitle}</h2>
                 <p className={styles.sectionDesc}>{d.keysDesc}</p>
