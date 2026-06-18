@@ -44,7 +44,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[reviews]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -62,7 +64,9 @@ router.get('/engineer/:engineerId', async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[reviews]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

@@ -47,7 +47,9 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgs || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[messages]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -121,7 +123,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[messages]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -202,7 +206,9 @@ router.get('/inbox', requireAuth, async (req, res) => {
     threads.sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
     res.json({ status: 'ok', data: threads });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[messages]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

@@ -22,7 +22,9 @@ router.post('/', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[certifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -38,7 +40,9 @@ router.get('/:talentId', async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[certifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -52,7 +56,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await supabase.from('engineer_certifications').delete().eq('id', req.params.id).eq('talent_id', talent.id);
     res.json({ status: 'ok' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[certifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -73,7 +79,9 @@ router.put('/:id/review', requireAdmin, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[certifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -90,7 +98,9 @@ router.get('/', requireAdmin, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[certifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

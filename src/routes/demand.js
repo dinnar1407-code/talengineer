@@ -15,7 +15,9 @@ router.post('/parse', async (req, res) => {
     const parsedData = await parseDemand(raw_text);
     res.json({ status: 'ok', data: parsedData });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -67,7 +69,7 @@ router.post('/quick_launch', async (req, res) => {
     res.json({ status: 'ok', message: 'Zero-UI Launch Successful. Matchmaker is now hunting for engineers.', demand_id: demand.id, parsed_summary: parsedData });
   } catch (err) {
     console.error('[Demand] Quick launch error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -109,7 +111,7 @@ router.post('/submit', requireAuth, async (req, res) => {
     res.json({ status: 'ok', id: demand.id });
   } catch (err) {
     console.error('[Demand] Submit error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -125,7 +127,9 @@ router.get('/my', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -175,7 +179,9 @@ router.get('/analytics', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', data: enriched, totals });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -202,7 +208,9 @@ router.get('/:id', async (req, res) => {
 
     res.json({ status: 'ok', data: { ...demand, milestones: milestones || [] } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -258,7 +266,7 @@ router.post('/apply', requireAuth, async (req, res) => {
     res.json({ status: 'ok', message: 'Application submitted successfully.' });
   } catch (err) {
     console.error('[Demand] Apply error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -285,7 +293,9 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -340,7 +350,7 @@ router.post('/assign', requireAuth, async (req, res) => {
     res.json({ status: 'ok', message: 'Engineer assigned successfully.' });
   } catch (err) {
     console.error('[Demand] Assign error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

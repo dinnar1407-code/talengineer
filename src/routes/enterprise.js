@@ -58,7 +58,7 @@ router.post('/demands/bulk', requireApiKey, async (req, res) => {
     res.json({ status: 'ok', created: data.length, demands: data });
   } catch (err) {
     console.error('[Enterprise] Bulk create error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -80,7 +80,9 @@ router.get('/demands', requireApiKey, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [], total: count || 0, page, limit });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[enterprise]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -115,7 +117,9 @@ router.get('/benchmarks', requireApiKey, async (req, res) => {
 
     res.json({ status: 'ok', data: summary });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[enterprise]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

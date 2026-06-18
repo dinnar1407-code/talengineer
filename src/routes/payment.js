@@ -478,7 +478,9 @@ router.post('/confirm-funding', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[payment]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

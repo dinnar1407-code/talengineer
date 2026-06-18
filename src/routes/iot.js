@@ -56,7 +56,7 @@ router.post('/machine-alert', async (req, res) => {
 
     } catch (err) {
         console.error("IoT Telemetry Error:", err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 });
 

@@ -16,7 +16,9 @@ router.get('/', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[notifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -32,7 +34,9 @@ router.get('/unread-count', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ count: count || 0 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[notifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -43,7 +47,9 @@ router.post('/read-all', requireAuth, async (req, res) => {
     await supabase.from('notifications').update({ read: true }).eq('user_email', req.user.email).eq('read', false);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[notifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -55,7 +61,9 @@ router.post('/:id/read', requireAuth, async (req, res) => {
       .eq('id', req.params.id).eq('user_email', req.user.email);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[notifications]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

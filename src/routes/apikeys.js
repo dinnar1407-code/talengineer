@@ -47,7 +47,9 @@ router.post('/generate', requireAuth, async (req, res) => {
     // Return raw key ONCE — never stored in plaintext
     res.json({ status: 'ok', key: rawKey, key_prefix: keyPrefix, id: data.id, name, message: 'Save this key now — it will not be shown again.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[apikeys]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -63,7 +65,9 @@ router.get('/', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[apikeys]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -74,7 +78,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await supabase.from('api_keys').update({ active: false }).eq('id', req.params.id).eq('user_id', req.user.userId);
     res.json({ status: 'ok' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[apikeys]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

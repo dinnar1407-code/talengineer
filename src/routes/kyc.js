@@ -7,16 +7,22 @@ const { requireAuth } = require('../middleware/auth');
 router.get('/status', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
+    // 用 maybeSingle 而非 single：当该用户没有匹配行时返回 data=null 且不报错，
+    // 避免 single 在“查不到记录”时抛 PGRST116 错误被 catch 成 500。
     const { data, error } = await supabase
       .from('users')
       .select('kyc_status, company_name, company_website, company_phone, kyc_submitted_at, kyc_note')
       .eq('id', req.user.userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
-    res.json({ status: 'ok', data: data || { kyc_status: 'unverified' } });
+    // 无 KYC 记录(或 kyc_status 为空)时给出合理默认，返回 200 而非 500；
+    // 字段名沿用 kyc_status 以兼容前端读取逻辑。
+    res.json({ status: 'ok', data: data || { kyc_status: 'not_submitted' } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[kyc:status]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -47,7 +53,9 @@ router.post('/submit', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', message: 'Verification submitted. Our team will review within 24 hours.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[kyc:submit]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

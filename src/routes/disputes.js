@@ -49,7 +49,7 @@ router.post('/', requireAuth, async (req, res) => {
     res.json({ status: 'ok', data });
   } catch (err) {
     console.error('[Disputes] Open error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -82,7 +82,9 @@ router.get('/milestone/:milestoneId', requireAuth, async (req, res) => {
     if (error && error.code !== 'PGRST116') throw error;
     res.json({ status: 'ok', data: data || null });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[disputes]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -104,7 +106,9 @@ router.get('/:id', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[disputes]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -145,7 +149,9 @@ router.put('/:id/evidence', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[disputes]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -162,7 +168,9 @@ router.get('/', requireAdmin, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[disputes]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -251,7 +259,7 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
     res.json({ status: 'ok', resolution, engineer_payout: engineerPayout, stripe_transfer_id: stripeTransferId });
   } catch (err) {
     console.error('[Disputes] Resolve error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

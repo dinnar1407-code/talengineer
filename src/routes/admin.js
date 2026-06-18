@@ -38,7 +38,9 @@ router.get('/stats', requireAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -63,7 +65,9 @@ router.get('/notifications', requireAdmin, async (req, res) => {
 
     res.json({ status: 'ok', data: data || [], byType, unreadCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -81,7 +85,9 @@ router.get('/kyc', requireAdmin, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -100,7 +106,9 @@ router.put('/kyc/:userId', requireAdmin, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', message: `User ${decision}.` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -142,7 +150,9 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       kyc_pending: pendingKyc || 0,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

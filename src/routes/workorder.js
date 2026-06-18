@@ -37,7 +37,9 @@ router.get('/:milestoneId', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', milestone: ms, checkin: checkin || null });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
+    console.error('[workorder]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -66,7 +68,9 @@ router.post('/:milestoneId/checkin', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
+    console.error('[workorder]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -89,7 +93,9 @@ router.post('/:milestoneId/complete', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
+    console.error('[workorder]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -205,7 +211,9 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', payout: engineerPayout, stripe_transfer_id: stripeTransferId, demand_id: ms.demand_id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
+    console.error('[workorder]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -370,7 +378,9 @@ ${checkin ? `
 </body>
 </html>`);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
+    console.error('[workorder]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

@@ -3,6 +3,16 @@ const router  = express.Router();
 const { getClient } = require('../config/db');
 const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
 
+// ── 公开接口字段白名单（PII 脱敏）────────────────────────────────────────────────
+// 公开的工程师列表/档案接口任何人都能访问，绝不能 select('*') 把整行返回出去：
+// 那样会泄露 contact(邮箱，属于个人隐私 PII)、stripe_account_id(支付账户)、user_id(内部主键) 等敏感字段。
+// 这里显式列出“允许对外展示”的列，只查这些列；上面提到的敏感列被天然排除在外。
+// 注意：仅用于公开读接口；登录后的属主接口(如 PUT /profile)不受影响。
+const PUBLIC_TALENT_FIELDS =
+  'id, name, skills, region, rate, pricing_model, level, verified_score, ' +
+  'bio, availability, available_from, avatar_url, avg_rating, review_count, ' +
+  'portfolio_images, created_at';
+
 // ── List open demands ─────────────────────────────────────────────────────────
 router.get('/demands', async (req, res) => {
   try {
@@ -16,7 +26,9 @@ router.get('/demands', async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -27,7 +39,9 @@ router.post('/screen_question', async (req, res) => {
     const question = await generateTechQuestion(skills, level, lang);
     res.json({ status: 'ok', question });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -38,7 +52,9 @@ router.post('/screen_verify', async (req, res) => {
     const result = await gradeTechAnswer(question, answer, lang);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -52,8 +68,14 @@ router.get('/list', async (req, res) => {
       page = '0', limit: limitParam = '12',
     } = req.query;
 
-    const pageNum  = Math.max(0, parseInt(page) || 0);
-    const pageSize = Math.min(50, Math.max(1, parseInt(limitParam) || 12));
+    // 分页参数钳制(clamp)到合法范围，防止越界/非法值导致 500：
+    // - parseInt 解析失败(NaN/非数字)时退回默认值；
+    // - page 用 Math.max(0, ...) 兜底，负数/NaN 一律当 0(第一页)；
+    // - limit 用 Math.min(50, Math.max(1, ...))，限制在 1~50 之间，防止一次拉太多。
+    // 若 page 越过实际数据范围(如 page=9999)，Supabase 的 .range() 会返回空数组 + 200，
+    // 不会报错——下面的 data || [] 再兜一层底，确保对客户端始终是 200 + 空数组，绝不 500。
+    const pageNum  = Math.max(0, parseInt(page, 10) || 0);
+    const pageSize = Math.min(50, Math.max(1, parseInt(limitParam, 10) || 12));
     const from = pageNum * pageSize;
     const to   = from + pageSize - 1;
 
@@ -64,7 +86,7 @@ router.get('/list', async (req, res) => {
 
     let query = supabase
       .from('talents')
-      .select('*', { count: 'exact' })
+      .select(PUBLIC_TALENT_FIELDS, { count: 'exact' }) // 公开接口只查白名单字段，排除 contact/stripe_account_id/user_id 等 PII
       .order(orderCol, { ascending: orderAsc })
       .range(from, to);
 
@@ -86,7 +108,9 @@ router.get('/list', async (req, res) => {
 
     res.json({ status: 'ok', data: sorted, total: count || 0, page: pageNum, pageSize });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -110,7 +134,9 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -136,7 +162,9 @@ router.put('/portfolio', requireAuth, async (req, res) => {
     if (error) throw error;
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -146,14 +174,16 @@ router.get('/profile/:id', async (req, res) => {
     const supabase = getClient();
     const { data, error } = await supabase
       .from('talents')
-      .select('*')
+      .select(PUBLIC_TALENT_FIELDS) // 公开档案只查白名单字段，排除 contact/stripe_account_id/user_id 等 PII
       .eq('id', req.params.id)
       .single();
 
     if (error || !data) return res.status(404).json({ error: 'Engineer not found' });
     res.json({ status: 'ok', data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -194,7 +224,9 @@ router.get('/rate-benchmarks', async (req, res) => {
 
     res.json({ status: 'ok', data: summary, skills: [...allSkills].sort() });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

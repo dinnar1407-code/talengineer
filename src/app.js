@@ -1,11 +1,27 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const Sentry = require('@sentry/node');
 require('dotenv').config();
 
 const app = express();
+
+// ── 安全响应头（helmet）─────────────────────────────────────────────────────────
+// helmet 是一组中间件的集合，会自动给每个响应加上一批安全相关的 HTTP 头，
+// 比如 Strict-Transport-Security(HSTS，强制浏览器走 HTTPS)、X-Content-Type-Options:nosniff
+// (禁止浏览器猜测 MIME 类型)、X-Frame-Options:SAMEORIGIN(防点击劫持/iframe 嵌套)等。
+// 这些默认头是“保守且安全”的，不会破坏前后端功能，所以放在最前面、所有路由之前。
+//
+// ⚠️ 为什么 contentSecurityPolicy 先设为 false：
+// CSP(内容安全策略)会严格限制页面能加载/执行哪些脚本、样式。Next.js 前端会注入大量
+// 内联脚本(inline script)和内联样式，helmet 默认的 CSP 会直接把它们拦掉，导致前端白屏/功能失效。
+// 因此这里先关闭 CSP，避免破坏现有前端；CSP 留作后续单独评估、配好白名单(nonce/hash)后再单独开启。
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// 移除 X-Powered-By: Express 响应头，避免向外暴露后端框架信息（减少被针对性攻击的线索）。
+app.disable('x-powered-by');
 
 // ── Trust proxy（信任反向代理）────────────────────────────────────────────────
 // 部署在 Railway 上时，请求先经过它的一层反向代理再到达本应用，客户端真实 IP 被放在
@@ -112,18 +128,21 @@ app.get('*',        (req, res) => res.sendFile(path.join(__dirname, '../public',
 // ── Sentry error handler (must be before any other error middleware) ──────────
 Sentry.setupExpressErrorHandler(app);
 
-// ── Global error handler ──────────────────────────────────────────────────────
+// ── Global error handler（全局错误处理 + 错误信息脱敏）─────────────────────────
+// 这是 Express 的“错误处理中间件”：它的回调有 4 个参数 (err, req, res, next)，
+// Express 据此识别它专门用来兜底处理上游路由抛出的异常。放在所有路由 use 之后。
+// 脱敏原则：真实错误用 console.error 完整记录(同时也已被上面的 Sentry 捕获)，
+// 但向客户端只返回通用文案，绝不把数据库/堆栈等内部细节泄露给前端(避免暴露表结构、SQL、路径等)。
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // CORS errors
+  // CORS 报错是“可预期的、对调用方有意义”的提示（origin 不在白名单），保留原文案返回 403。
   if (err.message?.startsWith('CORS:')) {
     return res.status(403).json({ error: err.message });
   }
+  // 记录真实错误（保留完整堆栈，供日志/Sentry 排查），但不回传给客户端。
   console.error('[Server Error]', err);
-  const isDev = process.env.NODE_ENV !== 'production';
-  res.status(err.status || 500).json({
-    error: isDev ? err.message : 'Internal server error',
-  });
+  // 无论开发还是生产，对客户端一律只返回通用错误，避免信息泄露。
+  res.status(err.status || 500).json({ error: 'Internal server error' });
 });
 
 module.exports = app;
