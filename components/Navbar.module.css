@@ -327,7 +327,115 @@
 .langSelect:hover  { border-color: var(--primary, #0056b3); }
 .langSelect:focus  { outline: none; border-color: var(--primary, #0056b3); }
 
-/* Mobile */
+/* ===========================
+   汉堡菜单按钮
+   - 桌面端隐藏（display:none）
+   - 移动端 <768px 显示
+=========================== */
+.hamburgerBtn {
+  /* 桌面端不显示汉堡按钮 */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text, #111);
+  /* 过渡效果：边框颜色和背景色平滑变化 */
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.hamburgerBtn:hover {
+  border-color: var(--primary, #0056b3);
+  background: rgba(0, 86, 179, 0.04);
+}
+
+.hamburgerBtn:focus-visible {
+  /* 键盘导航时的焦点轮廓，保证无障碍可访问性 */
+  outline: 2px solid var(--primary, #0056b3);
+  outline-offset: 2px;
+}
+
+/* ===========================
+   移动端导航抽屉
+   - 默认折叠（高度 0、透明），通过 .mobileMenuOpen 类展开
+   - 使用 max-height + opacity 过渡实现平滑动画
+   - 桌面端始终 display:none
+=========================== */
+.mobileMenu {
+  /* 桌面端不显示抽屉 */
+  display: none;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  /* 初始状态：折叠、透明（动画起点） */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  /* 过渡动画：展开/收起 */
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  /* 保证抽屉在 header 下方紧贴，z-index 略低于 header */
+  position: sticky;
+  top: 64px;
+  z-index: 190;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 展开状态：加上 .mobileMenuOpen 类后过渡到此状态 */
+.mobileMenuOpen {
+  max-height: 400px;
+  opacity: 1;
+}
+
+/* 移动菜单内的每个链接项 */
+.mobileNavLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text, #111);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  transition: background 0.1s;
+}
+
+.mobileNavLink:last-child {
+  border-bottom: none;
+}
+
+.mobileNavLink:hover,
+.mobileNavLink:active {
+  background: rgba(0, 86, 179, 0.04);
+  color: var(--primary, #0056b3);
+}
+
+/* ===========================
+   Mobile 断点 <768px
+   在此宽度显示汉堡按钮和抽屉，隐藏部分桌面端元素
+=========================== */
+@media (max-width: 768px) {
+  /* 汉堡按钮在移动端显示为 flex，以便垂直居中图标 */
+  .hamburgerBtn {
+    display: flex;
+  }
+
+  /* 抽屉容器在移动端切换为 flex 布局 */
+  .mobileMenu {
+    display: flex;
+  }
+}
+
+/* ===========================
+   原有 Mobile 样式（<640px）
+   navLink 在移动端隐藏——它们已移入汉堡抽屉
+=========================== */
 @media (max-width: 640px) {
   .header     { padding: 0 12px; }
   .navLink    { display: none; }
@@ -337,6 +445,7 @@
   .nav        { gap: 6px; }
   .avatarBtn  { padding: 4px; border-radius: 50%; }
   .bellBtn    { width: 30px; height: 30px; font-size: 14px; }
-  .btnSignIn  { padding: 6px 12px; font-size: 13px; }
+  /* Sign In 按钮在移动端隐藏，已在汉堡菜单中提供登录入口 */
+  .btnSignIn  { display: none; }
   .langSelect { font-size: 12px; padding: 4px 4px; max-width: 52px; }
 }

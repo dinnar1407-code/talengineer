@@ -264,3 +264,9 @@ router.post('/reset-password', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── 测试可达性导出（最小改动）────────────────────────────────────────────────
+// router 本身是函数对象，给它挂属性不会影响 `app.use('/api/auth', require('./auth'))` 的现有用法。
+// 这样单元测试可直接拿到 Zod schema 做校验测试，无需启动整个 Express/数据库。
+module.exports.registerSchema = registerSchema;
+module.exports.loginSchema = loginSchema;

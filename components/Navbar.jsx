@@ -106,14 +106,16 @@ const DICT = {
 };
 
 export default function Navbar({ lang: langProp, onLangChange }) {
-  const [user, setUser]             = useState(null);
-  const [menuOpen, setMenuOpen]     = useState(false);
-  const [lang, setLang]             = useState(langProp || 'en');
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notifs, setNotifs]         = useState([]);
-  const [bellOpen, setBellOpen]     = useState(false);
-  const menuRef = useRef(null);
-  const bellRef = useRef(null);
+  const [user, setUser]                     = useState(null);
+  const [menuOpen, setMenuOpen]             = useState(false);         // 桌面端用户头像下拉菜单的开关
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);         // 移动端汉堡菜单的开关
+  const [lang, setLang]                     = useState(langProp || 'en');
+  const [unreadCount, setUnreadCount]       = useState(0);
+  const [notifs, setNotifs]                 = useState([]);
+  const [bellOpen, setBellOpen]             = useState(false);
+  const menuRef       = useRef(null);        // 头像下拉菜单容器 ref（用于点击外部关闭）
+  const bellRef       = useRef(null);        // 铃铛通知容器 ref（用于点击外部关闭）
+  const mobileMenuRef = useRef(null);        // 汉堡菜单抽屉 ref（用于点击外部关闭）
 
   useEffect(() => {
     // Load user
@@ -137,8 +139,10 @@ export default function Navbar({ lang: langProp, onLangChange }) {
     window.addEventListener('storage', onStorage);
 
     function onClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-      if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false);
+      if (menuRef.current       && !menuRef.current.contains(e.target))       setMenuOpen(false);
+      if (bellRef.current       && !bellRef.current.contains(e.target))       setBellOpen(false);
+      // 点击汉堡菜单抽屉外部时自动收起（汉堡按钮本身通过 toggle 逻辑处理，不需要排除）
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
     }
     document.addEventListener('mousedown', onClickOutside);
 
@@ -228,10 +232,24 @@ export default function Navbar({ lang: langProp, onLangChange }) {
     : user?.email?.[0]?.toUpperCase() || '?';
 
   return (
+    // 使用 Fragment 包裹，这样移动端抽屉可以渲染在 header 外部，避免被 sticky header 裁剪
+    <>
     <header className={styles.header}>
       <Link href="/" className={styles.logo}>
         <img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer
       </Link>
+
+      {/* 汉堡按钮：只在移动端(<768px)显示，点击切换移动菜单的开/关状态 */}
+      <button
+        className={styles.hamburgerBtn}
+        onClick={() => setMobileMenuOpen(v => !v)}
+        aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-nav-menu"
+      >
+        {/* 通过 aria-label 和文字内容传递语义；☰ 为开，✕ 为关 */}
+        {mobileMenuOpen ? '✕' : '☰'}
+      </button>
 
       <nav className={styles.nav}>
         <Link href="/talent" className={styles.navLink}>{d.findEngineers}</Link>
@@ -341,5 +359,72 @@ export default function Navbar({ lang: langProp, onLangChange }) {
         </select>
       </nav>
     </header>
+
+    {/*
+      移动端导航抽屉：
+      - 只在窄屏可见（通过 CSS 控制）
+      - mobileMenuOpen 为 true 时用 .mobileMenuOpen 类展开
+      - ref 用于检测点击外部区域后收起
+    */}
+    <div
+      id="mobile-nav-menu"
+      ref={mobileMenuRef}
+      className={`${styles.mobileMenu} ${mobileMenuOpen ? styles.mobileMenuOpen : ''}`}
+      role="navigation"
+      aria-label="Mobile navigation"
+    >
+      {/* 主导航链接：寻找工程师 */}
+      <Link
+        href="/talent"
+        className={styles.mobileNavLink}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        🔍 {d.findEngineers}
+      </Link>
+
+      {/* 主导航链接：费率基准 */}
+      <Link
+        href="/rates"
+        className={styles.mobileNavLink}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        📈 {d.rateBenchmarks}
+      </Link>
+
+      {/* 登录用户才显示消息入口 */}
+      {user && (
+        <Link
+          href="/messages"
+          className={styles.mobileNavLink}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          💬 Messages
+        </Link>
+      )}
+
+      {/* 未登录时显示登录按钮 */}
+      {!user && (
+        <Link
+          href="/finance"
+          className={styles.mobileNavLink}
+          onClick={() => setMobileMenuOpen(false)}
+          style={{ color: 'var(--primary, #0056b3)', fontWeight: 700 }}
+        >
+          {d.signIn}
+        </Link>
+      )}
+
+      {/* 登录用户：控制台快捷入口 */}
+      {user && (
+        <Link
+          href="/finance"
+          className={styles.mobileNavLink}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          📊 {d.dashboard}
+        </Link>
+      )}
+    </div>
+    </>
   );
 }

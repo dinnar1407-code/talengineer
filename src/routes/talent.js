@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
+const { clampPagination } = require('../utils/pagination'); // 分页钳制逻辑抽成可测的纯函数
 
 // ── 公开接口字段白名单（PII 脱敏）────────────────────────────────────────────────
 // 公开的工程师列表/档案接口任何人都能访问，绝不能 select('*') 把整行返回出去：
@@ -74,10 +75,8 @@ router.get('/list', async (req, res) => {
     // - limit 用 Math.min(50, Math.max(1, ...))，限制在 1~50 之间，防止一次拉太多。
     // 若 page 越过实际数据范围(如 page=9999)，Supabase 的 .range() 会返回空数组 + 200，
     // 不会报错——下面的 data || [] 再兜一层底，确保对客户端始终是 200 + 空数组，绝不 500。
-    const pageNum  = Math.max(0, parseInt(page, 10) || 0);
-    const pageSize = Math.min(50, Math.max(1, parseInt(limitParam, 10) || 12));
-    const from = pageNum * pageSize;
-    const to   = from + pageSize - 1;
+    // 钳制逻辑已抽到 ../utils/pagination 的 clampPagination（纯函数，便于单元测试与复用）
+    const { pageNum, pageSize, from, to } = clampPagination(page, limitParam);
 
     // Determine sort column
     let orderCol = 'verified_score', orderAsc = false;
