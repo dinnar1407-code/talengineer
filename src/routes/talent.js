@@ -97,7 +97,14 @@ router.get('/list', async (req, res) => {
     if (verified_only === 'true')      query = query.gt('verified_score', 0);
 
     const { data, error, count } = await query;
-    if (error) throw error;
+    // page 越界时 PostgREST 返回 PGRST103(range not satisfiable) 错误，而非空结果。
+    // 这种情况按"翻过了最后一页"处理：返回 200 + 空数组，而不是 500。
+    if (error) {
+      if (error.code === 'PGRST103') {
+        return res.json({ status: 'ok', data: [], total: count || 0, page: pageNum, pageSize });
+      }
+      throw error;
+    }
 
     // If sort=available, push available engineers first client-side
     let sorted = data || [];
