@@ -16,12 +16,35 @@ function extractKeywords(text) {
     .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
 }
 
+// 多因子撮合评分（路径 A·精英策展）：在"技能重叠"基础上叠加质量信号，
+// 让高分/高评价/可接单的工程师排名更靠前。所有因子都来自 talents 行（纯函数，便于测试）。
+//   - 技能重叠 overlap×100：核心匹配度（0-100）
+//   - verified_score×0.3：AI 技术筛选分（质量基石，权重从 0.2 提到 0.3）
+//   - avg_rating 映射 0-20：历史口碑（5 分制 ×4），评价数太少则打折避免单条好评刷榜
+//   - availability：available 不扣分、busy 轻扣、unavailable 重扣（别推不接单的人）
 function scoreEngineer(engineer, demandKeywords) {
-  if (!demandKeywords.length) return engineer.verified_score || 0;
-  const engText = ((engineer.skills || '') + ' ' + (engineer.name || '')).toLowerCase();
-  const hits = demandKeywords.filter(kw => engText.includes(kw)).length;
-  const overlap = hits / demandKeywords.length;
-  return overlap * 100 + (engineer.verified_score || 0) * 0.2;
+  const verified = engineer.verified_score || 0;
+
+  // 1) 技能重叠（无关键词时退化为只看质量信号）
+  let overlapScore = 0;
+  if (demandKeywords.length) {
+    const engText = ((engineer.skills || '') + ' ' + (engineer.name || '')).toLowerCase();
+    const hits = demandKeywords.filter(kw => engText.includes(kw)).length;
+    overlapScore = (hits / demandKeywords.length) * 100;
+  }
+
+  // 2) 评价口碑：avg_rating(1-5) → 0-20 分；评价数 <3 时按比例打折，防"1 条 5 星"刷榜
+  const rating = engineer.avg_rating || 0;
+  const reviewCount = engineer.review_count || 0;
+  const confidence = reviewCount >= 3 ? 1 : reviewCount / 3;
+  const ratingScore = rating * 4 * confidence;
+
+  // 3) 可用性：能接单优先
+  const availPenalty = engineer.availability === 'unavailable' ? -40
+    : engineer.availability === 'busy' ? -15
+    : 0;
+
+  return overlapScore + verified * 0.3 + ratingScore + availPenalty;
 }
 
 const MAX_RETRIES = 3;
@@ -195,4 +218,4 @@ async function runMatchmaker(demandId) {
   }
 }
 
-module.exports = { runMatchmaker };
+module.exports = { runMatchmaker, scoreEngineer, extractKeywords };

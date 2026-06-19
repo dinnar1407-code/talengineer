@@ -25,6 +25,11 @@ const registerSchema = z.object({
   engRegion: z.string().optional(),
   engLevel: z.string().optional(),
   engPricingModel: z.enum(['hourly', 'milestone']).optional(),
+  // AI 技术筛选得分（注册向导里 screen_verify 算出后随注册一起提交）。
+  // z.coerce.number 强制转数字并 clamp 0-100，防前端传非法/超界值。
+  // 安全说明：当前信任前端回传分数（仅影响撮合排名，不涉资金/权限）；
+  // 后续可硬化为"screen_verify 下发签名分数 token、注册校验后落库"以防自抬排名。
+  verified_score: z.coerce.number().int().min(0).max(100).optional(),
 });
 
 const loginSchema = z.object({
@@ -42,7 +47,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
-    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel } = parsed.data;
+    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, verified_score } = parsed.data;
     const supabase = getClient();
 
     // Hash password with bcrypt (salted)
@@ -74,7 +79,8 @@ router.post('/register', async (req, res) => {
           rate: engRate || 'Open',
           pricing_model: engPricingModel || 'hourly',
           level: engLevel || 'Mid',
-          verified_score: 0,
+          // 持久化注册时的 AI 筛选得分（之前硬编码为 0，导致筛选白做、撮合排名失去质量信号）
+          verified_score: verified_score ?? 0,
           bio: engBio || '',
           contact: email,
         }]);
