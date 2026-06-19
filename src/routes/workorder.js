@@ -8,7 +8,7 @@ const { emailMilestoneReleased, emailRequestReview } = require('../services/emai
 const { createNotification } = require('../services/notificationService');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const PLATFORM_FEE = 0.15;
+const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 
 // ── Get work order status for a milestone ─────────────────────────────────────
 router.get('/:milestoneId', requireAuth, async (req, res) => {
@@ -257,9 +257,8 @@ router.get('/:milestoneId/pdf', requireAuth, async (req, res) => {
       if (talent) { engineerName = talent.name; engineerContact = talent.contact; }
     }
 
-    const PLATFORM_FEE_RATE = 0.15;
     const totalAmount    = parseFloat(ms.amount) || 0;
-    const platformFee    = totalAmount * PLATFORM_FEE_RATE;
+    const platformFee    = totalAmount * PLATFORM_FEE; // 复用统一抽佣比例（原局部硬编码 0.15 已移除）
     const engineerPayout = totalAmount - platformFee;
 
     const fmt = (d) => d ? new Date(d).toLocaleString() : 'N/A';

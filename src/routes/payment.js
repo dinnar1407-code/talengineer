@@ -8,7 +8,7 @@ const { createNotification } = require('../services/notificationService');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-const PLATFORM_FEE = 0.15; // 15% platform take rate
+const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 
 // ── Fund Milestone ────────────────────────────────────────────────────────────
 // Creates a real Stripe Checkout Session. The milestone is only marked 'funded'

@@ -9,7 +9,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // 共享管理员口令中间件：替换原先本地的明文 !== 比较（恒时比较 + fail-closed）
 const { requireAdmin } = require('../middleware/adminAuth');
 
-const PLATFORM_FEE = 0.15;
+const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 
 // ── Open a dispute ────────────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
