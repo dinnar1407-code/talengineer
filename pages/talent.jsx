@@ -19,6 +19,7 @@ const DICT = {
     parseBtn: '✨ AI: Parse & Standardize',
     formTitleTalent: 'Create Engineer Profile',
     submitJobBtn: 'Confirm & Post Project', submitProfileBtn: 'Publish Profile',
+    feeLabel: 'Platform service fee', feeTakeHome: 'You receive',
   },
   zh: {
     hubTitle: '全球工业自动化服务大厅',
@@ -29,6 +30,7 @@ const DICT = {
     parseBtn: '✨ AI 魔法：自动解析并生成标书',
     formTitleTalent: '创建工程师档案',
     submitJobBtn: '确认发布项目', submitProfileBtn: '发布档案 (接受 AI 审核)',
+    feeLabel: '平台服务费', feeTakeHome: '你到手',
   },
   es: {
     hubTitle: 'Centro Global de Automatización Industrial',
@@ -132,6 +134,10 @@ export default function Talent() {
   const [applyQuotedDays, setApplyQuotedDays]   = useState('');
   const [applyQuoteAmount, setApplyQuoteAmount] = useState('');
 
+  // 平台抽佣比例（0-1 的小数，例如 0.15）。组件挂载时从后端取一次，
+  // 不在前端硬编码 15%，避免和 src/config/fees.js 的配置漂移。null=尚未取到。
+  const [platformFee, setPlatformFee] = useState(null);
+
   // Post project form
   const [rawText, setRawText]   = useState('');
   const [parsed, setParsed]     = useState(null);
@@ -146,6 +152,16 @@ export default function Talent() {
 
   useEffect(() => {
     loadDemands();
+
+    // 拉取平台抽佣比例，用于报价时展示"抽佣后到手金额"。失败则保持 null，
+    // 此时透明化提示不渲染（宁可不显示，也不显示错误或硬编码的比例）。
+    fetch('/api/payment/fee-rate')
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data?.platform_fee === 'number') setPlatformFee(data.platform_fee);
+      })
+      .catch(err => console.error('[talent] failed to load platform fee rate:', err));
+
     const stored = localStorage.getItem('tal_user');
     if (stored) {
       try {
@@ -594,6 +610,25 @@ export default function Talent() {
                 <input type="number" min={0} step="0.01" value={applyQuoteAmount} onChange={e => setApplyQuoteAmount(e.target.value)} placeholder="2000" style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
               </div>
             </div>
+
+            {/* 抽佣后到手金额透明化：只有当①抽佣比例已从后端取到、②报价是有效正数时才展示，
+                否则不渲染（避免出现 NaN 或硬编码比例）。比例与到手额均保留 2 位小数。 */}
+            {(() => {
+              const fee    = platformFee;                       // 0-1 的小数，未取到为 null
+              const amount = parseFloat(applyQuoteAmount);      // 报价金额，空值/非数字为 NaN
+              if (fee == null || !Number.isFinite(amount) || amount <= 0) return null;
+              const takeHome = amount * (1 - fee);              // 到手 = 报价 × (1 - 抽佣比例)
+              const feePct   = (fee * 100).toFixed(fee * 100 % 1 === 0 ? 0 : 2); // 整数比例不显示小数
+              return (
+                <div style={{ background: 'var(--surface, #f8fafc)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', marginBottom: 14, fontSize: 13, color: 'var(--muted)' }}>
+                  {(d?.feeLabel ?? DICT.en.feeLabel)} {feePct}% ·{' '}
+                  <span style={{ color: 'var(--success)', fontWeight: 700 }}>
+                    {(d?.feeTakeHome ?? DICT.en.feeTakeHome)} ${takeHome.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })()}
+
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" style={{ flex: 1, padding: 10, background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setApplyDemand(null)}>Cancel</button>
               <button type="submit" className={styles.btnAction} style={{ flex: 2, padding: 10 }} disabled={applying}>

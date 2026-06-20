@@ -10,6 +10,14 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 
+// ── Get platform fee rate (public) ────────────────────────────────────────────
+// 返回当前平台抽佣比例，供前端透明展示"抽佣后到手金额"。
+// 无需鉴权：这只是一个公开的比例常量（不涉及任何用户数据或资金操作），
+// 而且前端必须从后端取这个值，避免页面里硬编码 15% 与 fees.js 配置漂移。
+router.get('/fee-rate', (req, res) => {
+  res.json({ platform_fee: PLATFORM_FEE });
+});
+
 // ── Fund Milestone ────────────────────────────────────────────────────────────
 // Creates a real Stripe Checkout Session. The milestone is only marked 'funded'
 // after Stripe confirms payment (webhook / verified confirm-funding).

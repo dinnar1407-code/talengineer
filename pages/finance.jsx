@@ -9,8 +9,8 @@ import { useLang } from '../hooks/useLang';
 import styles from './finance.module.css';
 
 const DICT = {
-  en: { dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out' },
-  zh: { dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录' },
+  en: { dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out', recAiScore: 'AI Screening', recUnverified: 'Unverified', recReviews: 'reviews', recNoReviews: 'No reviews yet', availAvailable: 'Available', availBusy: 'Busy', availUnavailable: 'Unavailable' },
+  zh: { dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录', recAiScore: 'AI 筛选分', recUnverified: '未验证', recReviews: '条评价', recNoReviews: '暂无评价', availAvailable: '可接单', availBusy: '忙碌', availUnavailable: '不可用' },
   es: { dashTitle: 'Finanzas y Facturas', dashSub: 'Gestione sus depósitos en garantía, hitos del proyecto e historial de pagos.', lblEscrow: 'Fondos en Garantía', lblReleased: 'Total Liberado', lblPending: 'Proyectos Activos', thProject: 'Proyecto / ID Pedido', thCounterparty: 'Contraparte', thAmount: 'Monto Total', thStatus: 'Estado', thAction: 'Acción', modalTitle: 'Hitos del Proyecto', btnModalClose: 'Cerrar', signIn: 'Iniciar Sesión', createAccount: 'Crear Cuenta', lblName: 'Nombre completo', lblRole: 'Yo soy un...', lblEmail: 'Correo Electrónico', lblPassword: 'Contraseña', lblOr: 'o continuar con', btnLogin: 'Iniciar Sesión', btnCreate: 'Crear Cuenta', logout: 'Cerrar sesión' },
   vi: { dashTitle: 'Tài chính & Hóa đơn', dashSub: 'Quản lý ký quỹ, cột mốc dự án và lịch sử thanh toán.', lblEscrow: 'Tiền ký quỹ', lblReleased: 'Tổng đã giải ngân', lblPending: 'Dự án đang hoạt động', thProject: 'Dự án / ID đơn hàng', thCounterparty: 'Đối tác', thAmount: 'Tổng tiền', thStatus: 'Trạng thái', thAction: 'Hành động', modalTitle: 'Cột mốc dự án', btnModalClose: 'Đóng', signIn: 'Đăng nhập', createAccount: 'Tạo tài khoản', lblName: 'Họ và tên', lblRole: 'Tôi là...', lblEmail: 'Địa chỉ email', lblPassword: 'Mật khẩu', lblOr: 'hoặc tiếp tục với', btnLogin: 'Đăng nhập vào bảng điều khiển', btnCreate: 'Tạo tài khoản', logout: 'Đăng xuất' },
   hi: { dashTitle: 'वित्त और चालान', dashSub: 'अपने एस्क्रो, प्रोजेक्ट माइलस्टोन और भुगतान इतिहास प्रबंधित करें।', lblEscrow: 'एस्क्रो में धनराशि', lblReleased: 'कुल जारी', lblPending: 'सक्रिय प्रोजेक्ट', thProject: 'प्रोजेक्ट / ऑर्डर ID', thCounterparty: 'प्रतिपक्ष', thAmount: 'कुल राशि', thStatus: 'स्थिति', thAction: 'कार्रवाई', modalTitle: 'प्रोजेक्ट माइलस्टोन', btnModalClose: 'बंद करें', signIn: 'साइन इन', createAccount: 'खाता बनाएं', lblName: 'पूरा नाम', lblRole: 'मैं हूँ...', lblEmail: 'ईमेल पता', lblPassword: 'पासवर्ड', lblOr: 'या इसके साथ जारी रखें', btnLogin: 'डैशबोर्ड में साइन इन', btnCreate: 'खाता बनाएं', logout: 'साइन आउट' },
@@ -399,6 +399,21 @@ export default function Finance() {
 
   const d = DICT[lang];
 
+  // i18n 取词带英文兜底：新加的"推荐理由"徽章词条只补了 en/zh 两套，
+  // 其它语言（es/vi/...）字典里没有这些 key，此时回退到英文，避免显示 undefined。
+  const tr = (key) => (d && d[key] != null ? d[key] : DICT.en[key]);
+
+  // 把工程师的接单状态（availability）映射成"圆点图标 + 文案"。
+  // available=🟢 可接单 / busy=🟡 忙碌 / unavailable=⚪ 不可用；缺省按可接单处理。
+  function availabilityBadge(availability) {
+    const map = {
+      available:   { dot: '🟢', label: tr('availAvailable') },
+      busy:        { dot: '🟡', label: tr('availBusy') },
+      unavailable: { dot: '⚪', label: tr('availUnavailable') },
+    };
+    return map[availability] || map.available;
+  }
+
   return (
     <>
       <Head><title>Dashboard & Finance | Talengineer</title></Head>
@@ -730,6 +745,28 @@ export default function Finance() {
                         {app.talents?.name}
                         {(app.talents?.verified_score || 0) >= 80 && <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(16,185,129,0.1)', color: 'var(--success)', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)', fontWeight: 600 }}>🛡️ Verified {app.talents.verified_score}</span>}
                       </div>
+
+                      {/* 推荐理由徽章：把平台的"精选/筛选"质量信号显式展示给雇主——
+                          为什么推荐这位工程师，一目了然。所有数据均来自后端白名单字段（非 PII）。 */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                        {/* 🛡️ AI 技术筛选分（0-100）；0 或缺失时显示"未验证" */}
+                        <span style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--muted)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--border)', fontWeight: 600 }}>
+                          🛡️ {tr('recAiScore')} {(app.talents?.verified_score || 0) > 0 ? `${app.talents.verified_score}/100` : tr('recUnverified')}
+                        </span>
+
+                        {/* ⭐ 平均评分（1-5）+ 评价条数；无评价时显示"暂无评价" */}
+                        <span style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--muted)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--border)', fontWeight: 600 }}>
+                          {(app.talents?.review_count || 0) > 0
+                            ? `⭐ ${Number(app.talents.avg_rating || 0).toFixed(1)} (${app.talents.review_count} ${tr('recReviews')})`
+                            : `⭐ ${tr('recNoReviews')}`}
+                        </span>
+
+                        {/* 接单状态：🟢 可接单 / 🟡 忙碌 / ⚪ 不可用 */}
+                        <span style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--muted)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--border)', fontWeight: 600 }}>
+                          {availabilityBadge(app.talents?.availability).dot} {availabilityBadge(app.talents?.availability).label}
+                        </span>
+                      </div>
+
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: app.message ? 6 : 0 }}>
                         {app.talents?.region} · {app.talents?.rate}
                       </div>

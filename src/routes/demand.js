@@ -284,9 +284,14 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
     if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
     if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
+    // 字段白名单：只把"可公开给该需求雇主"的展示字段返回给前端。
+    // 这里新增 avg_rating（平均评分 1-5）、review_count（评价条数）、availability（接单状态），
+    // 用于雇主端"为什么推荐这位"的质量徽章——它们都不是 PII，可安全展示。
+    // 注意：contact（邮箱）虽在白名单里，但那是被指派后联系工程师所必需的既有字段，本次不动；
+    // 严禁加入 stripe_account_id、身份证件等真正的 PII。
     const { data, error } = await supabase
       .from('demand_applications')
-      .select('*, talents(id, name, skills, region, rate, verified_score, contact)')
+      .select('*, talents(id, name, skills, region, rate, verified_score, avg_rating, review_count, availability, contact)')
       .eq('demand_id', req.params.id)
       .order('created_at', { ascending: false });
 
