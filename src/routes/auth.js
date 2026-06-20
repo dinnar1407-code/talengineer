@@ -29,7 +29,9 @@ const registerSchema = z.object({
   // z.coerce.number 强制转数字并 clamp 0-100，防前端传非法/超界值。
   // 安全说明：当前信任前端回传分数（仅影响撮合排名，不涉资金/权限）；
   // 后续可硬化为"screen_verify 下发签名分数 token、注册校验后落库"以防自抬排名。
-  verified_score: z.coerce.number().int().min(0).max(100).optional(),
+  // 越界/非法的 verified_score 不应阻断整个注册：.catch(undefined) 让校验失败时退回 undefined，
+  // 注册插入处按 0 处理。既挡住篡改（传 999 不会变成高分），又不会因为偶发越界值卡死注册。
+  verified_score: z.coerce.number().int().min(0).max(100).optional().catch(undefined),
 });
 
 const loginSchema = z.object({
