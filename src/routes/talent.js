@@ -152,7 +152,32 @@ router.put('/profile', requireAuth, async (req, res) => {
 
     // Find talent by user_id
     const { data: talent } = await supabase.from('talents').select('id').eq('user_id', req.user.userId).single();
-    if (!talent) return res.status(404).json({ error: 'Engineer profile not found. Please create a profile first.' });
+    if (!talent) {
+      // 修复（2026-07-16 用户反馈）：Dashboard 注册的工程师不带 engName，注册时不会建
+      // talents 档案行；而 /onboarding"编辑档案"向导走的就是本端点，原来直接 404 把向导
+      // 第三步卡死。改为：工程师身份 + 档案缺失 → 首次调用即创建（默认值与 auth.js 注册
+      // 一致，本次传入的字段优先；分数 0 起步，走正常筛选/考核提升）。其他角色仍 404。
+      if (req.user.role !== 'engineer') {
+        return res.status(404).json({ error: 'Engineer profile not found. Please create a profile first.' });
+      }
+      const { data: userRow } = await supabase.from('users').select('name, email').eq('id', req.user.userId).single();
+      const email = userRow?.email || req.user.email || '';
+      const { data: created, error: createErr } = await supabase.from('talents').insert([{
+        user_id: req.user.userId,
+        name: userRow?.name || email.split('@')[0] || 'Engineer',
+        skills: 'Automation Engineer',
+        region: 'US/CA/MX',
+        rate: 'Open',
+        pricing_model: 'hourly',
+        level: 'Mid',
+        verified_score: 0,
+        bio: '',
+        contact: email,
+        ...updates,
+      }]).select().single();
+      if (createErr) throw createErr;
+      return res.json({ status: 'ok', data: created });
+    }
 
     const { data, error } = await supabase.from('talents').update(updates).eq('id', talent.id).select().single();
     if (error) throw error;
