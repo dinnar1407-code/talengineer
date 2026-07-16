@@ -103,8 +103,100 @@ Output a JSON response exactly in this format (no markdown blocks, just raw JSON
     try {
         return JSON.parse(cleanedText);
     } catch (e) {
-         return { passed: true, score: 85, feedback: "Acceptable answer." };
+        // fail-closed（2026-07-16 修复）：此前解析失败默认 {passed:true, score:85}——
+        // 分数现在会换成服务端签名的 score_token 落库进撮合排名，Gemini 输出异常时
+        // 白送 85 分等于开后门。改为判 0 分不通过 + 明确提示重试，宁可让用户再答一次。
+        console.error('[AI] gradeTechAnswer 返回无法解析，fail-closed 判 0:', cleanedText.slice(0, 200));
+        return { passed: false, score: 0, feedback: 'Grading service returned an invalid result. Please try again.' };
     }
+}
+
+// ── 培训认证：按方向×等级生成整卷考题 ─────────────────────────────────────────
+// 与上面的单题筛选（generateTechQuestion）不同：这是发证考核，出题失败必须 throw
+// （fail-closed：考不成就不开考，绝不能用兜底题目发证书）。
+async function generateExamQuestions(trackName, level, count, lang) {
+    const langInstruction = lang === 'zh' ? 'Output all questions entirely in Chinese.'
+        : lang === 'es' ? 'Output all questions entirely in Spanish.'
+        : 'Output all questions entirely in English.';
+    const levelDesc = level === 1 ? 'entry level (fundamentals, safety basics, common tooling)'
+        : level === 2 ? 'intermediate level (independent commissioning, troubleshooting, integration)'
+        : 'advanced level (architecture decisions, complex fault diagnosis, leading on-site delivery)';
+
+    const prompt = `You are the certification examiner for an industrial automation engineering platform.
+Track: ${trackName}
+Certification level: L${level} — ${levelDesc}
+
+Generate exactly ${count} practical scenario questions to certify a field engineer at this level.
+Requirements:
+- Each question must test real field competence (not textbook trivia), specific to the track.
+- Questions must be answerable in writing in a few sentences each.
+- Difficulty must match the certification level described above.
+${langInstruction}
+
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
+{"questions": [{"q": "<question text>"}, ...]}`;
+
+    const text = await callGemini(prompt, 0.7, 2000);
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned); // 解析失败直接抛给调用方（不开考）
+    const questions = (parsed.questions || []).filter((it) => it && typeof it.q === 'string' && it.q.trim());
+    if (questions.length !== count) {
+        throw new Error(`Exam generation returned ${questions.length} questions, expected ${count}`);
+    }
+    return questions;
+}
+
+// ── 培训认证：生成学习路径（培训内容 MVP：AI 大纲，结果由调用方落库缓存）──────
+// 失败 throw（学习路径不涉发证，调用方可直接把错误转成"稍后再试"）。
+async function generateLearningPath(trackName, level, lang) {
+    const langInstruction = lang === 'zh' ? 'Output everything in Chinese.'
+        : lang === 'es' ? 'Output everything in Spanish.'
+        : 'Output everything in English.';
+
+    const prompt = `You are the training director of an industrial automation engineering platform.
+Design a self-study learning path for a field engineer preparing for the L${level} certification exam in: ${trackName}.
+Level guide: L1 = fundamentals & safety; L2 = independent commissioning & troubleshooting; L3 = architecture & leading on-site delivery.
+
+${langInstruction}
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
+{"title": "<path title>", "estimated_hours": <number>, "modules": [{"name": "<module name>", "topics": ["<topic>", ...], "practice": "<one hands-on practice task>"}, ...4-6 modules...], "exam_tips": "<two sentences on what the exam focuses on>"}`;
+
+    const text = await callGemini(prompt, 0.5, 2000);
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed.modules) || parsed.modules.length === 0) {
+        throw new Error('Learning path generation returned no modules');
+    }
+    return parsed;
+}
+
+// ── 培训认证：整卷评分 ────────────────────────────────────────────────────────
+// 逐题给 0-100 分 + 一句反馈。任何解析/数量异常都 throw——由调用方把考卷转入
+// "待人工复核"状态（fail-closed：AI 评不了就人评，绝不默认通过）。
+async function gradeExamAnswers(questions, answers, lang) {
+    const langInstruction = lang === 'zh' ? 'Write all feedback in Chinese.'
+        : lang === 'es' ? 'Write all feedback in Spanish.'
+        : 'Write all feedback in English.';
+    const qaText = questions.map((it, i) =>
+        `Question ${i + 1}: ${it.q}\nAnswer ${i + 1}: ${(answers[i] && answers[i].a) || '(no answer)'}`
+    ).join('\n\n');
+
+    const prompt = `You are grading a certification exam for an industrial automation field engineer.
+Grade strictly: certification authorizes real on-site work, so reward only answers showing genuine field competence. Empty or off-topic answers score 0.
+
+${qaText}
+
+${langInstruction}
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
+{"per_question": [{"score": <0-100>, "feedback": "<one short sentence>"}, ...], "overall_feedback": "<two sentences summarizing strengths and gaps>"}`;
+
+    const text = await callGemini(prompt, 0.1, 2000);
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned); // 解析失败抛给调用方转人工复核
+    if (!Array.isArray(parsed.per_question) || parsed.per_question.length !== questions.length) {
+        throw new Error(`Exam grading returned ${parsed.per_question?.length ?? 0} scores, expected ${questions.length}`);
+    }
+    return parsed;
 }
 
 async function generateMatchEmail(demandTitle, demandDesc, demandBudget, engName, engSkills, engRegion) {
@@ -285,4 +377,4 @@ ${langInstruction}`;
     return text.trim();
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage, parseGhostProfile, generateGhostOutreachEmail };
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateExamQuestions, gradeExamAnswers, generateLearningPath, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage, parseGhostProfile, generateGhostOutreachEmail };

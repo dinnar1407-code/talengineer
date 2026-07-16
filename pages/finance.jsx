@@ -765,6 +765,19 @@ export default function Finance() {
                         <span style={{ fontSize: 11, background: 'var(--surface)', color: 'var(--muted)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--border)', fontWeight: 600 }}>
                           {availabilityBadge(app.talents?.availability).dot} {availabilityBadge(app.talents?.availability).label}
                         </span>
+
+                        {/* 🎓 平台认证（方向×等级）：指派前的硬门槛——无证工程师无法被正式指派，
+                            这里让雇主一眼看到谁持证/什么方向。数据来自 applications 接口的 platform_certs。 */}
+                        {(app.platform_certs || []).map(c => (
+                          <span key={c.track_key} style={{ fontSize: 11, background: 'rgba(6,95,70,0.12)', color: '#059669', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(5,150,105,0.35)', fontWeight: 700 }}>
+                            🎓 {lang === 'zh' ? c.track_name_zh : c.track_name_en} L{c.level}
+                          </span>
+                        ))}
+                        {(app.platform_certs || []).length === 0 && (
+                          <span style={{ fontSize: 11, background: 'var(--surface)', color: '#f59e0b', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(245,158,11,0.35)', fontWeight: 600 }}>
+                            {lang === 'zh' ? '🎓 未认证（不可指派）' : '🎓 Not certified (cannot assign)'}
+                          </span>
+                        )}
                       </div>
 
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: app.message ? 6 : 0 }}>

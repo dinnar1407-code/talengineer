@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/auth');
 const { assertDemandParticipant } = require('../middleware/ownership');
 const { emailMilestoneReleased, emailRequestReview } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
+const { checkAssignEligibility } = require('../services/certService'); // 认证兜底门禁（到场开工前二道防线）
 
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
 const stripe = require('../config/stripe').getStripe();
@@ -56,6 +57,19 @@ router.post('/:milestoneId/checkin', requireAuth, async (req, res) => {
     const { data: ms } = await supabase.from('project_milestones').select('id, demand_id, status').eq('id', req.params.milestoneId).single();
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
     if (ms.status !== 'funded') return res.status(400).json({ error: 'Milestone must be funded before check-in.' });
+
+    // ── 认证兜底门禁（培训认证模块）────────────────────────────────────────────
+    // 主门禁在 demand.js assign；这里是到场开工前的第二道防线，防历史指派/证被吊销后
+    // 仍然开工。规则同 assign：持有效平台认证，需求指定方向则须持该方向。
+    const { data: gateDemand } = await supabase.from('demands')
+      .select('required_cert_track').eq('id', ms.demand_id).single();
+    const eligibility = await checkAssignEligibility(supabase, talent.id, gateDemand?.required_cert_track || null);
+    if (!eligibility.allowed) {
+      return res.status(403).json({
+        error: 'A valid platform certification is required before on-site check-in. Get certified at /training.',
+        reason: eligibility.reason,
+      });
+    }
 
     const { data, error } = await supabase.from('work_order_checkins').upsert({
       milestone_id: parseInt(req.params.milestoneId),

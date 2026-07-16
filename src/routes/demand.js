@@ -6,6 +6,7 @@ const { runMatchmaker } = require('../services/matchmakerService');
 const { requireAuth } = require('../middleware/auth');
 const { emailNewApplication, emailEngineerAssigned } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
+const { checkAssignEligibility, getValidCertifications } = require('../services/certService'); // 认证门禁（现场正式工作授权）
 
 // ── Parse demand (AI) ─────────────────────────────────────────────────────────
 router.post('/parse', async (req, res) => {
@@ -77,9 +78,18 @@ router.post('/quick_launch', async (req, res) => {
 router.post('/submit', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { title, role_required, region, project_type, location, budget, description, contact, milestones } = req.body;
+    const { title, role_required, region, project_type, location, budget, description, contact, milestones, required_cert_track } = req.body;
 
     if (!title) return res.status(400).json({ error: 'Missing title' });
+
+    // 可选：雇主指定本单要求的认证方向（培训认证模块）。
+    // 只接受字典里存在且启用的 track_key，非法值静默忽略（不阻断发单）。
+    let certTrack = null;
+    if (required_cert_track) {
+      const { data: trackRow } = await supabase.from('cert_tracks')
+        .select('track_key').eq('track_key', required_cert_track).eq('is_active', true).single();
+      certTrack = trackRow ? trackRow.track_key : null;
+    }
 
     const budgetAmount = parseFloat((budget || '0').toString().replace(/[^0-9.]/g, '')) || 1000;
 
@@ -88,7 +98,7 @@ router.post('/submit', requireAuth, async (req, res) => {
 
     const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open' }])
+      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open', required_cert_track: certTrack }])
       .select()
       .single();
 
@@ -303,7 +313,18 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json({ status: 'ok', data: data || [] });
+
+    // 附加平台认证摘要（培训认证模块）：雇主指派前需要知道谁持证/持什么方向的证。
+    // 申请者通常个位数，逐个查询即可；查询失败按"无证"处理（展示层信息，不阻断列表）。
+    const enriched = await Promise.all((data || []).map(async (app) => {
+      let platform_certs = [];
+      try {
+        if (app.talents?.id) platform_certs = await getValidCertifications(supabase, app.talents.id);
+      } catch (e) { /* 展示层容错：查询失败按未持证展示 */ }
+      return { ...app, platform_certs };
+    }));
+
+    res.json({ status: 'ok', data: enriched });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[demand]', err);
@@ -322,7 +343,7 @@ router.post('/assign', requireAuth, async (req, res) => {
     // 防 IDOR：只有该需求的雇主本人才能指派工程师
     const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .select('employer_id, title, contact')
+      .select('employer_id, title, contact, required_cert_track')
       .eq('id', demand_id)
       .single();
     if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
@@ -337,6 +358,17 @@ router.post('/assign', requireAuth, async (req, res) => {
       .eq('engineer_id', engineer_id)
       .single();
     if (appErr || !application) return res.status(400).json({ error: 'Engineer has not applied to this project.' });
+
+    // ── 认证门禁（"现场正式工作授权"，2026-07-16 培训认证模块）─────────────────
+    // 工程师可自由浏览/申请/沟通，但被正式指派前必须持有效平台认证；
+    // 需求若指定 required_cert_track，还必须持该方向的证。规则详见 certService.js。
+    const eligibility = await checkAssignEligibility(supabase, engineer_id, demand.required_cert_track || null);
+    if (!eligibility.allowed) {
+      const msg = eligibility.reason === 'missing_required_track'
+        ? `This engineer does not hold the required "${demand.required_cert_track}" platform certification for on-site work.`
+        : 'This engineer has not yet earned a platform certification, which is required before official on-site assignment. They can get certified at /training.';
+      return res.status(403).json({ error: msg, reason: eligibility.reason });
+    }
 
     // Assign engineer
     await supabase.from('demands').update({ assigned_engineer_id: engineer_id, status: 'in_progress' }).eq('id', demand_id);

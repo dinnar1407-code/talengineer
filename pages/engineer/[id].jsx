@@ -28,7 +28,7 @@ function StarRating({ value, onChange, size = 24 }) {
   );
 }
 
-export default function EngineerProfile({ initialEngineer = null, initialCerts = null, initialReviews = null }) {
+export default function EngineerProfile({ initialEngineer = null, initialCerts = null, initialReviews = null, initialPlatformCerts = null }) {
   const router = useRouter();
   const toast  = useToast();
   const [lang, setLang] = useLang();
@@ -39,6 +39,7 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
   const [engineer, setEngineer]   = useState(initialEngineer);
   const [certs, setCerts]         = useState(initialCerts || []);
   const [reviews, setReviews]     = useState(initialReviews || []);
+  const [platformCerts, setPlatformCerts] = useState(initialPlatformCerts || []); // 平台认证（区别外部证书）
   const [loading, setLoading]     = useState(!initialEngineer);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -49,9 +50,10 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
       setEngineer(initialEngineer);
       setCerts(initialCerts || []);
       setReviews(initialReviews || []);
+      setPlatformCerts(initialPlatformCerts || []);
       setLoading(false);
     }
-  }, [initialEngineer, initialCerts, initialReviews]);
+  }, [initialEngineer, initialCerts, initialReviews, initialPlatformCerts]);
 
   // Cert form
   const [showCertForm, setShowCertForm] = useState(false);
@@ -77,10 +79,12 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
       fetch(`/api/talent/profile/${id}`).then(r => r.json()),
       fetch(`/api/certifications/${id}`).then(r => r.json()),
       fetch(`/api/reviews/engineer/${id}`).then(r => r.json()),
-    ]).then(([eng, certsData, reviewsData]) => {
+      fetch(`/api/training/certs/${id}`).then(r => r.json()),
+    ]).then(([eng, certsData, reviewsData, platformData]) => {
       setEngineer(eng.data || null);
       setCerts(certsData.data || []);
       setReviews(reviewsData.data || []);
+      setPlatformCerts(platformData.data || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id, initialEngineer]);
@@ -272,6 +276,24 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
             </div>
           </div>
 
+          {/* 🎓 平台认证（TalEngineer 考核颁发，区别于下面自行上传的外部证书）——
+              持证 = 已获得现场正式工作的指派授权 */}
+          {platformCerts.length > 0 && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>🎓 TalEngineer Certified</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                {platformCerts.map(c => (
+                  <span key={c.track_key} style={{ background: 'rgba(6,95,70,0.12)', color: '#059669', border: '1px solid rgba(5,150,105,0.35)', borderRadius: 20, padding: '4px 14px', fontSize: 13, fontWeight: 700 }}>
+                    🎓 {c.track_name_en} · L{c.level}
+                    <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 6, fontSize: 11 }}>
+                      since {new Date(c.issued_at).toLocaleDateString()}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Certifications */}
           <div className={styles.section}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -424,20 +446,22 @@ export async function getServerSideProps({ params }) {
     return r.json();
   };
   try {
-    const [eng, certsData, reviewsData] = await Promise.all([
+    const [eng, certsData, reviewsData, platformData] = await Promise.all([
       fetchJson(`/api/talent/profile/${encodeURIComponent(params.id)}`),
       fetchJson(`/api/certifications/${encodeURIComponent(params.id)}`),
       fetchJson(`/api/reviews/engineer/${encodeURIComponent(params.id)}`),
+      fetchJson(`/api/training/certs/${encodeURIComponent(params.id)}`),
     ]);
     return {
       props: {
         initialEngineer: eng.data || null,
         initialCerts: certsData.data || [],
         initialReviews: reviewsData.data || [],
+        initialPlatformCerts: platformData.data || [],
       },
     };
   } catch {
     // SSR 失败不阻塞页面：回退客户端渲染（与旧行为一致）
-    return { props: { initialEngineer: null, initialCerts: null, initialReviews: null } };
+    return { props: { initialEngineer: null, initialCerts: null, initialReviews: null, initialPlatformCerts: null } };
   }
 }

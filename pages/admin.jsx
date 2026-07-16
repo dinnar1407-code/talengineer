@@ -16,6 +16,7 @@ export default function Admin() {
   const [notifs, setNotifs]       = useState(null);
   const [kycList, setKycList]     = useState(null);
   const [funnel, setFunnel]       = useState(null);
+  const [examPending, setExamPending] = useState(null); // 培训认证：待复核考卷
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -140,6 +141,35 @@ export default function Admin() {
     } catch {}
   }
 
+  // ── 培训认证：待复核考卷（AI 出分后由人工把最后一关再发证）──────────────────
+  async function loadExamPending() {
+    if (examPending !== null) return;
+    try {
+      const res  = await fetch('/api/training/admin/pending', { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setExamPending(data.data || []);
+    } catch { setExamPending([]); }
+  }
+
+  async function reviewExam(attemptId, approve) {
+    const note = approve ? '' : (window.prompt('Rejection note (optional):') ?? null);
+    if (!approve && note === null) return; // 取消
+    try {
+      const res = await fetch(`/api/training/admin/${attemptId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ approve, note }),
+      });
+      if (res.ok) {
+        toast.success(approve ? '🎓 Certification issued.' : 'Attempt rejected.');
+        setExamPending(prev => (prev || []).filter(a => a.id !== attemptId));
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed.');
+      }
+    } catch { toast.error('Network error.'); }
+  }
+
   async function reviewCert(certId, status) {
     try {
       await fetch(`/api/certifications/${certId}/review`, {
@@ -158,6 +188,7 @@ export default function Admin() {
     { id: 'talents',   label: `Engineers (${counts.talents})` },
     { id: 'ledgers',   label: `Ledger (${counts.ledgers})` },
     { id: 'certs',     label: 'Certifications' },
+    { id: 'examReview', label: '🎓 Cert Exams' },
     { id: 'disputes',  label: 'Disputes' },
     { id: 'notifs',    label: `Notifications (${counts.notifications ?? '…'})` },
     { id: 'kyc',       label: 'KYC' },
@@ -189,7 +220,7 @@ export default function Admin() {
         {/* Tabs */}
         <div className={styles.tabs}>
           {TABS.map(t => (
-            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); if (t.id === 'disputes') loadDisputes(); if (t.id === 'notifs') loadNotifs(); if (t.id === 'kyc') loadKycList(); if (t.id === 'analytics') loadFunnel(); }}>{t.label}</button>
+            <button key={t.id} className={`${styles.tab} ${activeTab === t.id ? styles.active : ''}`} onClick={() => { setActiveTab(t.id); if (t.id === 'certs') loadCerts(); if (t.id === 'examReview') loadExamPending(); if (t.id === 'disputes') loadDisputes(); if (t.id === 'notifs') loadNotifs(); if (t.id === 'kyc') loadKycList(); if (t.id === 'analytics') loadFunnel(); }}>{t.label}</button>
           ))}
         </div>
 
@@ -282,6 +313,48 @@ export default function Admin() {
               }
             </tbody>
           </table>
+        )}
+
+        {/* 培训认证：考卷复核发证（AI 出分 → 人工把最后一关） */}
+        {activeTab === 'examReview' && (
+          <div>
+            {examPending === null ? <p className={styles.empty}>Loading…</p>
+              : examPending.length === 0 ? <p className={styles.empty}>No exams pending review. 🎉</p>
+              : examPending.map(a => (
+                <div key={a.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 16, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                    <div>
+                      <b>{a.talents?.name}</b> <span className={styles.muted}>({a.talents?.contact})</span>
+                      <span style={{ marginLeft: 10 }}>{a.cert_tracks?.name_en} · <b>L{a.level}</b></span>
+                    </div>
+                    <div>
+                      <span className={`${styles.badge} ${a.status === 'ai_passed' ? styles.badgeGreen || '' : styles.badgeGray || ''}`}>
+                        {a.status === 'ai_passed' ? `AI ✅ ${a.score}/100` : a.status === 'ai_failed' ? `AI ❌ ${a.score}/100` : '📝 needs manual grading'}
+                      </span>
+                    </div>
+                  </div>
+                  {/* 答卷详情：折叠展示，复核时人工抽查 */}
+                  <details style={{ marginBottom: 10 }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 13 }}>View answers & AI feedback</summary>
+                    {(a.questions || []).map((q, i) => (
+                      <div key={i} style={{ fontSize: 13, borderBottom: '1px solid var(--border)', padding: '8px 0' }}>
+                        <div><b>Q{i + 1}.</b> {q.q}</div>
+                        <div style={{ margin: '4px 0', whiteSpace: 'pre-wrap' }}>💬 {(a.answers?.[i]?.a) || '(no answer)'}</div>
+                        {a.ai_grading?.per_question?.[i] && (
+                          <div className={styles.muted}>AI: {a.ai_grading.per_question[i].score}/100 — {a.ai_grading.per_question[i].feedback}</div>
+                        )}
+                      </div>
+                    ))}
+                    {a.ai_grading?.overall_feedback && <div style={{ fontSize: 13, marginTop: 6 }}>Overall: {a.ai_grading.overall_feedback}</div>}
+                    {a.review_note && <div style={{ fontSize: 13, marginTop: 6, color: '#f59e0b' }}>Note: {a.review_note}</div>}
+                  </details>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => reviewExam(a.id, true)} style={{ background: 'var(--success)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>🎓 Issue Certificate</button>
+                    <button onClick={() => reviewExam(a.id, false)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>✗ Reject</button>
+                  </div>
+                </div>
+              ))}
+          </div>
         )}
 
         {/* Disputes */}

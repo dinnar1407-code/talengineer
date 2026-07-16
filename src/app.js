@@ -108,6 +108,7 @@ const reviewsRoutes        = require('./routes/reviews');
 const messagesRoutes       = require('./routes/messages');
 const notificationsRoutes  = require('./routes/notifications');
 const kycRoutes            = require('./routes/kyc');
+const trainingRoutes       = require('./routes/training');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -126,6 +127,7 @@ app.use('/api/reviews',         reviewsRoutes);
 app.use('/api/messages',        messagesRoutes);
 app.use('/api/notifications',   notificationsRoutes);
 app.use('/api/kyc',             kycRoutes);
+app.use('/api/training',        trainingRoutes);
 
 // 未匹配的 /api/* 统一返回 404 JSON，避免落入下面的 catch-all 被当成页面返回 200 HTML
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

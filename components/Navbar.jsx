@@ -28,6 +28,7 @@ const DICT = {
     signIn:         'Sign In',
     dashboard:      'Dashboard',
     editProfile:    'Edit Profile',
+    certCenter:     'Certification Center',
     apiKeys:        'API Keys',
     signOut:        'Sign Out',
   },
@@ -37,6 +38,7 @@ const DICT = {
     signIn:         '登录',
     dashboard:      '控制台',
     editProfile:    '编辑档案',
+    certCenter:     '认证中心',
     apiKeys:        'API 密钥',
     signOut:        '退出登录',
   },
@@ -329,6 +331,11 @@ export default function Navbar({ lang: langProp, onLangChange }) {
                 {user.role === 'engineer' && (
                   <Link href="/onboarding" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
                     ✏️ {d.editProfile}
+                  </Link>
+                )}
+                {user.role === 'engineer' && (
+                  <Link href="/training" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
+                    🎓 {d.certCenter}
                   </Link>
                 )}
                 <Link href="/enterprise" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
