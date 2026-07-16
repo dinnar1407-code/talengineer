@@ -197,7 +197,8 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
   return (
     <>
       <Head>
-        <title>{engineer.name} — Automation Engineer | TalEngineer</title>
+        {/* title 必须是单个模板字符串 child：JSX 里"表达式+文本"混排会被 Next 服务端丢弃（SSR 后 title 变空） */}
+        <title>{`${engineer.name} — Automation Engineer | TalEngineer`}</title>
         <meta name="description" content={`${engineer.name} is a${isVerified ? ' verified' : 'n'} automation engineer in ${engineer.region}. Specializes in ${skills.slice(0,3).join(', ')}. ${avgRating ? `Rated ${avgRating}/5.` : ''} Hire via TalEngineer.`} />
         <meta property="og:title" content={`${engineer.name} | TalEngineer Engineer Profile`} />
         <meta property="og:description" content={`${engineer.bio || `${engineer.level} engineer in ${engineer.region}`}`} />

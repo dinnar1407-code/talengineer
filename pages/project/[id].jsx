@@ -112,7 +112,8 @@ export default function ProjectDetail({ initialProject = null }) {
 
   return (
     <>
-      <Head><title>{project.title} | TalEngineer</title></Head>
+      {/* title 用单个模板字符串 child（混排 children 会被 Next 服务端丢弃，SSR 后 title 变空） */}
+      <Head><title>{`${project.title} | TalEngineer`}</title></Head>
 
       <Navbar lang={lang} onLangChange={setLang} />
 
