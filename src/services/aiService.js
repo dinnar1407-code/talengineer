@@ -15,8 +15,10 @@ async function callGemini(prompt, temperature = 0.7, maxTokens = 800) {
     // Use JSON schema for tools/structured output
     if (prompt.includes('Output EXACTLY this JSON structure')) {
         payload.generationConfig.responseMimeType = "application/json";
-        // Also force tokens to be larger for JSON to prevent truncation
-        payload.generationConfig.maxOutputTokens = 2000;
+        // 放大 token 上限防 JSON 被截断（截断→解析失败）。原来硬编码 2000 会把调用方
+        // 传入的更大值（如课文/长考卷的 4000）反而压小，导致长内容截断 500。改为取下限
+        // 2000 与调用方值的较大者：短 JSON 仍保底 2000，长内容尊重调用方要求的上限。
+        payload.generationConfig.maxOutputTokens = Math.max(maxTokens, 2000);
     }
 
     const response = await fetch(url, {
