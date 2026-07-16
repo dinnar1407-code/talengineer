@@ -12,7 +12,8 @@ const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
-const { generateExamQuestions, gradeExamAnswers, generateLearningPath } = require('../services/aiService');
+const { generateExamQuestions, gradeExamAnswers, generateLearningPath, generateLessonContent, generateModuleQuiz } = require('../services/aiService');
+const { summarizeStudy, SESSION_CAP_SECONDS } = require('../utils/studyStats');
 const { createNotification } = require('../services/notificationService');
 const { getValidCertifications } = require('../services/certService');
 const { canStartExam, isExpired, summarizeGrading, mergeGrading } = require('../utils/examRules');
@@ -106,6 +107,196 @@ router.get('/path/:trackKey/:level', requireAuth, async (req, res) => {
       uploaded_courses: (courses || []).filter((c) => c.type === 'uploaded'),
     });
   } catch (err) { fail(res, err, 'path'); }
+});
+
+// ── 知识点详细课程：AI 生成 + training_lessons 缓存（课程×模块×知识点 全员共享）──
+router.get('/lesson/:trackKey/:level/:moduleIdx/:topicIdx', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const level = Number(req.params.level);
+    const moduleIdx = Number(req.params.moduleIdx);
+    const topicIdx = Number(req.params.topicIdx);
+    if (![level, moduleIdx, topicIdx].every(Number.isInteger) || level < 1 || level > MAX_LEVEL || moduleIdx < 0 || topicIdx < 0) {
+      return res.status(400).json({ error: 'Invalid lesson coordinates.' });
+    }
+    const track = await trackByKey(supabase, req.params.trackKey);
+    if (!track) return res.status(404).json({ error: 'Track not found.' });
+
+    // 定位该方向×等级的 AI 大纲课程行（学习路径），拿到 course_id 与模块/知识点名
+    const { data: course } = await supabase.from('training_courses')
+      .select('id, content').eq('track_id', track.id).eq('level', level)
+      .eq('type', 'ai_generated').eq('is_active', true).single();
+    if (!course) return res.status(404).json({ error: 'Open the learning path first.' });
+    const mod = course.content?.modules?.[moduleIdx];
+    const topic = mod?.topics?.[topicIdx];
+    if (!mod || !topic) return res.status(404).json({ error: 'Lesson not found in this course.' });
+
+    // 缓存命中直接返回；否则 AI 生成并落库（唯一键防并发重复，冲突时回读）
+    const { data: cached } = await supabase.from('training_lessons')
+      .select('id, content').eq('course_id', course.id)
+      .eq('module_index', moduleIdx).eq('topic_index', topicIdx).maybeSingle();
+    if (cached) return res.json({ status: 'ok', lesson: cached.content, module: mod.name, topic });
+
+    const lang = req.query.lang === 'zh' ? 'zh' : 'en';
+    const generated = await generateLessonContent(track.name_en, level, mod.name, topic, lang);
+    const { error: insErr } = await supabase.from('training_lessons')
+      .insert([{ course_id: course.id, module_index: moduleIdx, topic_index: topicIdx, content: generated }]);
+    if (insErr && insErr.code !== '23505') throw insErr; // 23505=并发下别人先插入了，用自己生成的返回即可
+
+    res.json({ status: 'ok', lesson: generated, module: mod.name, topic });
+  } catch (err) { fail(res, err, 'lesson'); }
+});
+
+// ── 随堂 quiz：按模块生成缓存 → 下发去答案版 → 提交服务端判分即时反馈 ─────────
+const QUIZ_QUESTIONS = 3; // 每模块随堂练习题数（练习性质，不影响发证）
+
+router.get('/quiz/:trackKey/:level/:moduleIdx', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const level = Number(req.params.level);
+    const moduleIdx = Number(req.params.moduleIdx);
+    const track = await trackByKey(supabase, req.params.trackKey);
+    if (!track) return res.status(404).json({ error: 'Track not found.' });
+
+    const { data: course } = await supabase.from('training_courses')
+      .select('id, content').eq('track_id', track.id).eq('level', level)
+      .eq('type', 'ai_generated').eq('is_active', true).single();
+    const mod = course?.content?.modules?.[moduleIdx];
+    if (!mod) return res.status(404).json({ error: 'Module not found.' });
+
+    let quiz = null;
+    const { data: cached } = await supabase.from('training_quizzes')
+      .select('id, questions').eq('course_id', course.id).eq('module_index', moduleIdx).maybeSingle();
+    if (cached) {
+      quiz = cached;
+    } else {
+      const lang = req.query.lang === 'zh' ? 'zh' : 'en';
+      const questions = await generateModuleQuiz(track.name_en, level, mod.name, mod.topics, QUIZ_QUESTIONS, lang);
+      const { data: inserted, error: insErr } = await supabase.from('training_quizzes')
+        .insert([{ course_id: course.id, module_index: moduleIdx, questions }])
+        .select('id, questions').single();
+      if (insErr) {
+        if (insErr.code !== '23505') throw insErr;
+        // 并发下别人先插入：回读缓存行（保证 quiz_id 与答案键一致）
+        const { data: again } = await supabase.from('training_quizzes')
+          .select('id, questions').eq('course_id', course.id).eq('module_index', moduleIdx).single();
+        quiz = again;
+      } else {
+        quiz = inserted;
+      }
+    }
+
+    // 只下发题面与选项——answer_index/explanation 留在服务端判分时用
+    res.json({
+      status: 'ok',
+      quiz_id: quiz.id,
+      module: mod.name,
+      questions: quiz.questions.map(({ q, options }) => ({ q, options })),
+    });
+  } catch (err) { fail(res, err, 'quiz'); }
+});
+
+router.post('/quiz/:quizId/submit', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const talent = await talentFromUser(supabase, req.user.userId);
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found.' });
+
+    const { data: quiz } = await supabase.from('training_quizzes')
+      .select('id, questions').eq('id', req.params.quizId).single();
+    if (!quiz) return res.status(404).json({ error: 'Quiz not found.' });
+
+    const answers = Array.isArray(req.body?.answers) ? req.body.answers : [];
+    if (answers.length !== quiz.questions.length) {
+      return res.status(400).json({ error: `Expected ${quiz.questions.length} answers.` });
+    }
+
+    // 逐题判分（quiz 全是选择题，复用考核的判分语义：空答案不误判）
+    const perQuestion = quiz.questions.map((q, i) => {
+      const raw = answers[i]?.a;
+      const picked = raw === '' || raw == null ? NaN : Number(raw);
+      const correct = Number.isInteger(picked) && picked === q.answer_index;
+      return {
+        correct,
+        answer_index: q.answer_index,   // 练习性质：判分后把正确答案与解析亮给学员（这是学习环节，不是考核）
+        explanation: q.explanation || '',
+      };
+    });
+    const score = Math.round((perQuestion.filter((g) => g.correct).length / quiz.questions.length) * 100);
+
+    // 留档学习进度（fire-and-forget 语义：失败不影响反馈）
+    await supabase.from('quiz_attempts')
+      .insert([{ quiz_id: quiz.id, talent_id: talent.id, answers, score }])
+      .then(() => {}).catch(() => {});
+
+    res.json({ status: 'ok', score, per_question: perQuestion });
+  } catch (err) { fail(res, err, 'quiz/submit'); }
+});
+
+// ── 学习打卡/时长：进入课程 start，退出 end（服务端时钟结算，单次封顶防挂机）──
+router.post('/study/start', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const talent = await talentFromUser(supabase, req.user.userId);
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found.' });
+
+    // 自动结算该学员所有未关闭的旧会话。没正常 end 的（信标丢失/断网）无法知道
+    // 真实离开时间，补记封顶 30 分钟——宁可少记不虚记（正常关闭走 end，封顶 4 小时）。
+    const STALE_CREDIT_CAP = 30 * 60;
+    const { data: openSessions } = await supabase.from('study_sessions')
+      .select('id, started_at').eq('talent_id', talent.id).is('ended_at', null);
+    for (const s of openSessions || []) {
+      const dur = Math.min(Math.floor((Date.now() - new Date(s.started_at).getTime()) / 1000), STALE_CREDIT_CAP);
+      await supabase.from('study_sessions')
+        .update({ ended_at: new Date().toISOString(), duration_seconds: dur }).eq('id', s.id);
+    }
+
+    const { course_id, module_index, topic_index } = req.body || {};
+    const { data: session, error } = await supabase.from('study_sessions')
+      .insert([{
+        talent_id: talent.id,
+        course_id: Number.isInteger(course_id) ? course_id : null,
+        module_index: Number.isInteger(module_index) ? module_index : null,
+        topic_index: Number.isInteger(topic_index) ? topic_index : null,
+      }])
+      .select('id, started_at').single();
+    if (error) throw error;
+    res.json({ status: 'ok', session_id: session.id, started_at: session.started_at });
+  } catch (err) { fail(res, err, 'study/start'); }
+});
+
+router.post('/study/end', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const talent = await talentFromUser(supabase, req.user.userId);
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found.' });
+
+    const { data: session } = await supabase.from('study_sessions')
+      .select('id, talent_id, started_at, ended_at').eq('id', req.body?.session_id).single();
+    if (!session || session.talent_id !== talent.id) return res.status(404).json({ error: 'Session not found.' });
+    if (session.ended_at) return res.json({ status: 'ok', duration_seconds: null }); // 已结算过（幂等）
+
+    // 服务端时钟结算 + 单次封顶（客户端时间不可信，也防挂机刷时长）
+    const dur = Math.min(Math.max(0, Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)), SESSION_CAP_SECONDS);
+    const { error } = await supabase.from('study_sessions')
+      .update({ ended_at: new Date().toISOString(), duration_seconds: dur }).eq('id', session.id);
+    if (error) throw error;
+    res.json({ status: 'ok', duration_seconds: dur });
+  } catch (err) { fail(res, err, 'study/end'); }
+});
+
+router.get('/study/summary', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const talent = await talentFromUser(supabase, req.user.userId);
+    if (!talent) return res.status(404).json({ error: 'Engineer profile not found.' });
+
+    const { data: sessions, error } = await supabase.from('study_sessions')
+      .select('started_at, duration_seconds').eq('talent_id', talent.id)
+      .order('started_at', { ascending: false }).limit(1000);
+    if (error) throw error;
+    res.json({ status: 'ok', ...summarizeStudy(sessions, new Date()) });
+  } catch (err) { fail(res, err, 'study/summary'); }
 });
 
 // ── 开考：校验资格 → AI 出题 → 建考核记录（服务端计时）────────────────────────

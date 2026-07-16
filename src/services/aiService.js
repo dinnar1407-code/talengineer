@@ -187,6 +187,63 @@ Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
     return parsed;
 }
 
+// ── 培训认证：知识点详细课程（点击大纲里的知识点 → 生成完整课文，调用方落库缓存）──
+async function generateLessonContent(trackName, level, moduleName, topic, lang) {
+    const langInstruction = lang === 'zh' ? 'Write the entire lesson in Chinese.'
+        : lang === 'es' ? 'Write the entire lesson in Spanish.'
+        : 'Write the entire lesson in English.';
+
+    const prompt = `You are writing a self-study lesson for an industrial automation field engineer platform.
+Track: ${trackName} (certification level L${level})
+Module: ${moduleName}
+Topic: ${topic}
+
+Write a practical, field-oriented lesson on this topic. Focus on what an engineer actually does on site — procedures, gotchas, safety, real equipment. No fluff.
+${langInstruction}
+
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
+{"title": "<lesson title>", "sections": [{"heading": "<section heading>", "body": "<2-4 paragraphs of lesson text>"}, ...3-4 sections...], "key_points": ["<takeaway>", ...3-5 items...], "field_example": "<one concrete on-site example or war story, a short paragraph>"}`;
+
+    const text = await callGemini(prompt, 0.5, 4000);
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+        throw new Error('Lesson generation returned no sections');
+    }
+    return parsed;
+}
+
+// ── 培训认证：模块随堂 quiz（练习性质；choice 结构与考核选择题一致，服务端判分）──
+async function generateModuleQuiz(trackName, level, moduleName, topics, count, lang) {
+    const langInstruction = lang === 'zh' ? 'Output all questions, options and explanations entirely in Chinese.'
+        : lang === 'es' ? 'Output all questions, options and explanations entirely in Spanish.'
+        : 'Output all questions, options and explanations entirely in English.';
+
+    const prompt = `You are writing a practice quiz for an industrial automation training module.
+Track: ${trackName} (certification level L${level})
+Module: ${moduleName}
+Topics covered: ${(topics || []).join('; ')}
+
+Generate exactly ${count} multiple-choice questions testing practical understanding of this module.
+Each question: 4 options, exactly one correct; include "answer_index" (0-3) and a one-sentence "explanation". Distractors must be plausible field mistakes.
+${langInstruction}
+
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
+{"questions": [{"q": "...", "options": ["...","...","...","..."], "answer_index": 0, "explanation": "..."}]}`;
+
+    const text = await callGemini(prompt, 0.6, 2500);
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const questions = parsed.questions || [];
+    for (const it of questions) {
+        const ok = it && typeof it.q === 'string' && Array.isArray(it.options) && it.options.length === 4
+            && Number.isInteger(it.answer_index) && it.answer_index >= 0 && it.answer_index <= 3;
+        if (!ok) throw new Error('Malformed quiz question');
+    }
+    if (questions.length !== count) throw new Error(`Quiz generation returned ${questions.length}, expected ${count}`);
+    return questions;
+}
+
 // ── 培训认证：整卷评分 ────────────────────────────────────────────────────────
 // 逐题给 0-100 分 + 一句反馈。任何解析/数量异常都 throw——由调用方把考卷转入
 // "待人工复核"状态（fail-closed：AI 评不了就人评，绝不默认通过）。
@@ -394,4 +451,4 @@ ${langInstruction}`;
     return text.trim();
 }
 
-module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateExamQuestions, gradeExamAnswers, generateLearningPath, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage, parseGhostProfile, generateGhostOutreachEmail };
+module.exports = { parseDemand, generateTechQuestion, gradeTechAnswer, generateExamQuestions, gradeExamAnswers, generateLearningPath, generateLessonContent, generateModuleQuiz, generateMatchEmail, translateTechnicalMessage, generateDailyReport, generateNudgeMessage, analyzeQualityImage, parseGhostProfile, generateGhostOutreachEmail };

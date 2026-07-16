@@ -19,6 +19,11 @@ const DICT = {
     typeChoice: 'Multiple choice', typeScenario: 'Scenario', typeAnalysis: 'Analysis',
     analysisHint: 'Structured answer expected: root cause / trade-offs / plan.',
     goStudy: '📚 View Training Course',
+    studyLine: (m, h, d) => `Today ${m} min · Total ${h} h · ${d} days checked in`,
+    lessonLoading: 'Generating lesson content…', keyPoints: '🔑 Key Points', fieldExample: '🏭 Field Example',
+    thisSession: 'This session', backToCourse: '← Back to course',
+    quizBtn: '📝 Module Quiz', quizTitle: 'Module Quiz', quizSubmit: 'Submit Answers', quizRetry: 'Try Again',
+    quizScoreLabel: 'Score', correctIs: 'Correct answer',
     certified: 'Certified', nextLevel: 'Next', history: 'Exam History',
     examTitle: 'Certification Exam', timeLeft: 'Time left', submit: 'Submit Answers', submitting: 'Grading…',
     answerPh: 'Type your answer here…',
@@ -38,6 +43,11 @@ const DICT = {
     typeChoice: '选择题', typeScenario: '场景题', typeAnalysis: '分析题',
     analysisHint: '需要结构化作答：根因 / 权衡取舍 / 实施方案。',
     goStudy: '📚 查看培训课程',
+    studyLine: (m, h, d) => `今日已学 ${m} 分钟 · 累计 ${h} 小时 · 打卡 ${d} 天`,
+    lessonLoading: '正在生成课程内容…', keyPoints: '🔑 要点', fieldExample: '🏭 现场案例',
+    thisSession: '本次学习', backToCourse: '← 返回课程',
+    quizBtn: '📝 随堂 Quiz', quizTitle: '随堂 Quiz', quizSubmit: '提交答案', quizRetry: '再练一次',
+    quizScoreLabel: '得分', correctIs: '正确答案',
     certified: '已认证', nextLevel: '下一级', history: '考核记录',
     examTitle: '认证考核', timeLeft: '剩余时间', submit: '交卷', submitting: '评分中…',
     answerPh: '在这里作答…',
@@ -76,6 +86,17 @@ export default function Training() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const timerRef = useRef(null);
+  // 课程详情（知识点点击进入）+ 学习计时
+  const [lesson, setLesson] = useState(null);           // {content, module, topic}
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [studySession, setStudySession] = useState(null); // {id, startedMs}
+  const [studyElapsed, setStudyElapsed] = useState(0);     // 本次学习秒数（展示用）
+  const [studySummary, setStudySummary] = useState(null);  // {today_seconds, total_seconds, days_count}
+  // 随堂 quiz
+  const [quiz, setQuiz] = useState(null);           // {quiz_id, module, questions}
+  const [quizAnswers, setQuizAnswers] = useState([]);
+  const [quizResult, setQuizResult] = useState(null);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -99,7 +120,105 @@ export default function Training() {
       .then(res => { if (res.status === 'ok') setMy({ certifications: res.certifications, attempts: res.attempts }); })
       .catch(() => {});
   }
-  useEffect(() => { if (currentUser?.token) loadMy(currentUser); }, [currentUser]);
+  useEffect(() => { if (currentUser?.token) { loadMy(currentUser); loadStudySummary(currentUser); } }, [currentUser]);
+
+  function loadStudySummary(user) {
+    fetch('/api/training/study/summary', { headers: { Authorization: `Bearer ${user.token}` } })
+      .then(r => r.json())
+      .then(res => { if (res.status === 'ok') setStudySummary(res); })
+      .catch(() => {});
+  }
+
+  // 本次学习计时（展示用；权威时长由服务端 start/end 结算）
+  useEffect(() => {
+    if (view !== 'lesson' || !studySession) return undefined;
+    const t = setInterval(() => setStudyElapsed(Math.floor((Date.now() - studySession.startedMs) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [view, studySession]);
+
+  // 直接关页/跳走时也尽量结算会话（keepalive 请求在页面卸载后仍会送达；
+  // 万一没送达，服务端下次 start 会自动补记，封顶防高估）
+  const studySessionRef = useRef(null);
+  const tokenRef = useRef(null);
+  useEffect(() => { studySessionRef.current = studySession; }, [studySession]);
+  useEffect(() => { tokenRef.current = currentUser?.token || null; }, [currentUser]);
+  useEffect(() => () => {
+    const s = studySessionRef.current;
+    if (s && tokenRef.current) {
+      fetch('/api/training/study/end', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenRef.current}` },
+        body: JSON.stringify({ session_id: s.id }),
+      }).catch(() => {});
+    }
+  }, []);
+
+  // 结束学习会话（返回课程/离开页面时结算打卡时长）
+  async function endStudySession() {
+    if (!studySession) return;
+    const sid = studySession.id;
+    setStudySession(null);
+    try {
+      await fetch('/api/training/study/end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ session_id: sid }),
+      });
+      loadStudySummary(currentUser);
+    } catch { /* 结算失败下次 start 会自动补记 */ }
+  }
+
+  // 打开知识点详细课程：拉内容 + 开始学习计时（打卡）
+  async function openLesson(moduleIdx, topicIdx) {
+    if (!path?.id) return;
+    setView('lesson'); setLesson(null); setLessonLoading(true); setStudyElapsed(0);
+    try {
+      const [lessonRes, startRes] = await Promise.all([
+        fetch(`/api/training/lesson/${activeTrack.track_key}/${activeLevel}/${moduleIdx}/${topicIdx}?lang=${lang === 'zh' ? 'zh' : 'en'}`, {
+          headers: { Authorization: `Bearer ${currentUser.token}` },
+        }).then(r => r.json().then(data => ({ ok: r.ok, data }))),
+        fetch('/api/training/study/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+          body: JSON.stringify({ course_id: path.id, module_index: moduleIdx, topic_index: topicIdx }),
+        }).then(r => r.json()).catch(() => null),
+      ]);
+      if (lessonRes.ok) setLesson(lessonRes.data);
+      else { toast.error(lessonRes.data.error || 'Failed to load lesson.'); setView('path'); }
+      if (startRes?.session_id) setStudySession({ id: startRes.session_id, startedMs: Date.now() });
+    } catch { toast.error('Network error.'); setView('path'); }
+    setLessonLoading(false);
+  }
+
+  // 打开模块随堂 quiz
+  async function openQuiz(moduleIdx) {
+    setView('quiz'); setQuiz(null); setQuizResult(null);
+    try {
+      const res = await fetch(`/api/training/quiz/${activeTrack.track_key}/${activeLevel}/${moduleIdx}?lang=${lang === 'zh' ? 'zh' : 'en'}`, {
+        headers: { Authorization: `Bearer ${currentUser.token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Failed to load quiz.'); setView('path'); return; }
+      setQuiz(data);
+      setQuizAnswers(data.questions.map(() => ''));
+    } catch { toast.error('Network error.'); setView('path'); }
+  }
+
+  async function submitQuiz() {
+    if (quizSubmitting || !quiz) return;
+    setQuizSubmitting(true);
+    try {
+      const res = await fetch(`/api/training/quiz/${quiz.quiz_id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ answers: quizAnswers.map(a => ({ a })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Submit failed.'); setQuizSubmitting(false); return; }
+      setQuizResult(data);
+    } catch { toast.error('Network error.'); }
+    setQuizSubmitting(false);
+  }
 
   // 考试倒计时（展示用；真正的超时判定在服务端 deadline）
   useEffect(() => {
@@ -189,7 +308,13 @@ export default function Training() {
           {view === 'tracks' && (
             <div className={styles.stepContent}>
               <h1 style={{ marginBottom: 4 }}>🎓 {d.title}</h1>
-              <p style={{ color: 'var(--muted)', marginBottom: 20 }}>{d.subtitle}</p>
+              <p style={{ color: 'var(--muted)', marginBottom: 8 }}>{d.subtitle}</p>
+              {/* 学习打卡统计（有学习记录才显示） */}
+              {studySummary && studySummary.sessions_count > 0 && (
+                <div style={{ fontSize: 13, fontWeight: 600, background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', marginBottom: 16, display: 'inline-block' }}>
+                  ⏱ {d.studyLine(Math.round(studySummary.today_seconds / 60), (studySummary.total_seconds / 3600).toFixed(1), studySummary.days_count)}
+                </div>
+              )}
 
               <h3 style={{ margin: '12px 0 8px' }}>{d.myCerts}</h3>
               {my.certifications.length === 0
@@ -265,10 +390,25 @@ export default function Training() {
                   <p style={{ color: 'var(--muted)', fontSize: 14 }}>{d.estHours}: {path.content.estimated_hours}</p>
                   {(path.content.modules || []).map((m, i) => (
                     <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>{i + 1}. {m.name}</div>
-                      <ul style={{ margin: '0 0 8px 18px', fontSize: 14 }}>
-                        {(m.topics || []).map((tp, j) => <li key={j}>{tp}</li>)}
-                      </ul>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ fontWeight: 700 }}>{i + 1}. {m.name}</div>
+                        {/* 模块随堂 quiz（3 道选择题，练习性质即时反馈） */}
+                        <button onClick={() => openQuiz(i)} style={{ fontSize: 12, fontWeight: 700, background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+                          {d.quizBtn}
+                        </button>
+                      </div>
+                      {/* 知识点可点击进入详细课程（进入即开始学习计时/打卡） */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                        {(m.topics || []).map((tp, j) => (
+                          <button
+                            key={j}
+                            onClick={() => openLesson(i, j)}
+                            style={{ textAlign: 'left', fontSize: 14, background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 0', color: 'var(--primary, #0056b3)' }}
+                          >
+                            📖 {tp} →
+                          </button>
+                        ))}
+                      </div>
                       {m.practice && <div style={{ fontSize: 13, background: 'var(--secondary)', borderRadius: 8, padding: '8px 10px' }}>🔧 {d.practice}: {m.practice}</div>}
                     </div>
                   ))}
@@ -285,6 +425,102 @@ export default function Training() {
                     </div>
                   ))}
                 </>
+              )}
+            </div>
+          )}
+
+          {/* ── 知识点详细课程（学习计时中）── */}
+          {view === 'lesson' && (
+            <div className={styles.stepContent}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                <button
+                  style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0 }}
+                  onClick={async () => { await endStudySession(); setView('path'); }}
+                >{d.backToCourse}</button>
+                {studySession && (
+                  <span style={{ fontSize: 13, fontWeight: 700, background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px' }}>
+                    ⏱ {d.thisSession} {fmtTime(studyElapsed)}
+                  </span>
+                )}
+              </div>
+              {lessonLoading && <p style={{ color: 'var(--muted)' }}>{d.lessonLoading}</p>}
+              {lesson?.lesson && (
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{lesson.module} · {lesson.topic}</div>
+                  <h2 style={{ marginBottom: 12 }}>📖 {lesson.lesson.title}</h2>
+                  {(lesson.lesson.sections || []).map((s, i) => (
+                    <div key={i} style={{ marginBottom: 14 }}>
+                      <h3 style={{ marginBottom: 6 }}>{s.heading}</h3>
+                      <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{s.body}</div>
+                    </div>
+                  ))}
+                  {Array.isArray(lesson.lesson.key_points) && lesson.lesson.key_points.length > 0 && (
+                    <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>{d.keyPoints}</div>
+                      <ul style={{ margin: '0 0 0 18px', fontSize: 14 }}>
+                        {lesson.lesson.key_points.map((p, i) => <li key={i} style={{ marginBottom: 4 }}>{p}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {lesson.lesson.field_example && (
+                    <div style={{ border: '1px dashed var(--border)', borderRadius: 10, padding: 14, fontSize: 14, lineHeight: 1.6 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>{d.fieldExample}</div>
+                      {lesson.lesson.field_example}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 模块随堂 quiz ── */}
+          {view === 'quiz' && (
+            <div className={styles.stepContent}>
+              <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, marginBottom: 10 }} onClick={() => setView('path')}>{d.backToCourse}</button>
+              <h2>📝 {quiz?.module ? `${quiz.module} · ` : ''}{d.quizTitle}</h2>
+              {!quiz && <p style={{ color: 'var(--muted)' }}>{d.pathLoading}</p>}
+              {quiz && quiz.questions.map((q, i) => {
+                const graded = quizResult?.per_question?.[i];
+                return (
+                  <div key={i} style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Q{i + 1}. {q.q}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {q.options.map((opt, oi) => {
+                        // 判分后高亮：正确选项绿框；选错的自己那项红框
+                        const isCorrect = graded && oi === graded.answer_index;
+                        const isWrongPick = graded && quizAnswers[i] === oi && !graded.correct;
+                        return (
+                          <label key={oi} style={{
+                            display: 'flex', gap: 8, alignItems: 'flex-start', borderRadius: 8, padding: '8px 12px',
+                            cursor: graded ? 'default' : 'pointer',
+                            border: `1px solid ${isCorrect ? '#059669' : isWrongPick ? '#ef4444' : 'var(--border)'}`,
+                            background: quizAnswers[i] === oi && !graded ? 'var(--secondary)' : 'transparent',
+                          }}>
+                            <input type="radio" name={`quiz${i}`} disabled={!!graded} checked={quizAnswers[i] === oi}
+                              onChange={() => setQuizAnswers(prev => prev.map((a, j) => (j === i ? oi : a)))} />
+                            <span style={{ fontSize: 14 }}><b>{String.fromCharCode(65 + oi)}.</b> {opt}{isCorrect ? ' ✅' : isWrongPick ? ' ❌' : ''}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {graded && (
+                      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
+                        {d.correctIs}: {String.fromCharCode(65 + graded.answer_index)}。{graded.explanation}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {quiz && !quizResult && (
+                <button className={styles.btnNext} disabled={quizSubmitting} onClick={submitQuiz}>
+                  {quizSubmitting ? d.submitting : d.quizSubmit}
+                </button>
+              )}
+              {quizResult && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
+                  <span style={{ fontSize: 26, fontWeight: 800 }}>{d.quizScoreLabel}: {quizResult.score}/100</span>
+                  <button className={styles.btnNext} onClick={() => { setQuizResult(null); setQuizAnswers(quiz.questions.map(() => '')); }}>{d.quizRetry}</button>
+                </div>
               )}
             </div>
           )}
