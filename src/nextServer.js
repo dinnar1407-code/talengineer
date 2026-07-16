@@ -13,16 +13,10 @@ require('../instrument.js');
 require('dotenv').config();
 const http = require('http');
 const next = require('next');
-const { Server } = require('socket.io');
 
 const app = require('./app');          // existing Express app
-const { initDB, getClient } = require('./config/db');
-const {
-  translateTechnicalMessage,
-  generateDailyReport,
-  generateNudgeMessage,
-  analyzeQualityImage,
-} = require('./services/aiService');
+const { initDB } = require('./config/db');
+const { attachSocket } = require('./socketServer');
 
 const PORT = process.env.PORT || 4000;
 const dev  = process.env.NODE_ENV !== 'production';
@@ -50,115 +44,33 @@ async function main() {
     return handle(req, res);
   });
 
-  // 4. Attach Socket.IO
-  const io = new Server(server, { cors: { origin: '*' } });
+  // 4. Attach Socket.IO（统一实现：握手 JWT 鉴权 + 房间归属校验，见 src/socketServer.js）
+  const io = attachSocket(server);
   global.io = io;
-
-  io.on('connection', (socket) => {
-    console.log(`[Socket] Client connected: ${socket.id}`);
-
-    socket.on('joinRoom', ({ projectId, userRole }) => {
-      socket.join(`project_${projectId}`);
-      console.log(`[Socket] ${userRole} joined room project_${projectId}`);
-    });
-
-    socket.on('chatMessage', async (data) => {
-      try {
-        const sourceLang = data.senderRole === 'employer' ? 'Chinese (Mandarin)' : 'Spanish';
-        const targetLang = data.senderRole === 'employer' ? 'Spanish' : 'Chinese (Mandarin)';
-        const translatedText = await translateTechnicalMessage(data.text, sourceLang, targetLang);
-
-        const supabase = getClient();
-        if (supabase) {
-          await supabase.from('project_messages').insert([{
-            demand_id: data.projectId,
-            sender_role: data.senderRole,
-            sender_name: data.senderName,
-            original_text: data.text,
-            translated_text: translatedText,
-          }]);
-        }
-
-        io.to(`project_${data.projectId}`).emit('message', {
-          senderId: socket.id,
-          senderRole: data.senderRole,
-          senderName: data.senderName || data.senderRole,
-          originalText: data.text,
-          translatedText,
-          timestamp: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.error('[Socket] Translation error:', err);
-        socket.emit('messageError', { error: 'Failed to translate message.' });
-      }
-    });
-
-    socket.on('requestDailyReport', async ({ projectId }) => {
-      try {
-        const supabase = getClient();
-        const messages = supabase
-          ? (await supabase.from('project_messages').select('*').eq('demand_id', projectId).limit(50)).data
-          : [];
-        // generateDailyReport 期望字符串形式的聊天记录，直接传对象数组会在 prompt 里变成 [object Object]（拼接方式与 server.js 一致）
-        const historyText = messages && messages.length > 0
-          ? messages.map((m) => `[${m.sender_name}]: ${m.original_text}`).join('\n')
-          : '(No recent chat history found. Provide general status assuming project just started.)';
-        const report = await generateDailyReport(historyText);
-        io.to(`project_${projectId}`).emit('message', {
-          isAIPM: true,
-          senderName: '🤖 AI-PM Daily Report',
-          originalText: report,
-          translatedText: report,
-        });
-      } catch (err) {
-        socket.emit('messageError', { error: 'Failed to generate report.' });
-      }
-    });
-
-    socket.on('requestNudge', async ({ projectId }) => {
-      try {
-        const nudge = await generateNudgeMessage(projectId);
-        io.to(`project_${projectId}`).emit('message', {
-          isAIPM: true,
-          senderName: '🤖 AI-PM Nudge',
-          originalText: nudge,
-          translatedText: nudge,
-        });
-      } catch (err) {
-        socket.emit('messageError', { error: 'Failed to generate nudge.' });
-      }
-    });
-
-    socket.on('uploadQualityImage', async ({ projectId, imageData, context }) => {
-      try {
-        // analyzeQualityImage 签名为 (base64Data, mimeType, projectContext)：需先把前端传来的 dataURL 拆成 mimeType 与纯 base64（与 server.js 一致）
-        const parts = imageData.split(';');
-        const mimeType = parts[0].split(':')[1];
-        const base64Data = parts[1].split(',')[1];
-        const analysis = await analyzeQualityImage(base64Data, mimeType, context || '');
-        // 返回值是 {verdict, feedback_es, feedback_zh} 对象，需拼成文本再发给前端，否则会显示 [object Object]
-        const qcMessageEs = `**Verdict: ${analysis.verdict}**<br/>${analysis.feedback_es}`;
-        const qcMessageZh = `**质检结果: ${analysis.verdict}**<br/>${analysis.feedback_zh}`;
-        io.to(`project_${projectId}`).emit('message', {
-          isIOT: true,
-          senderName: '📷 AI Quality Control',
-          originalText: qcMessageEs,
-          translatedText: qcMessageZh,
-        });
-      } catch (err) {
-        socket.emit('messageError', { error: 'Failed to analyse image.' });
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log(`[Socket] Client disconnected: ${socket.id}`);
-    });
-  });
 
   server.listen(PORT, () => {
     console.log(`\n🚀 Talengineer running on http://localhost:${PORT}`);
     console.log(`   Mode: ${dev ? 'development' : 'production'}\n`);
   });
+
+  // ── 优雅关闭（审计 P3 修复）────────────────────────────────────────────────
+  // Railway 每次重新部署都会给旧实例发 SIGTERM；此前无处理器 = 在途请求和 socket
+  // 连接被硬杀。现在：先关 socket.io（断开客户端），再 server.close 等在途 HTTP
+  // 请求做完才退出；10 秒还没排空就强制退出（防有连接一直不断导致老实例挂着不死）。
+  const shutdown = (signal) => {
+    console.log(`[Shutdown] Received ${signal}, draining connections...`);
+    io.close();
+    server.close(() => {
+      console.log('[Shutdown] Drained cleanly. Bye.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.warn('[Shutdown] Drain timeout (10s), forcing exit.');
+      process.exit(1);
+    }, 10_000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 main().catch((err) => {

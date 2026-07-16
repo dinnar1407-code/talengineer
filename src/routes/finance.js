@@ -10,6 +10,14 @@ router.get('/ledger', requireAuth, async (req, res) => {
     const email = req.user.email;
     const supabase = getClient();
 
+    // 防 PostgREST 过滤注入（审计 P3）：.or() 是把 email 直接拼进过滤 DSL 字符串，
+    // 若 email 含 , ( ) " 或空白等 DSL 元字符就能改写过滤逻辑、越权读他人账本。
+    // 上游注册虽有 zod email 校验，但账本归属是资金数据的唯一作用域，这里再设一道闸：
+    // 只放行不含 DSL 元字符的常规邮箱，异常值直接 400（正常用户不可能触发）。
+    if (!/^[^,()"\s]+@[^,()"\s]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid account email.' });
+    }
+
     const { data, error } = await supabase
       .from('financial_ledgers')
       .select('*')

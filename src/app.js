@@ -79,6 +79,17 @@ const authLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 
+// ── DB 可用性防护（审计 P2 防御纵深）──────────────────────────────────────────
+// getClient() 在 SUPABASE_URL/KEY 缺失时返回 null，而 69 处路由调用均未判空——
+// 那会在各路由内抛 TypeError 被兜成含糊的 500。这里在所有 /api 路由前单点拦截：
+// 数据库未初始化时直接返回语义化的 503（服务暂不可用），运维一眼可辨"是配置问题不是代码 bug"。
+// 生产环境 env 恒在，此中间件零开销直接放行。
+const { getClient: getDbClient } = require('./config/db');
+app.use('/api', (req, res, next) => {
+  if (getDbClient()) return next();
+  return res.status(503).json({ error: 'Service temporarily unavailable. Please try again later.' });
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 const talentRoutes  = require('./routes/talent');
 const financeRoutes = require('./routes/finance');

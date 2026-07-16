@@ -195,10 +195,27 @@ export default function WarRoom() {
 
   function joinRoom(e) {
     e.preventDefault();
-    const socket = io();
+    // 服务端 socket 已加握手 JWT 鉴权（防任意人进项目聊天室），连接必须带上登录 token。
+    // token 与 REST 请求同源：localStorage 的 tal_user（登录时写入）。
+    let token = null;
+    try {
+      const stored = JSON.parse(localStorage.getItem('tal_user') || 'null');
+      token = stored?.token || null;
+    } catch { /* 解析失败按未登录处理 */ }
+    if (!token) {
+      addMessage({ type: 'system', text: 'Please sign in first — the War Room is only available to project participants. / 请先登录，作战室仅项目当事方可用。' });
+      return;
+    }
+    const socket = io({ auth: { token } });
     socketRef.current = socket;
 
-    socket.emit('joinRoom', { projectId, userRole: role });
+    // 鉴权失败（token 过期/无效）会触发 connect_error，给出明确提示而不是静默无响应
+    socket.on('connect_error', () => {
+      addMessage({ type: 'system', text: 'Connection rejected — please sign in again. / 连接被拒绝，请重新登录。' });
+      setJoined(false);
+    });
+
+    socket.emit('joinRoom', { projectId });
 
     socket.on('message', (data) => {
       if (data.senderRole === role && data.senderName === myName) setSending(false);
