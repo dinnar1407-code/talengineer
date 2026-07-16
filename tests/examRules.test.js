@@ -5,7 +5,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { canStartExam, isExpired, summarizeGrading } = require('../src/utils/examRules');
+const { canStartExam, isExpired, summarizeGrading, mergeGrading } = require('../src/utils/examRules');
 const { PASS_SCORE, RETAKE_COOLDOWN_DAYS } = require('../src/config/training');
 
 const NOW = new Date('2026-07-16T12:00:00Z');
@@ -74,5 +74,41 @@ describe('summarizeGrading（整卷总分与及格线）', () => {
   it('混入非法分数只按合法分数平均', () => {
     const r = summarizeGrading([100, 'x', 80]);
     assert.equal(r.score, 90);
+  });
+});
+
+describe('mergeGrading（混合题型判分合并）', () => {
+  const QUESTIONS = [
+    { type: 'choice', q: 'c1', options: ['a', 'b', 'c', 'd'], answer_index: 2, explanation: 'C 对' },
+    { type: 'scenario', q: 's1' },
+    { type: 'choice', q: 'c2', options: ['a', 'b', 'c', 'd'], answer_index: 0 },
+    { type: 'analysis', q: 'a1' },
+  ];
+
+  it('选择题按答案键判 100/0，开放题按顺序接 AI 分', () => {
+    const answers = [{ a: 2 }, { a: '现场先断电' }, { a: 1 }, { a: '根因是…' }];
+    const ai = [{ score: 80, feedback: 'ok' }, { score: 60, feedback: 'thin' }];
+    const r = mergeGrading(QUESTIONS, answers, ai);
+    assert.equal(r.length, 4);
+    assert.equal(r[0].score, 100);            // 选对
+    assert.equal(r[1].score, 80);             // 第一道开放题 → AI 第 1 个结果
+    assert.equal(r[2].score, 0);              // 选错
+    assert.ok(r[2].feedback.includes('A'));   // 反馈里给出正确选项字母
+    assert.equal(r[3].score, 60);             // 第二道开放题 → AI 第 2 个结果
+  });
+
+  it('未作答的选择题（空串/缺失）判 0，不误判为选了 A', () => {
+    const answers = [{ a: '' }, { a: 'x' }, {}, { a: 'y' }];
+    const ai = [{ score: 50, feedback: '' }, { score: 50, feedback: '' }];
+    const r = mergeGrading(QUESTIONS, answers, ai);
+    assert.equal(r[0].score, 0);
+    assert.equal(r[2].score, 0); // answer_index=0 的题，空答案也绝不能得分
+  });
+
+  it('旧格式无 type 的题按开放题走 AI；AI 结果缺失按 0 分（fail-closed）', () => {
+    const legacy = [{ q: 'old1' }, { q: 'old2' }];
+    const r = mergeGrading(legacy, [{ a: 'x' }, { a: 'y' }], [{ score: 70, feedback: 'ok' }]);
+    assert.equal(r[0].score, 70);
+    assert.equal(r[1].score, 0); // AI 只回了 1 个结果，第 2 题不给分
   });
 });

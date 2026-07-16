@@ -15,7 +15,10 @@ const DICT = {
     title: 'Certification Center',
     subtitle: 'Get certified by track and level. A valid platform certification is required before official on-site assignment.',
     myCerts: 'My Certifications', noCerts: 'No certifications yet — pick a track below and start with L1.',
-    startExam: 'Start Exam', viewPath: 'Learning Path', locked: 'Locked',
+    startExam: 'Start Exam', viewPath: '📚 Training Course', locked: 'Locked',
+    typeChoice: 'Multiple choice', typeScenario: 'Scenario', typeAnalysis: 'Analysis',
+    analysisHint: 'Structured answer expected: root cause / trade-offs / plan.',
+    goStudy: '📚 View Training Course',
     certified: 'Certified', nextLevel: 'Next', history: 'Exam History',
     examTitle: 'Certification Exam', timeLeft: 'Time left', submit: 'Submit Answers', submitting: 'Grading…',
     answerPh: 'Type your answer here…',
@@ -31,7 +34,10 @@ const DICT = {
     title: '认证中心',
     subtitle: '按技能方向分级考证。持有效平台认证，才能获得现场正式工作的指派授权。',
     myCerts: '我的认证', noCerts: '还没有认证——从下面选个方向，从 L1 开始。',
-    startExam: '开始考核', viewPath: '学习路径', locked: '未解锁',
+    startExam: '开始考核', viewPath: '📚 培训课程', locked: '未解锁',
+    typeChoice: '选择题', typeScenario: '场景题', typeAnalysis: '分析题',
+    analysisHint: '需要结构化作答：根因 / 权衡取舍 / 实施方案。',
+    goStudy: '📚 查看培训课程',
     certified: '已认证', nextLevel: '下一级', history: '考核记录',
     examTitle: '认证考核', timeLeft: '剩余时间', submit: '交卷', submitting: '评分中…',
     answerPh: '在这里作答…',
@@ -292,19 +298,46 @@ export default function Training() {
                   ⏱ {d.timeLeft} {fmtTime(remaining)}
                 </span>
               </div>
-              {exam.questions.map((q, i) => (
-                <div key={i} style={{ marginBottom: 14 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Q{i + 1}. {q.q}</div>
-                  <textarea
-                    className={styles.textarea}
-                    rows={4}
-                    style={{ width: '100%' }}
-                    placeholder={d.answerPh}
-                    value={answers[i] || ''}
-                    onChange={e => setAnswers(prev => prev.map((a, j) => (j === i ? e.target.value : a)))}
-                  />
-                </div>
-              ))}
+              {exam.questions.map((q, i) => {
+                const typeLabel = q.type === 'choice' ? d.typeChoice : q.type === 'analysis' ? d.typeAnalysis : d.typeScenario;
+                return (
+                  <div key={i} style={{ marginBottom: 18 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: '2px 8px', marginRight: 8, verticalAlign: 'middle' }}>{typeLabel}</span>
+                      Q{i + 1}. {q.q}
+                    </div>
+                    {q.type === 'choice' ? (
+                      // 选择题：单选，答案存选项下标（服务端按答案键判分）
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(q.options || []).map((opt, oi) => (
+                          <label key={oi} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', background: answers[i] === oi ? 'var(--secondary)' : 'transparent' }}>
+                            <input
+                              type="radio"
+                              name={`q${i}`}
+                              checked={answers[i] === oi}
+                              onChange={() => setAnswers(prev => prev.map((a, j) => (j === i ? oi : a)))}
+                            />
+                            <span style={{ fontSize: 14 }}><b>{String.fromCharCode(65 + oi)}.</b> {opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      // 场景短答 / 深度分析：文本作答（分析题更大的输入区 + 结构化提示）
+                      <>
+                        {q.type === 'analysis' && <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>💡 {d.analysisHint}</div>}
+                        <textarea
+                          className={styles.textarea}
+                          rows={q.type === 'analysis' ? 8 : 4}
+                          style={{ width: '100%' }}
+                          placeholder={d.answerPh}
+                          value={answers[i] || ''}
+                          onChange={e => setAnswers(prev => prev.map((a, j) => (j === i ? e.target.value : a)))}
+                        />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
               <button className={styles.btnNext} disabled={submitting || remaining === 0} onClick={submitExam}>
                 {submitting ? d.submitting : d.submit}
               </button>
@@ -335,7 +368,13 @@ export default function Training() {
                   ))}
                 </>
               )}
-              <button className={styles.btnNext} style={{ marginTop: 16 }} onClick={() => { setView('tracks'); loadMy(currentUser); }}>{d.back}</button>
+              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                {/* 挂科后直达对应方向×等级的培训课程（用户反馈：课程入口不好找） */}
+                {result.result === 'ai_failed' && activeTrack && (
+                  <button className={styles.btnNext} onClick={() => openPath(activeTrack, activeLevel)}>{d.goStudy}</button>
+                )}
+                <button className={styles.btnNext} style={{ opacity: 0.85 }} onClick={() => { setView('tracks'); loadMy(currentUser); }}>{d.back}</button>
+              </div>
             </div>
           )}
 

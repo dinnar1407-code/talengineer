@@ -54,4 +54,33 @@ function summarizeGrading(perQuestionScores) {
   return { score, passed: score >= PASS_SCORE };
 }
 
-module.exports = { canStartExam, isExpired, summarizeGrading };
+/**
+ * 混合题型判分合并：选择题服务端按答案键判（100/0，零 AI 成本零误判），
+ * 开放题（scenario/analysis，含无 type 的旧卷）按出现顺序消费 AI 的评分结果。
+ *
+ * @param {Array} questions - 完整考卷（选择题含 answer_index/explanation）
+ * @param {Array} answers - [{a}]，选择题 a 为选项下标，开放题 a 为文本
+ * @param {Array} aiPerQuestion - AI 对开放题（按出现顺序）的 [{score, feedback}]
+ * @returns {Array<{score, feedback}>} 与 questions 等长、顺序一致
+ */
+function mergeGrading(questions, answers, aiPerQuestion) {
+  let aiCursor = 0;
+  return (questions || []).map((q, i) => {
+    if (q && q.type === 'choice') {
+      // 空串/缺失必须判未作答：Number('') === 0 会被误认为"选了 A"
+      const raw = answers?.[i]?.a;
+      const picked = raw === '' || raw == null ? NaN : Number(raw);
+      const correct = Number.isInteger(picked) && picked === q.answer_index;
+      const letter = String.fromCharCode(65 + (q.answer_index ?? 0));
+      return {
+        score: correct ? 100 : 0,
+        feedback: `${correct ? '✅' : `❌ → ${letter}`}${q.explanation ? ` ${q.explanation}` : ''}`,
+      };
+    }
+    // 开放题：AI 结果缺失时按 0 分（fail-closed），不默认给分
+    const g = (aiPerQuestion || [])[aiCursor++] || { score: 0, feedback: 'Not graded.' };
+    return { score: Number(g.score) || 0, feedback: g.feedback || '' };
+  });
+}
+
+module.exports = { canStartExam, isExpired, summarizeGrading, mergeGrading };

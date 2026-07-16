@@ -111,37 +111,54 @@ Output a JSON response exactly in this format (no markdown blocks, just raw JSON
     }
 }
 
-// ── 培训认证：按方向×等级生成整卷考题 ─────────────────────────────────────────
-// 与上面的单题筛选（generateTechQuestion）不同：这是发证考核，出题失败必须 throw
+// ── 培训认证：按方向×等级生成整卷考题（三题型混合）───────────────────────────
+// mix = {choice, scenario, analysis}：选择题（4 选 1 带答案键与解析，服务端判分）、
+// 场景短答题、深度分析题（后两类 AI 评分）。发证考核，出题失败必须 throw
 // （fail-closed：考不成就不开考，绝不能用兜底题目发证书）。
-async function generateExamQuestions(trackName, level, count, lang) {
-    const langInstruction = lang === 'zh' ? 'Output all questions entirely in Chinese.'
-        : lang === 'es' ? 'Output all questions entirely in Spanish.'
-        : 'Output all questions entirely in English.';
+async function generateExamQuestions(trackName, level, mix, lang) {
+    const langInstruction = lang === 'zh' ? 'Output all questions, options and explanations entirely in Chinese.'
+        : lang === 'es' ? 'Output all questions, options and explanations entirely in Spanish.'
+        : 'Output all questions, options and explanations entirely in English.';
     const levelDesc = level === 1 ? 'entry level (fundamentals, safety basics, common tooling)'
         : level === 2 ? 'intermediate level (independent commissioning, troubleshooting, integration)'
         : 'advanced level (architecture decisions, complex fault diagnosis, leading on-site delivery)';
+    const total = mix.choice + mix.scenario + mix.analysis;
 
     const prompt = `You are the certification examiner for an industrial automation engineering platform.
 Track: ${trackName}
 Certification level: L${level} — ${levelDesc}
 
-Generate exactly ${count} practical scenario questions to certify a field engineer at this level.
+Generate exactly ${total} exam questions to certify a field engineer at this level, composed of:
+1. Exactly ${mix.choice} multiple-choice questions ("type":"choice"): 4 options each, exactly one correct; include "answer_index" (0-3) and a one-sentence "explanation" of the correct answer. Distractors must be plausible field mistakes.
+2. Exactly ${mix.scenario} short-answer scenario questions ("type":"scenario"): real field situations answerable in a few sentences.
+3. Exactly ${mix.analysis} deep analysis questions ("type":"analysis"): complex multi-part problems (root-cause analysis, design trade-offs, or commissioning plans) requiring a structured written answer.
+
 Requirements:
-- Each question must test real field competence (not textbook trivia), specific to the track.
-- Questions must be answerable in writing in a few sentences each.
+- Every question must test real field competence (not textbook trivia), specific to the track.
 - Difficulty must match the certification level described above.
 ${langInstruction}
 
-Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
-{"questions": [{"q": "<question text>"}, ...]}`;
+Output EXACTLY this JSON structure (no markdown blocks, just raw JSON), choice questions first, then scenario, then analysis:
+{"questions": [{"type": "choice", "q": "...", "options": ["...","...","...","..."], "answer_index": 0, "explanation": "..."}, {"type": "scenario", "q": "..."}, {"type": "analysis", "q": "..."}]}`;
 
-    const text = await callGemini(prompt, 0.7, 2000);
+    const text = await callGemini(prompt, 0.7, 4000);
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleaned); // 解析失败直接抛给调用方（不开考）
     const questions = (parsed.questions || []).filter((it) => it && typeof it.q === 'string' && it.q.trim());
-    if (questions.length !== count) {
-        throw new Error(`Exam generation returned ${questions.length} questions, expected ${count}`);
+
+    // 逐类校验数量与选择题结构（任何缺陷都不开考）
+    const byType = { choice: 0, scenario: 0, analysis: 0 };
+    for (const it of questions) {
+        if (!['choice', 'scenario', 'analysis'].includes(it.type)) throw new Error(`Unknown question type: ${it.type}`);
+        if (it.type === 'choice') {
+            const ok = Array.isArray(it.options) && it.options.length === 4
+                && Number.isInteger(it.answer_index) && it.answer_index >= 0 && it.answer_index <= 3;
+            if (!ok) throw new Error('Malformed choice question (need 4 options + valid answer_index)');
+        }
+        byType[it.type] += 1;
+    }
+    if (byType.choice !== mix.choice || byType.scenario !== mix.scenario || byType.analysis !== mix.analysis) {
+        throw new Error(`Exam mix mismatch: got ${JSON.stringify(byType)}, expected ${JSON.stringify(mix)}`);
     }
     return questions;
 }

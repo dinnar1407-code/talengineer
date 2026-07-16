@@ -15,8 +15,14 @@ const { requireAdmin } = require('../middleware/adminAuth');
 const { generateExamQuestions, gradeExamAnswers, generateLearningPath } = require('../services/aiService');
 const { createNotification } = require('../services/notificationService');
 const { getValidCertifications } = require('../services/certService');
-const { canStartExam, isExpired, summarizeGrading } = require('../utils/examRules');
-const { QUESTIONS_PER_EXAM, EXAM_MINUTES, PASS_SCORE, RETAKE_COOLDOWN_DAYS, MAX_LEVEL } = require('../config/training');
+const { canStartExam, isExpired, summarizeGrading, mergeGrading } = require('../utils/examRules');
+const { QUESTIONS_PER_EXAM, EXAM_QUESTION_MIX, EXAM_MINUTES, PASS_SCORE, RETAKE_COOLDOWN_DAYS, MAX_LEVEL } = require('../config/training');
+
+// 下发考卷前剥掉判分信息：选择题的 answer_index/explanation 绝不能到客户端
+// （否则 F12 看网络响应就能抄答案）。完整卷面只存库，判分在服务端进行。
+function sanitizeQuestions(questions) {
+  return (questions || []).map(({ type, q, options }) => ({ type, q, ...(options ? { options } : {}) }));
+}
 
 // 通用错误返回（错误脱敏风格与其他路由一致）
 function fail(res, err, tag) {
@@ -152,8 +158,9 @@ router.post('/exam/start', requireAuth, async (req, res) => {
       return res.status(code).json({ error: msg, reason: verdict.reason });
     }
 
-    // AI 出题（fail-closed：出题失败直接 503，绝不用兜底题开考）
-    const questions = await generateExamQuestions(track.name_en, level, QUESTIONS_PER_EXAM, lang === 'zh' ? 'zh' : 'en');
+    // AI 出题（fail-closed：出题失败直接 500，绝不用兜底题开考）
+    // 三题型混合：5 选择（服务端判分）+ 3 场景短答 + 2 深度分析（AI 评分）
+    const questions = await generateExamQuestions(track.name_en, level, EXAM_QUESTION_MIX, lang === 'zh' ? 'zh' : 'en');
     const deadline = new Date(Date.now() + EXAM_MINUTES * 60 * 1000).toISOString();
 
     const { data: attempt, error: insErr } = await supabase.from('exam_attempts')
@@ -164,7 +171,7 @@ router.post('/exam/start', requireAuth, async (req, res) => {
     res.json({
       status: 'ok',
       attempt_id: attempt.id,
-      questions, // 只有题面，无参考答案
+      questions: sanitizeQuestions(questions), // 只有题面与选项，答案键/解析绝不下发
       deadline: attempt.deadline,
       minutes: EXAM_MINUTES,
       pass_score: PASS_SCORE,
@@ -200,20 +207,33 @@ router.post('/exam/:id/submit', requireAuth, async (req, res) => {
     const submittedAt = new Date().toISOString();
     const lang = req.body?.lang === 'zh' ? 'zh' : 'en';
 
-    let grading = null;
-    try {
-      grading = await gradeExamAnswers(attempt.questions, answers, lang);
-    } catch (aiErr) {
-      // fail-closed：AI 评不了 → 转 submitted 待 admin 人工阅卷，绝不默认通过
-      console.error('[training:grade] AI 评分失败，转人工复核:', aiErr.message);
-      await supabase.from('exam_attempts').update({
-        status: 'submitted', answers, submitted_at: submittedAt,
-        review_note: 'AI grading unavailable — needs manual grading.',
-      }).eq('id', attempt.id);
-      return res.json({ status: 'ok', result: 'manual_review', message: 'Answers received. Grading will be completed manually by our team.' });
+    // 混合判分：选择题服务端按答案键判（零 AI 成本零误判），
+    // 开放题（scenario/analysis，含旧格式无 type 的卷）交给 AI 评分。
+    const openItems = attempt.questions
+      .map((q, i) => ({ q, i }))
+      .filter((x) => !x.q.type || x.q.type !== 'choice');
+
+    let aiPerQuestion = [];
+    let overallFeedback = '';
+    if (openItems.length > 0) {
+      try {
+        const aiGrading = await gradeExamAnswers(openItems.map((x) => x.q), openItems.map((x) => answers[x.i]), lang);
+        aiPerQuestion = aiGrading.per_question;
+        overallFeedback = aiGrading.overall_feedback || '';
+      } catch (aiErr) {
+        // fail-closed：AI 评不了 → 转 submitted 待 admin 人工阅卷，绝不默认通过
+        console.error('[training:grade] AI 评分失败，转人工复核:', aiErr.message);
+        await supabase.from('exam_attempts').update({
+          status: 'submitted', answers, submitted_at: submittedAt,
+          review_note: 'AI grading unavailable — needs manual grading.',
+        }).eq('id', attempt.id);
+        return res.json({ status: 'ok', result: 'manual_review', message: 'Answers received. Grading will be completed manually by our team.' });
+      }
     }
 
-    const { score, passed } = summarizeGrading(grading.per_question.map((g) => g.score));
+    const perQuestion = mergeGrading(attempt.questions, answers, aiPerQuestion);
+    const grading = { per_question: perQuestion, overall_feedback: overallFeedback };
+    const { score, passed } = summarizeGrading(perQuestion.map((g) => g.score));
     const newStatus = passed ? 'ai_passed' : 'ai_failed';
     await supabase.from('exam_attempts').update({
       status: newStatus, answers, ai_grading: grading, score, submitted_at: submittedAt,
