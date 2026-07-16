@@ -2,7 +2,8 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
+const stripe = require('../config/stripe').getStripe();
 
 // ── Start Stripe Connect Express onboarding ───────────────────────────────────
 router.post('/onboard', requireAuth, async (req, res) => {

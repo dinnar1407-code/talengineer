@@ -4,7 +4,8 @@ const crypto  = require('crypto'); // 用于生成纠纷放款幂等键的随机
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { assertDemandParticipant } = require('../middleware/ownership');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
+const stripe = require('../config/stripe').getStripe();
 
 // 共享管理员口令中间件：替换原先本地的明文 !== 比较（恒时比较 + fail-closed）
 const { requireAdmin } = require('../middleware/adminAuth');

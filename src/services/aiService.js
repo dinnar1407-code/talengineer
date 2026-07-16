@@ -3,8 +3,8 @@ const apiKey = process.env.GEMINI_API_KEY;
 
 async function callGemini(prompt, temperature = 0.7, maxTokens = 800) {
     if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
-    
-    const fetch = (await import('node-fetch')).default;
+
+    // Node 18+ 已内置全局 fetch，无需 node-fetch 依赖（审计 P3：冗余依赖移除）
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
@@ -210,8 +210,8 @@ Output EXACTLY this JSON structure:
         generationConfig: { temperature: 0.1, maxOutputTokens: 300, responseMimeType: "application/json" }
     };
 
-    const fetch = (await import('node-fetch')).default;
     // CRITICAL FIX: Upgraded to gemini-2.5-pro for advanced multimodal vision tasks
+    // （Node 18+ 内置全局 fetch，node-fetch 依赖已移除）
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {

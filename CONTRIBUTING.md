@@ -1,37 +1,34 @@
-# 🌾 Contributing to Wheat Community
+# Contributing to TalEngineer
 
-Welcome! We're building the first **community-driven AI Agent discovery platform**. 
-Every open-source contribution is rewarded with **$WHC token airdrops**.
-
-## How to Earn $WHC
-
-Our Growth Flywheel rewards real value creation:
-
-1. **Submit a Product (50 WHC)**: Found an awesome AI agent or built one yourself? Submit it via the website. Once approved, you get 50 WHC points on the Leaderboard.
-2. **Write a Deep Review (30 WHC)**: Test an AI product and share a 200+ word review on our GitHub discussions or social media.
-3. **Daily Upvote (5 WHC)**: Coming soon (wallet connection required).
-4. **Code Contributions (200+ WHC)**: Open a Pull Request! We need help with:
-   - Wallet integration (Phantom/MetaMask)
-   - Product detail pages
-   - Better filtering & tags
-   - Automated Twitter bot improvements
+TalEngineer is a cross-border industrial automation engineering delivery platform
+(connecting overseas manufacturers with global industrial automation engineers).
 
 ## Getting Started (Local Dev)
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/dinnar1407-code/wheatcoin-community.git
+   git clone https://github.com/dinnar1407-code/talengineer.git
+   cd talengineer
+   npm install
    ```
-2. Install dependencies (if any) and start the local server:
+2. Copy `.env.example` to `.env` and fill in the required keys
+   (Supabase, JWT secret, Stripe test keys, Gemini API key).
+3. Start the dev server:
    ```bash
-   node server.js
+   npm run dev
    ```
-3. Open `http://localhost:3737` in your browser.
+4. Open `http://localhost:4000`.
+
+## Development Notes
+
+- Run the test suite before committing: `npm test` (zero-dependency `node:test`).
+- Build must stay green: `npm run build`.
+- Payment-related changes must be verified in **Stripe test mode** first.
+- Database migrations live in `migrations/` and are applied in version order.
+- See `CLAUDE.md` for the full project context (stack, routes, roles).
 
 ## Making a Pull Request
-1. Fork the repo and create your branch from `main`.
-2. Keep your code clean and format correctly.
-3. Submit the PR. If it gets merged, leave your Solana wallet address in the PR description to receive your $WHC bounty!
 
-## Hall of Fame
-Your contributions will be featured on our [Leaderboard](https://wheatcommunity.app/leaderboard).
+1. Create your branch from `main`.
+2. Keep changes focused; match the existing code style and comment conventions.
+3. Make sure `npm test` and `npm run build` pass, then open the PR against `main`.

@@ -6,7 +6,8 @@ const { requireAuth } = require('../middleware/auth');
 const { emailMilestoneFunded, emailMilestoneReleased, emailPaymentFailed } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
+const stripe = require('../config/stripe').getStripe();
 
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 
