@@ -28,17 +28,30 @@ function StarRating({ value, onChange, size = 24 }) {
   );
 }
 
-export default function EngineerProfile() {
+export default function EngineerProfile({ initialEngineer = null, initialCerts = null, initialReviews = null }) {
   const router = useRouter();
   const toast  = useToast();
   const [lang, setLang] = useLang();
   const { id, review: reviewParam, demand_id: demandIdParam } = router.query;
 
-  const [engineer, setEngineer]   = useState(null);
-  const [certs, setCerts]         = useState([]);
-  const [reviews, setReviews]     = useState([]);
-  const [loading, setLoading]     = useState(true);
+  // SEO 修复（审计 P2）：数据优先由 getServerSideProps 服务端注入（爬虫拿到完整 HTML），
+  // 注入失败时（props 为 null）回退到原来的客户端 fetch，页面不因 DB 抖动而 500。
+  const [engineer, setEngineer]   = useState(initialEngineer);
+  const [certs, setCerts]         = useState(initialCerts || []);
+  const [reviews, setReviews]     = useState(initialReviews || []);
+  const [loading, setLoading]     = useState(!initialEngineer);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // 客户端路由切换（/engineer/1 → /engineer/2）时 Next 会重新跑 getServerSideProps
+  // 并更新 props，这里把新 props 同步进 state。
+  useEffect(() => {
+    if (initialEngineer) {
+      setEngineer(initialEngineer);
+      setCerts(initialCerts || []);
+      setReviews(initialReviews || []);
+      setLoading(false);
+    }
+  }, [initialEngineer, initialCerts, initialReviews]);
 
   // Cert form
   const [showCertForm, setShowCertForm] = useState(false);
@@ -58,7 +71,8 @@ export default function EngineerProfile() {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    // SSR 已注入数据时跳过客户端拉取；仅在服务端注水失败时兜底
+    if (!id || initialEngineer) return;
     Promise.all([
       fetch(`/api/talent/profile/${id}`).then(r => r.json()),
       fetch(`/api/certifications/${id}`).then(r => r.json()),
@@ -69,7 +83,7 @@ export default function EngineerProfile() {
       setReviews(reviewsData.data || []);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [id]);
+  }, [id, initialEngineer]);
 
   // Auto-open review form if arrived from email link
   useEffect(() => {
@@ -393,4 +407,36 @@ export default function EngineerProfile() {
       </div>
     </>
   );
+}
+
+// ── 服务端渲染（审计 P2 SEO 修复）────────────────────────────────────────────
+// 工程师主页被 sitemap 收录，但此前数据全靠客户端 fetch，爬虫拿到的是空壳
+// （title/正文都是 loading 态）。这里在服务端拉好数据注入 props，首屏 HTML 即完整。
+// 自定义 server（nextServer.js）里 Express API 与 Next 同进程同端口，
+// 直接回环调用本机 API（Node 并发处理连接，不会自锁）。
+// 任何失败都返回 null props → 组件回退客户端 fetch，页面可用性不受 SSR 影响。
+export async function getServerSideProps({ params }) {
+  const base = process.env.INTERNAL_API_BASE || `http://127.0.0.1:${process.env.PORT || 4000}`;
+  const fetchJson = async (path) => {
+    const r = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error(`${path} -> ${r.status}`);
+    return r.json();
+  };
+  try {
+    const [eng, certsData, reviewsData] = await Promise.all([
+      fetchJson(`/api/talent/profile/${encodeURIComponent(params.id)}`),
+      fetchJson(`/api/certifications/${encodeURIComponent(params.id)}`),
+      fetchJson(`/api/reviews/engineer/${encodeURIComponent(params.id)}`),
+    ]);
+    return {
+      props: {
+        initialEngineer: eng.data || null,
+        initialCerts: certsData.data || [],
+        initialReviews: reviewsData.data || [],
+      },
+    };
+  } catch {
+    // SSR 失败不阻塞页面：回退客户端渲染（与旧行为一致）
+    return { props: { initialEngineer: null, initialCerts: null, initialReviews: null } };
+  }
 }

@@ -198,7 +198,14 @@ router.get('/:id', async (req, res) => {
     if (error || !demand) return res.status(404).json({ error: 'Project not found' });
 
     // Fire-and-forget view count increment
-    supabase.from('demands').update({ view_count: (demand.view_count || 0) + 1 }).eq('id', req.params.id).then(() => {}).catch(() => {});
+    // 原子自增（审计 P3 修复）：旧写法是"读后写"（拿 demand.view_count 加 1 再 update），
+    // 并发访问互相覆盖丢计数；改用 migration 014 的 SQL 函数在行锁内单条 UPDATE 完成。
+    // 兜底：若目标库尚未应用 014（函数不存在报错），退回旧写法——宁可偶发丢计数也不丢功能。
+    supabase.rpc('increment_demand_view', { d_id: Number(req.params.id) }).then(({ error: rpcErr }) => {
+      if (rpcErr) {
+        supabase.from('demands').update({ view_count: (demand.view_count || 0) + 1 }).eq('id', req.params.id).then(() => {}).catch(() => {});
+      }
+    }).catch(() => {});
 
     const { data: milestones } = await supabase
       .from('project_milestones')

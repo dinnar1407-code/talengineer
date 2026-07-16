@@ -9,15 +9,17 @@ import styles from './project.module.css';
 
 const STATUS_COLOR = { open: '#10b981', in_progress: '#0056b3', completed: '#6b7280', payment_failed: '#ef4444' };
 
-export default function ProjectDetail() {
+export default function ProjectDetail({ initialProject = null }) {
   const router = useRouter();
   const toast  = useToast();
   const [lang, setLang] = useLang();
   const { id } = router.query;
 
-  const [project, setProject]       = useState(null);
+  // SEO 修复（审计 P2）：project 数据优先由 getServerSideProps 服务端注入，
+  // 失败时回退客户端 fetch（applications 需登录态，始终客户端拉取）。
+  const [project, setProject]       = useState(initialProject);
   const [applications, setApplications] = useState(null);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading]       = useState(!initialProject);
   const [currentUser, setCurrentUser] = useState(null);
   const [applying, setApplying]     = useState(false);
   const [applyMsg, setApplyMsg]     = useState('');
@@ -31,13 +33,19 @@ export default function ProjectDetail() {
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
 
+  // 客户端路由切换时同步新的 SSR props
   useEffect(() => {
-    if (!id) return;
+    if (initialProject) { setProject(initialProject); setLoading(false); }
+  }, [initialProject]);
+
+  useEffect(() => {
+    // SSR 已注入时跳过；仅服务端注水失败时兜底
+    if (!id || initialProject) return;
     fetch(`/api/demand/${id}`)
       .then(r => r.json())
       .then(d => { setProject(d.data || null); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [id]);
+  }, [id, initialProject]);
 
   useEffect(() => {
     if (!project || !currentUser || currentUser.role !== 'employer') return;
@@ -265,4 +273,19 @@ export default function ProjectDetail() {
       </div>
     </>
   );
+}
+
+// ── 服务端渲染（审计 P2 SEO 修复）────────────────────────────────────────────
+// 项目详情页被 sitemap 收录；服务端拉好公开数据注入 props，爬虫首屏即拿到
+// 完整 title/正文。失败回退客户端渲染。详细说明见 pages/engineer/[id].jsx 同款实现。
+export async function getServerSideProps({ params }) {
+  const base = process.env.INTERNAL_API_BASE || `http://127.0.0.1:${process.env.PORT || 4000}`;
+  try {
+    const r = await fetch(`${base}/api/demand/${encodeURIComponent(params.id)}`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error(`demand -> ${r.status}`);
+    const d = await r.json();
+    return { props: { initialProject: d.data || null } };
+  } catch {
+    return { props: { initialProject: null } };
+  }
 }
