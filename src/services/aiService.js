@@ -143,7 +143,7 @@ ${langInstruction}
 Output EXACTLY this JSON structure (no markdown blocks, just raw JSON), choice questions first, then scenario, then analysis:
 {"questions": [{"type": "choice", "q": "...", "options": ["...","...","...","..."], "answer_index": 0, "explanation": "..."}, {"type": "scenario", "q": "..."}, {"type": "analysis", "q": "..."}]}`;
 
-    const text = await callGemini(prompt, 0.7, 4000);
+    const text = await callGemini(prompt, 0.7, 6000); // 10 题混合（含选项+解析），中文更长，给足防截断
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleaned); // 解析失败直接抛给调用方（不开考）
     const questions = (parsed.questions || []).filter((it) => it && typeof it.q === 'string' && it.q.trim());
@@ -206,7 +206,8 @@ ${langInstruction}
 Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
 {"title": "<lesson title>", "sections": [{"heading": "<section heading>", "body": "<2-4 paragraphs of lesson text>"}, ...3-4 sections...], "key_points": ["<takeaway>", ...3-5 items...], "field_example": "<one concrete on-site example or war story, a short paragraph>"}`;
 
-    const text = await callGemini(prompt, 0.5, 4000);
+    // 课文是长文本（3-4 节正文 + 要点 + 案例），中文 token 消耗更大——给足 8000 防截断
+    const text = await callGemini(prompt, 0.5, 8000);
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
@@ -266,7 +267,7 @@ ${langInstruction}
 Output EXACTLY this JSON structure (no markdown blocks, just raw JSON):
 {"per_question": [{"score": <0-100>, "feedback": "<one short sentence>"}, ...], "overall_feedback": "<two sentences summarizing strengths and gaps>"}`;
 
-    const text = await callGemini(prompt, 0.1, 2000);
+    const text = await callGemini(prompt, 0.1, 4000); // 逐题反馈（5 道开放题），中文更长，给足防截断
     const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleaned); // 解析失败抛给调用方转人工复核
     if (!Array.isArray(parsed.per_question) || parsed.per_question.length !== questions.length) {
