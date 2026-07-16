@@ -25,14 +25,31 @@ const registerSchema = z.object({
   engRegion: z.string().optional(),
   engLevel: z.string().optional(),
   engPricingModel: z.enum(['hourly', 'milestone']).optional(),
-  // AI 技术筛选得分（注册向导里 screen_verify 算出后随注册一起提交）。
-  // z.coerce.number 强制转数字并 clamp 0-100，防前端传非法/超界值。
-  // 安全说明：当前信任前端回传分数（仅影响撮合排名，不涉资金/权限）；
-  // 后续可硬化为"screen_verify 下发签名分数 token、注册校验后落库"以防自抬排名。
-  // 越界/非法的 verified_score 不应阻断整个注册：.catch(undefined) 让校验失败时退回 undefined，
-  // 注册插入处按 0 处理。既挡住篡改（传 999 不会变成高分），又不会因为偶发越界值卡死注册。
-  verified_score: z.coerce.number().int().min(0).max(100).optional().catch(undefined),
+  // AI 技术筛选分数凭证（落地第二步硬化，替代此前的 verified_score 自报字段）。
+  // screen_verify 打分后由服务端签名下发 score_token（30 分钟有效），注册时原样转交；
+  // 分数从 token 里解出并校验签名，前端改不了——堵住"自报 100 分刷撮合排名"的洞。
+  // token 缺失/无效/过期都不阻断注册，只是分数按 0 落库（可稍后重新筛选提分）。
+  // 兼容说明：旧客户端若仍传 verified_score，zod 会静默丢弃未知字段，注册不受影响。
+  score_token: z.string().optional(),
 });
+
+/**
+ * 从签名的 score_token 中解出 AI 筛选分。
+ * 校验：签名有效（同 JWT_SECRET）+ purpose 必须是 'screen_score'（防拿登录 JWT 冒充）。
+ * 任何异常（缺失/伪造/过期/载荷不对）都返回 0——注册永不因分数凭证问题被卡死。
+ */
+function scoreFromToken(scoreToken) {
+  if (!scoreToken) return 0;
+  try {
+    const decoded = jwt.verify(scoreToken, JWT_SECRET);
+    if (decoded.purpose !== 'screen_score') return 0;
+    const score = Number(decoded.score);
+    if (!Number.isInteger(score) || score < 0 || score > 100) return 0;
+    return score;
+  } catch {
+    return 0;
+  }
+}
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -49,7 +66,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
-    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, verified_score } = parsed.data;
+    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, score_token } = parsed.data;
     const supabase = getClient();
 
     // Hash password with bcrypt (salted)
@@ -81,8 +98,9 @@ router.post('/register', async (req, res) => {
           rate: engRate || 'Open',
           pricing_model: engPricingModel || 'hourly',
           level: engLevel || 'Mid',
-          // 持久化注册时的 AI 筛选得分（之前硬编码为 0，导致筛选白做、撮合排名失去质量信号）
-          verified_score: verified_score ?? 0,
+          // 持久化注册时的 AI 筛选得分：从服务端签名的 score_token 解出（防自报刷分），
+          // 凭证缺失/无效按 0 落库（之前硬编码为 0 导致筛选白做，后改为信任自报，现硬化为签名凭证）
+          verified_score: scoreFromToken(score_token),
           bio: engBio || '',
           contact: email,
         }]);
@@ -278,3 +296,4 @@ module.exports = router;
 // 这样单元测试可直接拿到 Zod schema 做校验测试，无需启动整个 Express/数据库。
 module.exports.registerSchema = registerSchema;
 module.exports.loginSchema = loginSchema;
+module.exports.scoreFromToken = scoreFromToken;

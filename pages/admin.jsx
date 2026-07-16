@@ -426,6 +426,27 @@ export default function Admin() {
                     </div>
                   ))}
                 </div>
+                {/* PMF 验证指标（设计文档"七、如何验证"：复购/纠纷率/口碑/筛选分覆盖） */}
+                {funnel.pmf && (
+                  <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 24 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>PMF Signals（路径 A 判定指标）</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>核心判据：雇主复购 + 低纠纷 + 高口碑 → 精英策展成立，可进阶段二</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                      {[
+                        { label: 'Repeat Employers（复购雇主）', value: `${funnel.pmf.repeat_employers} / ${funnel.pmf.unique_employers}` },
+                        { label: 'Repeat Rate（复购率）', value: `${funnel.pmf.repeat_rate_pct}%` },
+                        { label: 'Dispute Rate（纠纷率）', value: `${funnel.pmf.dispute_rate_pct}%（${funnel.pmf.disputes_total} 起）` },
+                        { label: 'Avg Rating（平均评分）', value: funnel.pmf.avg_rating != null ? `⭐ ${funnel.pmf.avg_rating}（${funnel.pmf.reviews_total} 条）` : '暂无评价' },
+                        { label: 'Scored Talents（筛选分覆盖）', value: `${funnel.pmf.talents_scored} / ${funnel.pmf.talents_total}` },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ background: 'var(--primary-bg, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 20, fontWeight: 800 }}>{stat.value}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
                   <div style={{ fontWeight: 700, marginBottom: 10 }}>Conversion Funnel</div>
                   {[

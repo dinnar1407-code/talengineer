@@ -2,6 +2,7 @@ const { getClient } = require('../config/db');
 const { generateMatchEmail } = require('./aiService');
 const { sendOutreachEmail } = require('../config/email');
 const { createNotification } = require('./notificationService');
+const { MIN_POOL_VERIFIED_SCORE } = require('../config/matching'); // 入网门槛开关（默认 0=关闭）
 
 // ── Keyword scorer ────────────────────────────────────────────────────────────
 const STOP_WORDS = new Set(['the','and','or','in','at','to','for','of','a','an',
@@ -106,10 +107,16 @@ async function runMatchmaker(demandId) {
       : 'US';
 
     // 4. Fetch candidates from region, score by keyword overlap, take top 5
-    const { data: candidates, error: talentErr } = await supabase
+    // 入网硬门槛（落地第一步 #3，env 开关）：阈值 >0 时只让筛选达标的工程师进推荐池。
+    // 默认 0 = 关闭（老工程师历史分未补齐前开门槛会清空池子）。详见 src/config/matching.js。
+    let candidateQuery = supabase
       .from('talents')
       .select('*')
-      .ilike('region', `%${regionHint}%`)
+      .ilike('region', `%${regionHint}%`);
+    if (MIN_POOL_VERIFIED_SCORE > 0) {
+      candidateQuery = candidateQuery.gte('verified_score', MIN_POOL_VERIFIED_SCORE);
+    }
+    const { data: candidates, error: talentErr } = await candidateQuery
       .order('verified_score', { ascending: false })
       .limit(30); // fetch wider pool for scoring
 

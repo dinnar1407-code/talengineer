@@ -320,7 +320,8 @@ export default function Talent() {
       }
       toast.success(`Tech Screen Passed! Score: ${vData.score} — ${vData.feedback}`);
 
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', verified_score: vData.score, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio }) });
+      // 分数改为凭服务端签名的 score_token 落库（防抓包自报高分），不再直接回传 verified_score
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', score_token: vData.score_token, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio }) });
       const result = await res.json();
       if (res.ok) {
         toast.success('Profile published! Nexus Verified score added.');

@@ -1,8 +1,16 @@
 const express = require('express');
 const router  = express.Router();
+const jwt = require('jsonwebtoken');
 const { getClient } = require('../config/db');
 const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
 const { clampPagination } = require('../utils/pagination'); // 分页钳制逻辑抽成可测的纯函数
+
+// 签名分数 token 用的密钥：与登录 JWT 同一密钥（部署上已存在，无需新增配置）。
+// 用途见下方 /screen_verify：把 AI 筛选分签名后发给前端，注册时凭 token 落库，
+// 防止"前端自报 verified_score=100"刷撮合排名。
+const JWT_SECRET = process.env.JWT_SECRET;
+// token 有效期：够走完"答题→填表→提交注册"的向导流程即可，过期需重新筛选。
+const SCORE_TOKEN_TTL = '30m';
 
 // ── 公开接口字段白名单（PII 脱敏）────────────────────────────────────────────────
 // 公开的工程师列表/档案接口任何人都能访问，绝不能 select('*') 把整行返回出去：
@@ -51,6 +59,16 @@ router.post('/screen_verify', async (req, res) => {
   try {
     const { question, answer, lang } = req.body;
     const result = await gradeTechAnswer(question, answer, lang);
+
+    // 落地第二步（撮合模型硬化）：给 AI 打出的分数签名，注册时凭 token 落库。
+    // 此前注册接口直接信任前端自报的 verified_score，任何人都能抓包改成 100 分刷
+    // 撮合排名；现在分数由服务端签名（同 JWT_SECRET），前端只能原样转交，改不了。
+    // purpose 字段防止拿登录 JWT 之类的其他 token 冒充分数凭证。
+    if (typeof result.score === 'number' && JWT_SECRET) {
+      const score = Math.max(0, Math.min(100, Math.round(result.score)));
+      result.score_token = jwt.sign({ score, purpose: 'screen_score' }, JWT_SECRET, { expiresIn: SCORE_TOKEN_TTL });
+    }
+
     res.json(result);
   } catch (err) {
     // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
@@ -194,8 +212,20 @@ router.get('/profile/:id', async (req, res) => {
 });
 
 // ── Rate benchmarks (public) ──────────────────────────────────────────────────
+// 进程内 TTL 缓存（审计 P2 修复）：这是公开端点，此前每次请求都全表拉 talents
+// 并在 Node 内存聚合——被刷时数据库跟着挨打。费率基准本质是慢变统计数据，
+// 5 分钟缓存足够新鲜；缓存只存最终聚合结果（几 KB），不存原始行。
+// 注意：Railway 单实例部署，进程内缓存即可；将来多实例时各实例独立缓存也无一致性问题（只读统计）。
+const BENCHMARK_CACHE_TTL_MS = 5 * 60 * 1000;
+let benchmarkCache = null;        // { payload, expiresAt }
+
 router.get('/rate-benchmarks', async (req, res) => {
   try {
+    // 命中未过期缓存：直接返回，不碰数据库
+    if (benchmarkCache && benchmarkCache.expiresAt > Date.now()) {
+      return res.json(benchmarkCache.payload);
+    }
+
     const supabase = getClient();
     const { data, error } = await supabase
       .from('talents')
@@ -228,7 +258,9 @@ router.get('/rate-benchmarks', async (req, res) => {
       return { region, count: rates.length, avg: Math.round(avg), median: Math.round(median), min: rates[0], max: rates[rates.length - 1], top_skills };
     }).sort((a, b) => b.count - a.count);
 
-    res.json({ status: 'ok', data: summary, skills: [...allSkills].sort() });
+    const payload = { status: 'ok', data: summary, skills: [...allSkills].sort() };
+    benchmarkCache = { payload, expiresAt: Date.now() + BENCHMARK_CACHE_TTL_MS };
+    res.json(payload);
   } catch (err) {
     // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节
     console.error('[talent]', err);
