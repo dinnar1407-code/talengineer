@@ -10,6 +10,11 @@
 :root {
   color-scheme: light;
 
+  /* 品牌字体族（全站统一）：Archivo 标题、IBM Plex Sans 正文、IBM Plex Mono 数字，均带 CJK/系统回退 */
+  --font-head: "Archivo", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
   /* 语义 token —— 浅色 */
   --bg: #f8f9fa;          /* 页面背景 */
   --surface: #ffffff;     /* 卡片 / 面板 / 导航条 */
@@ -63,7 +68,7 @@
 * { box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   margin: 0;
   padding: 0;
   background-color: var(--bg);
@@ -73,3 +78,7 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+
+/* 全站标题统一用 Archivo（落地页/控制台已各自指定；此处让其余页面的标题也一致）。
+   仅设 font-family，不动各页已有的字号/字重/间距。*/
+h1, h2, h3, h4 { font-family: var(--font-head); }

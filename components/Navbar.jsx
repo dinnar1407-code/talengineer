@@ -327,7 +327,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
                     {ROLE_LABEL[user.role] || user.role}
                   </span>
                 </div>
-                <Link href="/finance" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
+                <Link href="/console" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
                   📊 {d.dashboard}
                 </Link>
                 {user.role === 'engineer' && (
@@ -435,7 +435,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       {/* 登录用户：控制台快捷入口 */}
       {user && (
         <Link
-          href="/finance"
+          href="/console"
           className={styles.mobileNavLink}
           onClick={() => setMobileMenuOpen(false)}
         >

@@ -10,6 +10,13 @@ export default function Document() {
     <Html lang="en" suppressHydrationWarning>
       <Head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        {/* 品牌字体全站可用：Archivo（标题/字标）、IBM Plex Sans（正文）、IBM Plex Mono（数字）*/}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0056b3" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
