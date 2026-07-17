@@ -1,5 +1,8 @@
-.header { background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:50; }
+/* sticky top 从 0 改 64px：顶部加了全站 Navbar（sticky 64px 高 z-200），工单栏叠在其下方而非被盖住 */
+.header { background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:64px; z-index:50; }
 .logo { font-size:18px; font-weight:800; }
+.backBtn { background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.35); border-radius:8px; padding:4px 12px; font-size:15px; cursor:pointer; }
+.backBtn:hover { background:rgba(255,255,255,0.28); }
 .statusChip { font-size:12px; background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:20px; font-weight:600; }
 
 .wrap { max-width:480px; margin:0 auto; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }

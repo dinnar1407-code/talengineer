@@ -111,7 +111,9 @@ export default function MyProfile() {
     if (!stored) { router.push('/finance'); return; }
     let user;
     try { user = JSON.parse(stored); } catch { router.push('/finance'); return; }
-    if (!user || user.role !== 'engineer') { router.push('/finance'); return; }
+    // engineer 与 admin 均可进入：超级账户需要能访问所有页面（admin 无档案时保存会自愈创建 talent 行）。
+    // 此前非 engineer 一律静默弹回 /finance，导致 admin 从控制台点"Profile Editor"看似链接错误。
+    if (!user || (user.role !== 'engineer' && user.role !== 'admin')) { router.push('/finance'); return; }
     setCurrentUser(user);
 
     (async () => {

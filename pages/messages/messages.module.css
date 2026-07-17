@@ -1,7 +1,8 @@
 .layout {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /* 顶部加了全站 Navbar（64px），聊天区高度相应扣除，否则输入框被顶出视口 */
+  height: calc(100dvh - 64px);
   background: var(--secondary, #f8f9fa);
 }
 

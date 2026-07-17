@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import Navbar from '../../components/Navbar';
 import styles from './dispute.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -77,8 +78,10 @@ export default function DisputePage() {
         <title>Dispute #{id} | Talengineer</title>
       </Head>
 
+      {/* 全站共享导航（菜单/语言/主题切换）；原自带 logo 与 Navbar 重复，仅保留返回链接条 */}
+      <Navbar />
+
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}><img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer</Link>
         <Link href="/finance" className={styles.backLink}>← Back to Dashboard</Link>
       </header>
 

@@ -254,3 +254,34 @@
   .topSub { display: none; }
   .ctaBtn { padding: 8px 12px; }
 }
+
+/* ══════ 加载 / 空态 / 错误态（真实 API 绑定后，新用户或请求失败时展示）══════ */
+.stateBox { text-align: center; padding: 44px 24px; color: var(--text-muted); font-size: 14px; }
+.stateIcon { font-size: 38px; margin-bottom: 12px; }
+.stateBox b { display: block; color: var(--text); font-size: 16px; margin-bottom: 6px; }
+.stateCta { display: inline-block; margin-top: 14px; background: var(--primary); color: var(--primary-ink); padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; border: none; cursor: pointer; }
+.stateCtaGhost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.threadEmpty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; padding: 24px; text-align: center; }
+.certRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.certRow:last-child { border-bottom: none; }
+.certTrack { font-size: 13.5px; color: var(--text); font-weight: 600; }
+.certLevel { font-size: 11px; font-weight: 700; color: var(--success); background: rgba(16,185,129,.12); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+
+/* ══════ 反馈修复：普通用户静态角色标签 / 里程碑"待审批"徽标 / 通知铃铛下拉面板 ══════ */
+.roleStatic { font-size: 13px; font-weight: 600; color: var(--primary); background: var(--surface-2); border-radius: 9px; padding: 8px 12px; text-align: center; }
+.awaitingBadge { font-size: 11px; font-weight: 700; color: var(--accent); background: rgba(245,179,1,.14); border-radius: 6px; padding: 5px 11px; display: inline-block; }
+
+.notifWrap { position: relative; display: flex; }
+.notifBackdrop { position: fixed; inset: 0; z-index: 30; }
+.notifPanel { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 40; overflow: hidden; }
+.notifHead { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.notifHead b { font-size: 14px; color: var(--text); }
+.markAllBtn { font-size: 12px; font-weight: 600; color: var(--primary); background: none; border: none; cursor: pointer; }
+.notifScroll { max-height: 380px; overflow-y: auto; }
+.notifItem { display: block; width: 100%; text-align: left; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 12px 16px; cursor: pointer; font-family: inherit; }
+.notifItem:last-child { border-bottom: none; }
+.notifItem:hover { background: var(--surface-2); }
+.notifUnreadItem { background: rgba(0,86,179,.05); }
+.notifItemTitle { font-size: 13px; font-weight: 600; color: var(--text); }
+.notifItemBody { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notifItemTime { font-size: 11px; color: var(--text-muted); margin-top: 4px; }

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import Navbar from '../../components/Navbar';
 import styles from './messages.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -138,6 +139,9 @@ export default function MessageThread() {
         <title>{demand?.title ? `${demand.title} — Messages` : 'Messages'} | Talengineer</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
+
+      {/* 全站共享导航（菜单/语言/主题切换）；聊天区高度已在 CSS 里扣除 Navbar 的 64px */}
+      <Navbar />
 
       <div className={styles.layout}>
         {/* Header */}

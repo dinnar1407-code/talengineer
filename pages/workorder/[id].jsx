@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import Navbar from '../../components/Navbar';
 import styles from './workorder.module.css';
 
 const STATUS_LABEL = { checked_in: '🟡 Checked In', completed: '🔵 Awaiting Approval', approved: '✅ Approved & Paid' };
@@ -115,7 +116,10 @@ export default function WorkOrder() {
   }
 
   if (loading) return (
-    <div className={styles.wrap}><div className={styles.spinner} /><p>Loading work order…</p></div>
+    <>
+      <Navbar />
+      <div className={styles.wrap}><div className={styles.spinner} /><p>Loading work order…</p></div>
+    </>
   );
 
   const ms = data?.milestone;
@@ -130,7 +134,12 @@ export default function WorkOrder() {
         <meta name="theme-color" content="#0056b3" />
       </Head>
 
+      {/* 全站共享导航（菜单/语言/主题切换） */}
+      <Navbar />
+
       <div className={styles.header}>
+        {/* 回退上一页：工单页多从项目/控制台深链进入，返回优先走历史栈，无历史则回控制台 */}
+        <button type="button" className={styles.backBtn} onClick={() => (window.history.length > 1 ? router.back() : router.push('/console'))}>←</button>
         <div className={styles.logo}><img src="/img/logo-macaw.svg" alt="" width={26} height={26} style={{ verticalAlign: "middle" }} /> TalEngineer</div>
         {checkin && <div className={styles.statusChip}>{STATUS_LABEL[checkin.status] || checkin.status}</div>}
       </div>

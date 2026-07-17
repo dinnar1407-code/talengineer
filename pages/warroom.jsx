@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Navbar from '../components/Navbar';
 import styles from './warroom.module.css';
 import { useLang } from '../hooks/useLang';
 
@@ -297,8 +298,10 @@ export default function WarRoom() {
         </div>
       )}
 
+      {/* 全站共享导航（菜单/语言/主题切换）；战情室自带 header 保留品牌副标题，去掉重复 logo */}
+      <Navbar />
+
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}><img src="/img/logo-macaw.svg" alt="TalEngineer" width={28} height={28} /> Talengineer</Link>
         <div className={styles.headerSub}>{d.headerSub}</div>
       </header>
 
