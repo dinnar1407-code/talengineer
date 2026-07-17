@@ -58,19 +58,25 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
-// General API: 100 requests / 15 min per IP
+// General API: 600 requests / 15 min per IP
+// 原 100/15min 在控制台接真实数据后严重误伤：/console 每屏并发打 ~8 个 API，
+// 正常浏览十几分钟就会超限，之后该 IP 的所有请求（含登录、admin 口令验证）全部 429，
+// 表现为"密码无效/登录失效"。600 对单人正常使用绰绰有余，对脚本扫描仍是强约束。
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
 });
 
-// Auth endpoints: stricter — 10 requests / 15 min per IP
+// Auth endpoints: 30 次失败 / 15 min per IP
+// skipSuccessfulRequests: 只统计失败请求——正常登录成功不消耗额度（多账号测试不再被锁），
+// 暴力破解（连续失败）依旧 30 次即封 15 分钟，防护强度不降。
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
