@@ -83,4 +83,20 @@ function mergeGrading(questions, answers, aiPerQuestion) {
   });
 }
 
-module.exports = { canStartExam, isExpired, summarizeGrading, mergeGrading };
+/**
+ * 决定这次开考从题库池取题还是新生成一套。
+ * 池子未满 → 生成新套（并入库补池）；已满 → 随机复用池中一套（零新增 token）。
+ *
+ * @param {number} bankSize - 当前该 方向×等级×语言 池子里已有套数
+ * @param {number} targetSize - 目标容量（EXAM_BANK_SIZE）
+ * @param {number} rnd - 0..1 随机数（注入便于测试）
+ * @returns {{generate: boolean, index: number|null}}
+ *   generate=true 生成新套；否则复用 index 指向的那套（0..bankSize-1）
+ */
+function selectBankSlot(bankSize, targetSize, rnd) {
+  if (bankSize < targetSize) return { generate: true, index: null };
+  // rnd 理论上 <1，Math.min 兜住 rnd===1 的极端，保证 index 不越界
+  return { generate: false, index: Math.min(bankSize - 1, Math.floor(rnd * bankSize)) };
+}
+
+module.exports = { canStartExam, isExpired, summarizeGrading, mergeGrading, selectBankSlot };

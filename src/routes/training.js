@@ -16,8 +16,8 @@ const { generateExamQuestions, gradeExamAnswers, generateLearningPath, generateL
 const { summarizeStudy, SESSION_CAP_SECONDS } = require('../utils/studyStats');
 const { createNotification } = require('../services/notificationService');
 const { getValidCertifications } = require('../services/certService');
-const { canStartExam, isExpired, summarizeGrading, mergeGrading } = require('../utils/examRules');
-const { QUESTIONS_PER_EXAM, EXAM_QUESTION_MIX, EXAM_MINUTES, PASS_SCORE, RETAKE_COOLDOWN_DAYS, MAX_LEVEL } = require('../config/training');
+const { canStartExam, isExpired, summarizeGrading, mergeGrading, selectBankSlot } = require('../utils/examRules');
+const { QUESTIONS_PER_EXAM, EXAM_QUESTION_MIX, EXAM_MINUTES, PASS_SCORE, RETAKE_COOLDOWN_DAYS, MAX_LEVEL, EXAM_BANK_SIZE } = require('../config/training');
 
 // 下发考卷前剥掉判分信息：选择题的 answer_index/explanation 绝不能到客户端
 // （否则 F12 看网络响应就能抄答案）。完整卷面只存库，判分在服务端进行。
@@ -349,9 +349,32 @@ router.post('/exam/start', requireAuth, async (req, res) => {
       return res.status(code).json({ error: msg, reason: verdict.reason });
     }
 
-    // AI 出题（fail-closed：出题失败直接 500，绝不用兜底题开考）
-    // 三题型混合：5 选择（服务端判分）+ 3 场景短答 + 2 深度分析（AI 评分）
-    const questions = await generateExamQuestions(track.name_en, level, EXAM_QUESTION_MIX, lang === 'zh' ? 'zh' : 'en');
+    // 题库池取题：池满则随机复用一套（零新增 token），未满则生成一套补池并使用。
+    // 三题型混合：5 选择（服务端判分）+ 3 场景短答 + 2 深度分析（AI 评分）。
+    // 出题失败仍 fail-closed（不用兜底题开考）。
+    const examLang = lang === 'zh' ? 'zh' : 'en';
+    const { data: bankRows } = await supabase.from('exam_question_bank')
+      .select('id').eq('track_id', track.id).eq('level', level).eq('lang', examLang);
+    const slot = selectBankSlot((bankRows || []).length, EXAM_BANK_SIZE, Math.random());
+
+    let questions;
+    if (slot.generate) {
+      questions = await generateExamQuestions(track.name_en, level, EXAM_QUESTION_MIX, examLang);
+      // 入池补库（失败不阻断开考：本次已拿到题，池子下次再补）
+      await supabase.from('exam_question_bank')
+        .insert([{ track_id: track.id, level, lang: examLang, questions }])
+        .then(() => {}).catch(() => {});
+    } else {
+      const chosenId = bankRows[slot.index].id;
+      const { data: chosen, error: bankErr } = await supabase.from('exam_question_bank')
+        .select('questions').eq('id', chosenId).single();
+      if (bankErr || !chosen) {
+        // 极端情况下抽中的套读取失败：退回实时生成，绝不让考生卡住
+        questions = await generateExamQuestions(track.name_en, level, EXAM_QUESTION_MIX, examLang);
+      } else {
+        questions = chosen.questions;
+      }
+    }
     const deadline = new Date(Date.now() + EXAM_MINUTES * 60 * 1000).toISOString();
 
     const { data: attempt, error: insErr } = await supabase.from('exam_attempts')

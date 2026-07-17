@@ -19,4 +19,7 @@ module.exports = {
   RETAKE_COOLDOWN_DAYS: 7,
   // 等级递进：L1 对所有人开放；考 L(n) 须已持有同方向 L(n-1) 有效认证
   MAX_LEVEL: 3,
+  // 题库池目标容量（每 方向×等级×语言 存这么多套）：未满则开考时边生成边补池，
+  // 满了之后开考纯随机复用、零新增 token。池子越大越难背题。
+  EXAM_BANK_SIZE: 20,
 };

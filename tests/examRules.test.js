@@ -5,7 +5,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { canStartExam, isExpired, summarizeGrading, mergeGrading } = require('../src/utils/examRules');
+const { canStartExam, isExpired, summarizeGrading, mergeGrading, selectBankSlot } = require('../src/utils/examRules');
 const { PASS_SCORE, RETAKE_COOLDOWN_DAYS } = require('../src/config/training');
 
 const NOW = new Date('2026-07-16T12:00:00Z');
@@ -110,5 +110,29 @@ describe('mergeGrading（混合题型判分合并）', () => {
     const r = mergeGrading(legacy, [{ a: 'x' }, { a: 'y' }], [{ score: 70, feedback: 'ok' }]);
     assert.equal(r[0].score, 70);
     assert.equal(r[1].score, 0); // AI 只回了 1 个结果，第 2 题不给分
+  });
+});
+
+describe('selectBankSlot（题库池取题决策）', () => {
+  it('池子未满：生成新套补池', () => {
+    assert.deepEqual(selectBankSlot(0, 20, 0.5), { generate: true, index: null });
+    assert.deepEqual(selectBankSlot(19, 20, 0.5), { generate: true, index: null });
+  });
+
+  it('池子已满：随机复用，index 落在 [0, bankSize)', () => {
+    assert.equal(selectBankSlot(20, 20, 0).generate, false);
+    assert.equal(selectBankSlot(20, 20, 0).index, 0);
+    assert.equal(selectBankSlot(20, 20, 0.5).index, 10);
+    assert.equal(selectBankSlot(20, 20, 0.999).index, 19);
+  });
+
+  it('rnd 极端值（=1）不越界', () => {
+    assert.equal(selectBankSlot(20, 20, 1).index, 19);
+  });
+
+  it('池子超过目标（并发多插了几套）：仍复用且不越界', () => {
+    const r = selectBankSlot(22, 20, 0.999);
+    assert.equal(r.generate, false);
+    assert.ok(r.index >= 0 && r.index < 22);
   });
 });
