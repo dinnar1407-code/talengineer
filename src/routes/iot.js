@@ -1,18 +1,31 @@
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
+// 复用企业 API Key 守卫（Bearer TE_xxx，SHA-256 哈希比对 api_keys 表）。
+// 此路由原先完全无鉴权——任何人都能向任意项目注入伪造的"硬件故障"消息并经 socket 广播，
+// 现在要求持有效 API Key，且 Key 属主必须是该项目的雇主（边缘盒子部署在雇主产线上）。
+const { requireApiKey } = require('./apikeys');
 
-router.post('/machine-alert', async (req, res) => {
+router.post('/machine-alert', requireApiKey, async (req, res) => {
     try {
         const { machine_id, project_id, fault_code, fault_description, timestamp, metadata } = req.body;
-        
+
         if (!machine_id || !project_id || !fault_code) {
             return res.status(400).json({ error: "Missing required IoT telemetry fields: machine_id, project_id, fault_code" });
         }
 
-        console.log(`\n🚨 [Nexus Edge IoT] CRITICAL ALERT RECEIVED FROM MACHINE [${machine_id}]`);
-
         const supabase = getClient();
+
+        // 归属校验：API Key 属主必须是该 project(demand) 的雇主，防止合法 Key 向他人项目注入告警
+        const { data: demand } = await supabase
+            .from('demands')
+            .select('employer_id')
+            .eq('id', project_id)
+            .single();
+        if (!demand) return res.status(404).json({ error: 'Project not found' });
+        if (demand.employer_id !== req.apiKeyUserId) return res.status(403).json({ error: 'Forbidden: API key does not belong to this project\'s employer.' });
+
+        console.log(`\n🚨 [Nexus Edge IoT] CRITICAL ALERT RECEIVED FROM MACHINE [${machine_id}]`);
 
         let severity = 'WARNING';
         let actionRequired = 'Monitor';

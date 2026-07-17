@@ -16,6 +16,32 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
     }
 
+    // ── 交易关系校验（原路由只挡同需求重复，任意登录用户可给任意工程师刷评价）──
+    // 三道门：1) 评价者必须是该 demand 的雇主本人；2) 被评工程师必须是该 demand
+    // 实际指派的工程师；3) 该 demand 必须真实成交过（至少一个里程碑已放款/已退款，
+    // refunded 也算交易结束——雇主赢了纠纷同样有资格留差评）。
+    const { data: demand } = await supabase
+      .from('demands')
+      .select('employer_id, assigned_engineer_id')
+      .eq('id', demand_id)
+      .single();
+    if (!demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Only the employer of this project can leave a review.' });
+    }
+    if (String(demand.assigned_engineer_id) !== String(engineer_id)) {
+      return res.status(400).json({ error: 'You can only review the engineer assigned to this project.' });
+    }
+    const { data: settled } = await supabase
+      .from('project_milestones')
+      .select('id')
+      .eq('demand_id', demand_id)
+      .in('status', ['released', 'refunded'])
+      .limit(1);
+    if (!settled || settled.length === 0) {
+      return res.status(400).json({ error: 'You can review once a milestone has been completed and settled.' });
+    }
+
     // Prevent duplicate review
     const { data: existing } = await supabase
       .from('engineer_reviews')

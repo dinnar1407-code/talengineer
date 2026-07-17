@@ -292,9 +292,11 @@ router.post('/webhook', async (req, res) => {
     if (milestoneId) {
       // 条件更新：locked 与 payment_failed（付款失败后重试）都是合法的待付款状态；
       // 同时取回 demand_id，后续以 DB 中的真实归属为准，不信任 metadata.demand_id
+      // 落盘 payment_intent：纠纷判雇主时按它原路退款（refunds.create 需要）
+      const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
       const { data: fundedRows, error: fundErr } = await supabase
         .from('project_milestones')
-        .update({ status: 'funded' })
+        .update({ status: 'funded', ...(paymentIntentId && { stripe_payment_intent: paymentIntentId }) })
         .eq('id', milestoneId)
         .in('status', ['locked', 'payment_failed'])
         .select('id, demand_id');
@@ -458,9 +460,11 @@ router.post('/confirm-funding', requireAuth, async (req, res) => {
     if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
     // 条件更新：locked 与 payment_failed（重试）都允许转 funded，并用 .select() 校验实际生效行数
+    // 同步落盘 payment_intent（与 webhook 路径一致），供纠纷判雇主时原路退款
+    const confirmIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
     const { data: confirmedRows, error: confirmErr } = await supabase
       .from('project_milestones')
-      .update({ status: 'funded' })
+      .update({ status: 'funded', ...(confirmIntentId && { stripe_payment_intent: confirmIntentId }) })
       .eq('id', milestone_id)
       .in('status', ['locked', 'payment_failed'])
       .select('id');

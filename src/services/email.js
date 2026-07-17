@@ -118,6 +118,19 @@ function emailRequestReview({ employerEmail, engineerName, projectTitle, reviewU
   });
 }
 
+function emailVerifyEmail({ userEmail, verifyUrl }) {
+  return sendEmail({
+    to: userEmail,
+    subject: 'Verify your TalEngineer email',
+    html: wrap(`
+      <h2 style="color:#0056b3;margin-top:0">Verify Your Email</h2>
+      <p>Welcome to TalEngineer! Please confirm this email address belongs to you — the link expires in 48 hours.</p>
+      <p><a href="${verifyUrl}" style="background:#0056b3;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">Verify Email</a></p>
+      <p style="font-size:13px;color:#6b7280">If you didn't create a TalEngineer account, you can safely ignore this email.</p>
+    `),
+  });
+}
+
 function emailNewMessage({ recipientEmail, senderName, projectTitle, messagePreview, threadUrl }) {
   return sendEmail({
     to: recipientEmail,
@@ -140,4 +153,5 @@ module.exports = {
   emailPasswordReset,
   emailRequestReview,
   emailNewMessage,
+  emailVerifyEmail,
 };

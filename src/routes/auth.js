@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const { getClient } = require('../config/db');
-const { emailPasswordReset } = require('../services/email');
+const { emailPasswordReset, emailVerifyEmail } = require('../services/email');
+const { requireAuth } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
@@ -72,10 +73,10 @@ router.post('/register', async (req, res) => {
     // Hash password with bcrypt (salted)
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    // Insert user
+    // Insert user（email_verified 默认 false，点击验证邮件里的链接后置 true）
     const { data: user, error: userErr } = await supabase
       .from('users')
-      .insert([{ email, password: passwordHash, role, name: engName || name || '' }])
+      .insert([{ email, password: passwordHash, role, name: engName || name || '', email_verified: false }])
       .select()
       .single();
 
@@ -108,6 +109,9 @@ router.post('/register', async (req, res) => {
       console.log(`[Auth] Registered new engineer: ${engName}`);
     }
 
+    // 发送邮箱验证邮件（fire-and-forget：发信失败不阻断注册，可稍后经 /resend-verification 重发）
+    sendVerificationEmail(user.email);
+
     // Issue JWT
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
@@ -120,6 +124,64 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('[Auth] Register error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
+  }
+});
+
+/**
+ * 签发 48h 有效的 purpose 型验证令牌并发送验证邮件。
+ * 与 reset token 同模式：type 字段防止拿登录 JWT / reset token 冒充验证令牌。
+ */
+function sendVerificationEmail(email) {
+  const verifyToken = jwt.sign({ email, type: 'verify_email' }, JWT_SECRET, { expiresIn: '48h' });
+  const domain = process.env.DOMAIN || 'http://localhost:4000';
+  const verifyUrl = `${domain}/verify-email?token=${verifyToken}`;
+  emailVerifyEmail({ userEmail: email, verifyUrl }).catch(console.error);
+}
+
+// ── Verify Email ──────────────────────────────────────────────────────────────
+// 点击邮件里的链接后由 pages/verify-email.jsx 调用。幂等：重复验证直接返回 ok。
+
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Missing token' });
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return res.status(400).json({ error: 'Verification link has expired or is invalid. Please request a new one.' });
+    }
+    if (decoded.type !== 'verify_email') return res.status(400).json({ error: 'Invalid verification token' });
+
+    const supabase = getClient();
+    const { error } = await supabase.from('users').update({ email_verified: true }).eq('email', decoded.email);
+    if (error) throw error;
+
+    console.log(`[Auth] Email verified for ${decoded.email}`);
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error('[Auth] Verify email error:', err);
+    res.status(500).json({ error: 'Failed to verify email. Please try again.' });
+  }
+});
+
+// ── Resend Verification ───────────────────────────────────────────────────────
+// 需登录（要重发到的地址就是登录账号的邮箱）；已验证则幂等返回。
+// 频控由 app.js 上 /api/auth 的限流器（10 次/15 分钟）兜底。
+
+router.post('/resend-verification', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data: user } = await supabase.from('users').select('email, email_verified').eq('id', req.user.userId).single();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.email_verified) return res.json({ status: 'ok', already_verified: true });
+
+    sendVerificationEmail(user.email);
+    res.json({ status: 'ok', message: 'Verification email sent.' });
+  } catch (err) {
+    console.error('[Auth] Resend verification error:', err);
+    res.status(500).json({ error: 'Failed to resend verification email. Please try again.' });
   }
 });
 

@@ -11,6 +11,7 @@ const stripe = require('../config/stripe').getStripe();
 const { requireAdmin } = require('../middleware/adminAuth');
 
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
+const { computeResolutionSplit } = require('../utils/disputeMath'); // 裁决资金分配纯函数（毛额语义，含雇主退款）
 
 // ── Open a dispute ────────────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
@@ -188,7 +189,7 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
 
     const { data: dispute } = await supabase
       .from('disputes')
-      .select('*, project_milestones(id, amount, phase_name, demand_id)')
+      .select('*, project_milestones(id, amount, phase_name, demand_id, stripe_payment_intent)')
       .eq('id', req.params.id)
       .single();
     if (!dispute) return res.status(404).json({ error: 'Dispute not found' });
@@ -204,9 +205,12 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
       }
     }
 
-    let engineerPayout = 0;
-    if (resolution === 'resolved_engineer') engineerPayout = totalAmount * (1 - PLATFORM_FEE);
-    else if (resolution === 'resolved_split') engineerPayout = parseFloat(resolution_amount) || totalAmount * 0.5 * (1 - PLATFORM_FEE);
+    // 资金分配（纯函数，见 src/utils/disputeMath.js）：
+    // engineerGross = 判给工程师侧的毛额，engineerPayout = 毛额扣平台费后净到手，
+    // employerRefund = 托管总额 - 毛额（resolved_employer 时为全额，平台不抽费）。
+    const { engineerGross, engineerPayout, employerRefund } = computeResolutionSplit({
+      resolution, totalAmount, resolutionAmount: resolution_amount, platformFee: PLATFORM_FEE,
+    });
 
     // 条件更新原子守卫：并发请求中只有一个能把 disputed 改成 releasing，防管理员双击重复转账
     const { data: claimed, error: claimErr } = await supabase
@@ -252,12 +256,64 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
       throw transferErr;
     }
 
-    // Update milestone + dispute（先落盘 transfer id；带 releasing 条件，只有持有守卫的请求能终结状态）
-    await supabase.from('project_milestones').update({ status: 'released', ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) }).eq('id', ms.id).eq('status', 'releasing');
-    await supabase.from('disputes').update({ status: resolution, admin_decision, resolution_amount: engineerPayout, resolved_at: new Date().toISOString() }).eq('id', req.params.id);
+    // ── 雇主退款（原逻辑缺失：托管资金只能给工程师或冻结，判给雇主时钱回不去）──
+    // resolved_employer 全额原路退回；resolved_split 退"总额 - 工程师毛额"。
+    let stripeRefundId = null;
+    let refundFailed   = false;
+    if (employerRefund > 0 && process.env.STRIPE_SECRET_KEY) {
+      try {
+        // 定位原始收款：优先里程碑上落盘的 payment_intent（funding 时写入）；
+        // 存量老数据没存过该字段，按 checkout 创建时打的 metadata 兜底搜索 Stripe
+        let paymentIntentId = ms.stripe_payment_intent || null;
+        if (!paymentIntentId) {
+          const found = await stripe.paymentIntents.search({ query: `metadata['milestone_id']:'${ms.id}'`, limit: 1 });
+          paymentIntentId = found?.data?.[0]?.id || null;
+        }
+        if (!paymentIntentId) throw new Error(`No payment intent found for milestone ${ms.id} — cannot refund employer`);
 
-    console.log(`[Dispute] #${req.params.id} resolved as ${resolution}. Engineer payout: $${engineerPayout}`);
-    res.json({ status: 'ok', resolution, engineer_payout: engineerPayout, stripe_transfer_id: stripeTransferId });
+        const refund = await stripe.refunds.create({
+          payment_intent: paymentIntentId,
+          amount: Math.round(employerRefund * 100), // cents，部分退款
+          metadata: { dispute_id: String(req.params.id), milestone_id: String(ms.id) },
+          // 幂等键语义与放款一致：并发防重靠 disputed→releasing 原子抢占，随机后缀避免失败重试被旧幂等记录卡住
+        }, { idempotencyKey: `refund-${req.params.id}-${crypto.randomUUID()}` });
+        stripeRefundId = refund.id;
+        console.log(`[Dispute] Stripe refund ${stripeRefundId}: $${employerRefund} → employer (milestone ${ms.id})`);
+      } catch (refundErr) {
+        if (!stripeTransferId) {
+          // 工程师侧尚未动钱：整体回滚为 disputed，裁决可安全重试
+          const { error: rollbackErr } = await supabase.from('project_milestones').update({ status: 'disputed' }).eq('id', ms.id).eq('status', 'releasing');
+          if (rollbackErr) {
+            console.error(`[Disputes] CRITICAL: failed to roll back milestone ${ms.id} from releasing to disputed after refund failure:`, rollbackErr.message);
+          }
+          throw refundErr;
+        }
+        // 工程师已收款、雇主退款失败：不可回滚（资金已部分转出），落终态并 CRITICAL 告警，
+        // 需人工在 Stripe 后台按 payment_intent metadata(milestone_id) 补退
+        refundFailed = true;
+        console.error(`[Disputes] CRITICAL: engineer transfer ${stripeTransferId} succeeded but employer refund of $${employerRefund} FAILED for dispute ${req.params.id}: ${refundErr.message}. Refund manually in Stripe (search payment_intent by metadata milestone_id=${ms.id}).`);
+      }
+    }
+
+    // Update milestone + dispute（先落盘 transfer/refund id；带 releasing 条件，只有持有守卫的请求能终结状态）
+    // 终态：全额退回雇主 → refunded；其余（工程师全拿/分账）→ released
+    const finalStatus = engineerGross === 0 && employerRefund > 0 ? 'refunded' : 'released';
+    await supabase.from('project_milestones').update({ status: finalStatus, ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) }).eq('id', ms.id).eq('status', 'releasing');
+    await supabase.from('disputes').update({
+      status: resolution, admin_decision, resolution_amount: engineerPayout,
+      ...(stripeRefundId && { stripe_refund_id: stripeRefundId }),
+      resolved_at: new Date().toISOString(),
+    }).eq('id', req.params.id);
+
+    console.log(`[Dispute] #${req.params.id} resolved as ${resolution}. Engineer payout: $${engineerPayout}, employer refund: $${stripeRefundId ? employerRefund : 0}`);
+    res.json({
+      status: 'ok', resolution,
+      engineer_payout: engineerPayout,
+      employer_refund: stripeRefundId ? employerRefund : 0,
+      stripe_transfer_id: stripeTransferId,
+      stripe_refund_id: stripeRefundId,
+      ...(refundFailed && { refund_error: 'Engineer payout succeeded but employer refund failed — resolve manually in Stripe.' }),
+    });
   } catch (err) {
     console.error('[Disputes] Resolve error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });

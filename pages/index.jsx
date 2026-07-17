@@ -22,7 +22,8 @@ const LANGS = [
 
 // ── 文案词典（设计稿英文为最终稿，全部走翻译 key）──────────────────────────────
 // 目前完整提供 en / zh 两种；其余 7 种语言按 key 回退到英文（沿用全站 DICT[lang]||DICT.en 模式）。
-// 数字类占位（工程师数量、费率、统计值）先用设计稿的真实感占位值，注释标注后续接入 live data。
+// Stats ticker 改为真实、可辩护的平台事实（认证方向数/考证等级/托管支付覆盖率/语言数）；
+// Featured engineers 改为从 /api/talent/list 拉取真实工程师数据，不再使用虚构占位人物。
 const DICT = {
   en: {
     // Nav
@@ -31,20 +32,19 @@ const DICT = {
     // Hero
     heroKicker: '// The global industrial automation talent marketplace',
     heroH1: 'Automation talent without borders. Verified by AI. Protected by escrow.',
-    heroSub: 'PLC, SCADA, robotics, and electrical engineers across 38 countries — screened with a practical AI assessment and managed in nine languages.',
+    heroSub: 'PLC, SCADA, robotics, and electrical engineers — screened with a practical AI assessment, certified through platform exams, and managed in nine languages.',
     cardHiringKicker: "I'm hiring", cardHiringTitle: 'Find a verified local engineer',
     cardHiringBody: 'Post in any language. Our AI standardizes your spec and shortlists screened engineers by skill, region, and rate.',
     cardHiringCta: 'Hire an Engineer →', cardHiringNote: 'Matched in 48 hrs on average',
     cardEngKicker: "I'm an engineer", cardEngTitle: 'Work globally. Get paid securely.',
     cardEngBody: 'Pass the AI Technical Screener once, then receive matched projects from OEMs worldwide — escrow guarantees payment.',
     cardEngCta: 'Join as an Engineer →', cardEngNote: 'Free to apply · keep the majority of every $',
-    // Stats ticker（数值为占位，后续接平台真实统计）
+    // Stats ticker（真实、可辩护的平台事实）
     stats: [
-      { num: '2,400+', label: 'Verified engineers' },
-      { num: '38', label: 'Countries' },
-      { num: '$4.2M', label: 'In escrow' },
-      { num: '96%', label: 'Milestone success' },
-      { num: '9', label: 'Languages' },
+      { num: '4', label: 'Certification tracks' },
+      { num: 'L1–L3', label: 'Platform exam levels' },
+      { num: '100%', label: 'Escrow-protected payments' },
+      { num: '9', label: 'Languages supported' },
     ],
     // Categories
     catKicker: 'Browse by specialty', catH2: 'Every discipline in industrial automation', catAll: 'All specialties →',
@@ -74,14 +74,9 @@ const DICT = {
       { title: 'Get matched to real projects', body: 'Local and remote work from OEMs and integrators worldwide — no bidding wars.' },
       { title: 'Get paid on time, every time', body: 'Escrow-backed milestones mean your payment is secured before you start.' },
     ],
-    // Featured engineers（占位样例，后续接真实档案）
-    featKicker: 'Featured talent', featH2: 'Engineers ready to deploy this week', featBrowseAll: 'Browse all 2,400+ →',
+    // Featured engineers：真实数据从 /api/talent/list 拉取，不再使用占位人物
+    featKicker: 'Featured talent', featH2: 'Engineers ready to deploy this week', featBrowseAll: 'Browse all engineers →',
     verified: '✓ AI-Verified', viewProfile: 'View profile →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ho Chi Minh City', exp: '9 yrs exp', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Led PLC migration for 3 automotive tier-1 lines; FAT/SAT commissioning across SE Asia.', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', exp: '12 yrs exp', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Robotic weld-cell integrator; 40+ Fanuc cells commissioned for US & Mexico OEMs.', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', exp: '8 yrs exp', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition Gold-certified; built plant-wide SCADA for pharma and F&B facilities.', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks（占位，后续接 /rates live data）
     rateKicker: 'Live market data', rateH2: 'Know the fair rate before you hire',
     rateBody: 'Real-time hourly-rate benchmarks by region and specialty, sourced from active engineer profiles. Budget with confidence — no guesswork, no inflated agency markups.',
@@ -128,7 +123,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: 'Your next automation project starts here',
-    ctaSub: 'Post a project in any language, or join 2,400+ verified engineers earning globally.',
+    ctaSub: 'Post a project in any language, or join our founding cohort of verified engineers.',
     ctaPost: 'Post a Project — Free', ctaApply: 'Apply as an Engineer',
     // Footer
     footerTagline: 'The global marketplace for AI-verified industrial automation talent.',
@@ -160,7 +155,7 @@ const DICT = {
     // Hero
     heroKicker: '// 全球工业自动化人才市场',
     heroH1: '自动化人才，跨越国界。AI 认证，资金托管护航。',
-    heroSub: '覆盖 38 个国家的 PLC、SCADA、机器人与电气工程师——经实操型 AI 测评筛选，九种语言全程协作。',
+    heroSub: 'PLC、SCADA、机器人与电气工程师——经实操型 AI 测评筛选、平台考证认证，九种语言全程协作。',
     cardHiringKicker: '我要招人', cardHiringTitle: '找到经认证的当地工程师',
     cardHiringBody: '用任何语言发布需求。AI 会标准化你的技术规格，并按技能、地区和费率为你精选已通过筛选的工程师。',
     cardHiringCta: '聘请工程师 →', cardHiringNote: '平均 48 小时内匹配',
@@ -169,10 +164,9 @@ const DICT = {
     cardEngCta: '作为工程师加入 →', cardEngNote: '申请免费 · 收入绝大部分归你',
     // Stats
     stats: [
-      { num: '2,400+', label: '认证工程师' },
-      { num: '38', label: '覆盖国家' },
-      { num: '$4.2M', label: '托管资金' },
-      { num: '96%', label: '里程碑成功率' },
+      { num: '4', label: '认证方向' },
+      { num: 'L1–L3', label: '平台考证等级' },
+      { num: '100%', label: '托管支付覆盖' },
       { num: '9', label: '支持语言' },
     ],
     // Categories
@@ -204,13 +198,8 @@ const DICT = {
       { title: '每一次都准时收款', body: '托管里程碑意味着开工前你的报酬已有保障。' },
     ],
     // Featured
-    featKicker: '精选人才', featH2: '本周即可到岗的工程师', featBrowseAll: '浏览全部 2,400+ →',
+    featKicker: '精选人才', featH2: '本周即可到岗的工程师', featBrowseAll: '浏览全部工程师 →',
     verified: '✓ AI 认证', viewProfile: '查看档案 →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 胡志明市', exp: '9 年经验', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '主导 3 条汽车一级供应商产线的 PLC 迁移；在东南亚多地完成 FAT/SAT 调试。', rate: '$38/hr', ratingJobs: '★ 4.9（27 单）' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 蒙特雷', exp: '12 年经验', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: '机器人焊接工作站集成商；为美墨设备厂商调试 40+ 台 Fanuc 工作站。', rate: '$52/hr', ratingJobs: '★ 5.0（34 单）' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 浦那', exp: '8 年经验', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition 金牌认证；为制药与食品饮料工厂搭建全厂级 SCADA。', rate: '$34/hr', ratingJobs: '★ 4.8（19 单）' },
-    ],
     // Rate benchmarks
     rateKicker: '实时市场数据', rateH2: '招人前，先知道公道的行情价',
     rateBody: '按地区与专业实时统计的时薪基准，数据来自活跃工程师档案。让你有据可依地做预算——不靠猜，也没有中介的层层加价。',
@@ -257,7 +246,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: '你的下一个自动化项目，从这里开始',
-    ctaSub: '用任何语言发布项目，或加入 2,400+ 位在全球接单的认证工程师。',
+    ctaSub: '用任何语言发布项目，或加入我们的首批认证工程师。',
     ctaPost: '免费发布项目', ctaApply: '申请成为工程师',
     // Footer
     footerTagline: 'AI 认证工业自动化人才的全球市场。',
@@ -289,7 +278,7 @@ const DICT = {
     // Hero
     heroKicker: '// La marketplace global de talento en automatización industrial',
     heroH1: 'Talento en automatización sin fronteras. Verificado por IA. Protegido con depósito en garantía.',
-    heroSub: 'Ingenieros de PLC, SCADA, robótica y eléctricos en 38 países, evaluados con una prueba práctica de IA y gestionados en nueve idiomas.',
+    heroSub: 'Ingenieros de PLC, SCADA, robótica y eléctricos, evaluados con una prueba práctica de IA, certificados mediante exámenes de la plataforma y gestionados en nueve idiomas.',
     cardHiringKicker: 'Estoy contratando', cardHiringTitle: 'Encuentra un ingeniero local verificado',
     cardHiringBody: 'Publica en cualquier idioma. Nuestra IA estandariza tu especificación y preselecciona ingenieros evaluados por habilidad, región y tarifa.',
     cardHiringCta: 'Contratar un ingeniero →', cardHiringNote: 'Emparejado en 48 h de media',
@@ -298,11 +287,10 @@ const DICT = {
     cardEngCta: 'Únete como ingeniero →', cardEngNote: 'Postularse es gratis · conserva la mayor parte de cada $',
     // Stats
     stats: [
-      { num: '2,400+', label: 'Ingenieros verificados' },
-      { num: '38', label: 'Países' },
-      { num: '$4.2M', label: 'En depósito de garantía' },
-      { num: '96%', label: 'Éxito en hitos' },
-      { num: '9', label: 'Idiomas' },
+      { num: '4', label: 'Rutas de certificación' },
+      { num: 'L1–L3', label: 'Niveles de examen de la plataforma' },
+      { num: '100%', label: 'Pagos protegidos por depósito en garantía' },
+      { num: '9', label: 'Idiomas admitidos' },
     ],
     // Categories
     catKicker: 'Explora por especialidad', catH2: 'Todas las disciplinas de la automatización industrial', catAll: 'Todas las especialidades →',
@@ -333,13 +321,8 @@ const DICT = {
       { title: 'Cobra a tiempo, siempre', body: 'Los hitos con depósito de garantía aseguran tu pago antes de empezar.' },
     ],
     // Featured
-    featKicker: 'Talento destacado', featH2: 'Ingenieros listos para empezar esta semana', featBrowseAll: 'Ver los 2,400+ →',
+    featKicker: 'Talento destacado', featH2: 'Ingenieros listos para empezar esta semana', featBrowseAll: 'Ver todos los ingenieros →',
     verified: '✓ Verificado por IA', viewProfile: 'Ver perfil →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ciudad Ho Chi Minh', exp: '9 años de exp.', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Lideró la migración de PLC de 3 líneas de proveedores tier-1 de automoción; puesta en marcha FAT/SAT en todo el Sudeste Asiático.', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', exp: '12 años de exp.', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Integrador de celdas de soldadura robotizada; más de 40 celdas Fanuc puestas en marcha para OEM de EE. UU. y México.', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', exp: '8 años de exp.', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Certificada Ignition Gold; construyó SCADA para toda la planta en instalaciones farmacéuticas y de alimentación y bebidas.', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'Datos de mercado en vivo', rateH2: 'Conoce la tarifa justa antes de contratar',
     rateBody: 'Referencias de tarifas por hora en tiempo real, por región y especialidad, a partir de perfiles de ingenieros activos. Presupuesta con confianza: sin conjeturas ni sobreprecios de agencia.',
@@ -386,7 +369,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: 'Tu próximo proyecto de automatización empieza aquí',
-    ctaSub: 'Publica un proyecto en cualquier idioma o únete a más de 2,400 ingenieros verificados que ganan a nivel global.',
+    ctaSub: 'Publica un proyecto en cualquier idioma, o únete a nuestro grupo fundador de ingenieros verificados.',
     ctaPost: 'Publicar un proyecto — Gratis', ctaApply: 'Postularme como ingeniero',
     // Footer
     footerTagline: 'La marketplace global de talento en automatización industrial verificado por IA.',
@@ -418,7 +401,7 @@ const DICT = {
     // Hero
     heroKicker: '// Sàn nhân lực tự động hóa công nghiệp toàn cầu',
     heroH1: 'Nhân tài tự động hóa không biên giới. Được AI xác minh. Được ký quỹ bảo vệ.',
-    heroSub: 'Kỹ sư PLC, SCADA, robot và điện tại 38 quốc gia — được sàng lọc bằng bài đánh giá AI thực hành và quản lý bằng chín ngôn ngữ.',
+    heroSub: 'Kỹ sư PLC, SCADA, robot và điện — được sàng lọc bằng bài đánh giá AI thực hành, cấp chứng chỉ qua các kỳ thi trên nền tảng, và quản lý bằng chín ngôn ngữ.',
     cardHiringKicker: 'Tôi đang tuyển', cardHiringTitle: 'Tìm kỹ sư bản địa đã xác minh',
     cardHiringBody: 'Đăng bằng bất kỳ ngôn ngữ nào. AI của chúng tôi chuẩn hóa yêu cầu kỹ thuật và lập danh sách kỹ sư đã sàng lọc theo kỹ năng, khu vực và mức phí.',
     cardHiringCta: 'Thuê kỹ sư →', cardHiringNote: 'Ghép nối trung bình trong 48 giờ',
@@ -427,11 +410,10 @@ const DICT = {
     cardEngCta: 'Tham gia với tư cách kỹ sư →', cardEngNote: 'Đăng ký miễn phí · giữ phần lớn mỗi $',
     // Stats
     stats: [
-      { num: '2,400+', label: 'Kỹ sư đã xác minh' },
-      { num: '38', label: 'Quốc gia' },
-      { num: '$4.2M', label: 'Đang ký quỹ' },
-      { num: '96%', label: 'Tỷ lệ hoàn thành cột mốc' },
-      { num: '9', label: 'Ngôn ngữ' },
+      { num: '4', label: 'Hướng chứng chỉ' },
+      { num: 'L1–L3', label: 'Cấp độ thi trên nền tảng' },
+      { num: '100%', label: 'Thanh toán được bảo vệ bằng ký quỹ' },
+      { num: '9', label: 'Ngôn ngữ hỗ trợ' },
     ],
     // Categories
     catKicker: 'Duyệt theo chuyên môn', catH2: 'Mọi lĩnh vực trong tự động hóa công nghiệp', catAll: 'Tất cả chuyên môn →',
@@ -462,13 +444,8 @@ const DICT = {
       { title: 'Luôn được thanh toán đúng hạn', body: 'Cột mốc có ký quỹ nghĩa là khoản thanh toán của bạn được đảm bảo trước khi bắt đầu.' },
     ],
     // Featured
-    featKicker: 'Nhân tài nổi bật', featH2: 'Kỹ sư sẵn sàng nhận việc trong tuần này', featBrowseAll: 'Xem tất cả 2,400+ →',
+    featKicker: 'Nhân tài nổi bật', featH2: 'Kỹ sư sẵn sàng nhận việc trong tuần này', featBrowseAll: 'Xem tất cả kỹ sư →',
     verified: '✓ Đã xác minh bằng AI', viewProfile: 'Xem hồ sơ →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Thành phố Hồ Chí Minh', exp: '9 năm KN', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Dẫn dắt việc chuyển đổi PLC cho 3 dây chuyền nhà cung cấp tier-1 ngành ô tô; chạy thử FAT/SAT khắp Đông Nam Á.', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', exp: '12 năm KN', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Nhà tích hợp trạm hàn robot; đã chạy thử hơn 40 trạm Fanuc cho các OEM Mỹ và Mexico.', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', exp: '8 năm KN', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Chứng nhận Ignition Gold; xây dựng SCADA toàn nhà máy cho các cơ sở dược phẩm và thực phẩm & đồ uống.', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'Dữ liệu thị trường trực tiếp', rateH2: 'Biết mức phí hợp lý trước khi thuê',
     rateBody: 'Chuẩn mức phí theo giờ thời gian thực theo khu vực và chuyên môn, lấy từ hồ sơ kỹ sư đang hoạt động. Lập ngân sách tự tin — không phỏng đoán, không phụ phí môi giới thổi phồng.',
@@ -515,7 +492,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: 'Dự án tự động hóa tiếp theo của bạn bắt đầu tại đây',
-    ctaSub: 'Đăng dự án bằng bất kỳ ngôn ngữ nào, hoặc gia nhập 2,400+ kỹ sư đã xác minh đang kiếm tiền toàn cầu.',
+    ctaSub: 'Đăng dự án bằng bất kỳ ngôn ngữ nào, hoặc gia nhập nhóm kỹ sư đã xác minh đầu tiên của chúng tôi.',
     ctaPost: 'Đăng dự án — Miễn phí', ctaApply: 'Ứng tuyển làm kỹ sư',
     // Footer
     footerTagline: 'Sàn nhân lực tự động hóa công nghiệp được AI xác minh trên toàn cầu.',
@@ -547,7 +524,7 @@ const DICT = {
     // Hero
     heroKicker: '// वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
     heroH1: 'बिना सीमाओं के स्वचालन प्रतिभा। AI द्वारा सत्यापित। एस्क्रो द्वारा सुरक्षित।',
-    heroSub: '38 देशों में PLC, SCADA, रोबोटिक्स और इलेक्ट्रिकल इंजीनियर — एक व्यावहारिक AI मूल्यांकन से जाँचे गए और नौ भाषाओं में प्रबंधित।',
+    heroSub: 'PLC, SCADA, रोबोटिक्स और इलेक्ट्रिकल इंजीनियर — एक व्यावहारिक AI मूल्यांकन से जाँचे गए, प्लेटफ़ॉर्म परीक्षाओं से प्रमाणित, और नौ भाषाओं में प्रबंधित।',
     cardHiringKicker: 'मैं भर्ती कर रहा हूँ', cardHiringTitle: 'एक सत्यापित स्थानीय इंजीनियर खोजें',
     cardHiringBody: 'किसी भी भाषा में पोस्ट करें। हमारा AI आपकी तकनीकी माँग को मानकीकृत करता है और कौशल, क्षेत्र व दर के आधार पर जाँचे गए इंजीनियरों की सूची बनाता है।',
     cardHiringCta: 'इंजीनियर नियुक्त करें →', cardHiringNote: 'औसतन 48 घंटे में मिलान',
@@ -556,11 +533,10 @@ const DICT = {
     cardEngCta: 'इंजीनियर के रूप में जुड़ें →', cardEngNote: 'आवेदन निःशुल्क · हर $ का बड़ा हिस्सा आपका',
     // Stats
     stats: [
-      { num: '2,400+', label: 'सत्यापित इंजीनियर' },
-      { num: '38', label: 'देश' },
-      { num: '$4.2M', label: 'एस्क्रो में' },
-      { num: '96%', label: 'माइलस्टोन सफलता' },
-      { num: '9', label: 'भाषाएँ' },
+      { num: '4', label: 'प्रमाणन दिशाएँ' },
+      { num: 'L1–L3', label: 'प्लेटफ़ॉर्म परीक्षा स्तर' },
+      { num: '100%', label: 'एस्क्रो-सुरक्षित भुगतान' },
+      { num: '9', label: 'समर्थित भाषाएँ' },
     ],
     // Categories
     catKicker: 'विशेषज्ञता के अनुसार देखें', catH2: 'औद्योगिक स्वचालन का हर क्षेत्र', catAll: 'सभी विशेषज्ञताएँ →',
@@ -591,13 +567,8 @@ const DICT = {
       { title: 'हर बार समय पर भुगतान पाएँ', body: 'एस्क्रो-समर्थित माइलस्टोन का मतलब है कि शुरू करने से पहले आपका भुगतान सुरक्षित है।' },
     ],
     // Featured
-    featKicker: 'चुनिंदा प्रतिभा', featH2: 'इस सप्ताह तैनात होने के लिए तैयार इंजीनियर', featBrowseAll: 'सभी 2,400+ देखें →',
+    featKicker: 'चुनिंदा प्रतिभा', featH2: 'इस सप्ताह तैनात होने के लिए तैयार इंजीनियर', featBrowseAll: 'सभी इंजीनियर देखें →',
     verified: '✓ AI-सत्यापित', viewProfile: 'प्रोफ़ाइल देखें →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 हो ची मिन्ह सिटी', exp: '9 वर्ष अनुभव', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '3 ऑटोमोटिव टियर-1 लाइनों के लिए PLC माइग्रेशन का नेतृत्व किया; दक्षिण-पूर्व एशिया में FAT/SAT कमीशनिंग।', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 मॉन्टेरे', exp: '12 वर्ष अनुभव', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'रोबोटिक वेल्ड-सेल इंटीग्रेटर; अमेरिका व मेक्सिको के OEM के लिए 40+ Fanuc सेल कमीशन किए।', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 पुणे', exp: '8 वर्ष अनुभव', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition गोल्ड-प्रमाणित; फार्मा और खाद्य-पेय संयंत्रों के लिए संपूर्ण-संयंत्र SCADA बनाया।', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'लाइव बाज़ार डेटा', rateH2: 'नियुक्ति से पहले उचित दर जानें',
     rateBody: 'क्षेत्र और विशेषज्ञता के अनुसार रियल-टाइम प्रति घंटा दर मानक, सक्रिय इंजीनियर प्रोफ़ाइलों से लिए गए। आत्मविश्वास से बजट बनाएँ — कोई अनुमान नहीं, कोई बढ़ा-चढ़ा एजेंसी मार्कअप नहीं।',
@@ -644,7 +615,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: 'आपका अगला स्वचालन प्रोजेक्ट यहीं से शुरू होता है',
-    ctaSub: 'किसी भी भाषा में प्रोजेक्ट पोस्ट करें, या वैश्विक रूप से कमा रहे 2,400+ सत्यापित इंजीनियरों से जुड़ें।',
+    ctaSub: 'किसी भी भाषा में प्रोजेक्ट पोस्ट करें, या हमारे संस्थापक सत्यापित इंजीनियरों के समूह से जुड़ें।',
     ctaPost: 'प्रोजेक्ट पोस्ट करें — निःशुल्क', ctaApply: 'इंजीनियर के रूप में आवेदन करें',
     // Footer
     footerTagline: 'AI-सत्यापित औद्योगिक स्वचालन प्रतिभा का वैश्विक मंच।',
@@ -676,7 +647,7 @@ const DICT = {
     // Hero
     heroKicker: "// La marketplace mondiale des talents en automatisation industrielle",
     heroH1: "Des talents en automatisation sans frontières. Vérifiés par IA. Protégés par séquestre.",
-    heroSub: "Ingénieurs PLC, SCADA, robotique et électriciens dans 38 pays — évalués par un test pratique d'IA et gérés en neuf langues.",
+    heroSub: "Ingénieurs PLC, SCADA, robotique et électriciens — évalués par un test pratique d'IA, certifiés par les examens de la plateforme, et gérés en neuf langues.",
     cardHiringKicker: "Je recrute", cardHiringTitle: "Trouvez un ingénieur local vérifié",
     cardHiringBody: "Publiez dans n'importe quelle langue. Notre IA standardise votre cahier des charges et présélectionne des ingénieurs évalués par compétence, région et tarif.",
     cardHiringCta: "Recruter un ingénieur →", cardHiringNote: "Mise en relation en 48 h en moyenne",
@@ -685,11 +656,10 @@ const DICT = {
     cardEngCta: "Rejoindre en tant qu'ingénieur →", cardEngNote: "Candidature gratuite · gardez la majeure partie de chaque $",
     // Stats
     stats: [
-      { num: '2,400+', label: 'Ingénieurs vérifiés' },
-      { num: '38', label: 'Pays' },
-      { num: '$4.2M', label: 'Sous séquestre' },
-      { num: '96%', label: 'Réussite des jalons' },
-      { num: '9', label: 'Langues' },
+      { num: '4', label: 'Parcours de certification' },
+      { num: 'L1–L3', label: "Niveaux d'examen de la plateforme" },
+      { num: '100%', label: 'Paiements protégés par séquestre' },
+      { num: '9', label: 'Langues prises en charge' },
     ],
     // Categories
     catKicker: 'Parcourir par spécialité', catH2: "Toutes les disciplines de l'automatisation industrielle", catAll: 'Toutes les spécialités →',
@@ -720,13 +690,8 @@ const DICT = {
       { title: "Soyez payé à temps, à chaque fois", body: "Les jalons sécurisés par séquestre garantissent votre paiement avant même de commencer." },
     ],
     // Featured
-    featKicker: 'Talents à la une', featH2: 'Ingénieurs prêts à intervenir cette semaine', featBrowseAll: 'Voir les 2,400+ →',
+    featKicker: 'Talents à la une', featH2: 'Ingénieurs prêts à intervenir cette semaine', featBrowseAll: 'Voir tous les ingénieurs →',
     verified: '✓ Vérifié par IA', viewProfile: 'Voir le profil →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Hô-Chi-Minh-Ville', exp: "9 ans d'exp.", chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: "A dirigé la migration PLC de 3 lignes de fournisseurs automobiles de rang 1 ; mise en service FAT/SAT dans toute l'Asie du Sud-Est.", rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', exp: "12 ans d'exp.", chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: "Intégrateur de cellules de soudage robotisées ; plus de 40 cellules Fanuc mises en service pour des OEM américains et mexicains.", rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', exp: "8 ans d'exp.", chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: "Certifiée Ignition Gold ; a conçu des SCADA à l'échelle de l'usine pour des sites pharmaceutiques et agroalimentaires.", rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'Données de marché en direct', rateH2: 'Connaissez le juste tarif avant de recruter',
     rateBody: "Références de tarifs horaires en temps réel par région et spécialité, issues de profils d'ingénieurs actifs. Budgétez en toute confiance — sans approximation ni marges d'agence gonflées.",
@@ -773,7 +738,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: "Votre prochain projet d'automatisation commence ici",
-    ctaSub: "Publiez un projet dans n'importe quelle langue, ou rejoignez plus de 2,400 ingénieurs vérifiés qui gagnent leur vie à l'échelle mondiale.",
+    ctaSub: "Publiez un projet dans n'importe quelle langue, ou rejoignez notre première cohorte d'ingénieurs vérifiés.",
     ctaPost: 'Publier un projet — Gratuit', ctaApply: "Postuler en tant qu'ingénieur",
     // Footer
     footerTagline: "La marketplace mondiale des talents en automatisation industrielle vérifiés par IA.",
@@ -805,7 +770,7 @@ const DICT = {
     // Hero
     heroKicker: '// Der globale Marktplatz für Talente in der industriellen Automatisierung',
     heroH1: 'Automatisierungstalente ohne Grenzen. KI-verifiziert. Treuhänderisch abgesichert.',
-    heroSub: 'PLC-, SCADA-, Robotik- und Elektroingenieure in 38 Ländern — geprüft mit einem praxisnahen KI-Assessment und betreut in neun Sprachen.',
+    heroSub: 'PLC-, SCADA-, Robotik- und Elektroingenieure — geprüft mit einem praxisnahen KI-Assessment, zertifiziert durch Plattformprüfungen und betreut in neun Sprachen.',
     cardHiringKicker: 'Ich stelle ein', cardHiringTitle: 'Finden Sie einen verifizierten lokalen Ingenieur',
     cardHiringBody: 'Schreiben Sie in jeder Sprache aus. Unsere KI standardisiert Ihre Spezifikation und erstellt eine Auswahl geprüfter Ingenieure nach Kompetenz, Region und Tarif.',
     cardHiringCta: 'Ingenieur beauftragen →', cardHiringNote: 'Vermittlung in durchschnittlich 48 Std.',
@@ -814,11 +779,10 @@ const DICT = {
     cardEngCta: 'Als Ingenieur beitreten →', cardEngNote: 'Bewerbung kostenlos · behalten Sie den Großteil jedes $',
     // Stats
     stats: [
-      { num: '2,400+', label: 'Verifizierte Ingenieure' },
-      { num: '38', label: 'Länder' },
-      { num: '$4.2M', label: 'Im Treuhandkonto' },
-      { num: '96%', label: 'Meilenstein-Erfolg' },
-      { num: '9', label: 'Sprachen' },
+      { num: '4', label: 'Zertifizierungspfade' },
+      { num: 'L1–L3', label: 'Plattform-Prüfungsstufen' },
+      { num: '100%', label: 'Treuhandgeschützte Zahlungen' },
+      { num: '9', label: 'Unterstützte Sprachen' },
     ],
     // Categories
     catKicker: 'Nach Fachgebiet stöbern', catH2: 'Jedes Fachgebiet der industriellen Automatisierung', catAll: 'Alle Fachgebiete →',
@@ -849,13 +813,8 @@ const DICT = {
       { title: 'Werden Sie pünktlich bezahlt, jedes Mal', body: 'Treuhandgesicherte Meilensteine bedeuten, dass Ihre Bezahlung schon vor Beginn gesichert ist.' },
     ],
     // Featured
-    featKicker: 'Ausgewählte Talente', featH2: 'Ingenieure, die diese Woche einsatzbereit sind', featBrowseAll: 'Alle 2,400+ ansehen →',
+    featKicker: 'Ausgewählte Talente', featH2: 'Ingenieure, die diese Woche einsatzbereit sind', featBrowseAll: 'Alle Ingenieure ansehen →',
     verified: '✓ KI-verifiziert', viewProfile: 'Profil ansehen →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ho-Chi-Minh-Stadt', exp: '9 J. Erf.', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Leitete die PLC-Migration für 3 Tier-1-Automobillinien; FAT/SAT-Inbetriebnahme in ganz Südostasien.', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', exp: '12 J. Erf.', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Integrator für robotergestützte Schweißzellen; über 40 Fanuc-Zellen für OEMs in den USA und Mexiko in Betrieb genommen.', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', exp: '8 J. Erf.', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition-Gold-zertifiziert; baute werksweite SCADA-Systeme für Pharma- und Lebensmittelbetriebe.', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'Live-Marktdaten', rateH2: 'Kennen Sie den fairen Tarif, bevor Sie einstellen',
     rateBody: 'Echtzeit-Stundensatz-Benchmarks nach Region und Fachgebiet, gewonnen aus aktiven Ingenieurprofilen. Budgetieren Sie mit Zuversicht — kein Rätselraten, keine überhöhten Agenturaufschläge.',
@@ -902,7 +861,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: 'Ihr nächstes Automatisierungsprojekt beginnt hier',
-    ctaSub: 'Schreiben Sie ein Projekt in jeder Sprache aus oder schließen Sie sich über 2,400 verifizierten Ingenieuren an, die weltweit verdienen.',
+    ctaSub: 'Schreiben Sie ein Projekt in jeder Sprache aus, oder schließen Sie sich unserer Gründungsgruppe verifizierter Ingenieure an.',
     ctaPost: 'Projekt ausschreiben — kostenlos', ctaApply: 'Als Ingenieur bewerben',
     // Footer
     footerTagline: 'Der globale Marktplatz für KI-verifizierte Talente in der industriellen Automatisierung.',
@@ -934,7 +893,7 @@ const DICT = {
     // Hero
     heroKicker: '// 世界の産業オートメーション人材マーケットプレイス',
     heroH1: '国境を越えるオートメーション人材。AIが検証。エスクローが保護。',
-    heroSub: '38か国のPLC・SCADA・ロボティクス・電気エンジニア——実践的なAIアセスメントで審査し、9言語で管理します。',
+    heroSub: 'PLC・SCADA・ロボティクス・電気エンジニア——実践的なAIアセスメントで審査し、プラットフォーム試験で認定、9言語で管理します。',
     cardHiringKicker: '採用したい', cardHiringTitle: '検証済みの現地エンジニアを見つける',
     cardHiringBody: 'どの言語でも投稿できます。AIが仕様を標準化し、スキル・地域・料金でスクリーニング済みのエンジニアを絞り込みます。',
     cardHiringCta: 'エンジニアを雇う →', cardHiringNote: '平均48時間でマッチング',
@@ -943,11 +902,10 @@ const DICT = {
     cardEngCta: 'エンジニアとして参加 →', cardEngNote: '応募無料 · 収入の大半はあなたのもの',
     // Stats
     stats: [
-      { num: '2,400+', label: '検証済みエンジニア' },
-      { num: '38', label: 'か国' },
-      { num: '$4.2M', label: 'エスクロー中' },
-      { num: '96%', label: 'マイルストーン成功率' },
-      { num: '9', label: '言語' },
+      { num: '4', label: '認定コース' },
+      { num: 'L1–L3', label: 'プラットフォーム試験レベル' },
+      { num: '100%', label: 'エスクロー保護された支払い' },
+      { num: '9', label: '対応言語' },
     ],
     // Categories
     catKicker: '専門分野で探す', catH2: '産業オートメーションのあらゆる分野', catAll: 'すべての専門分野 →',
@@ -978,13 +936,8 @@ const DICT = {
       { title: '毎回、期日どおりに支払い', body: 'エスクローで裏付けられたマイルストーンにより、開始前に報酬が確保されます。' },
     ],
     // Featured
-    featKicker: '注目の人材', featH2: '今週から稼働できるエンジニア', featBrowseAll: '2,400+人すべてを見る →',
+    featKicker: '注目の人材', featH2: '今週から稼働できるエンジニア', featBrowseAll: 'すべてのエンジニアを見る →',
     verified: '✓ AI検証済み', viewProfile: 'プロフィールを見る →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 ホーチミン市', exp: '経験9年', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '自動車ティア1の3ラインでPLC移行を主導。東南アジア各地でFAT/SAT試運転を実施。', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 モンテレイ', exp: '経験12年', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'ロボット溶接セルのインテグレーター。米国・メキシコのOEM向けに40台超のFanucセルを試運転。', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 プネー', exp: '経験8年', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignitionゴールド認定。製薬・食品飲料施設向けに全工場規模のSCADAを構築。', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: 'ライブ市場データ', rateH2: '雇う前に適正料金を知る',
     rateBody: '地域と専門分野別のリアルタイム時間料金ベンチマーク。稼働中のエンジニアプロフィールから収集。当て推量も、水増しされた代理店マージンもなく、自信を持って予算を立てられます。',
@@ -1031,7 +984,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: '次のオートメーションプロジェクトはここから始まる',
-    ctaSub: 'どの言語でもプロジェクトを投稿するか、世界で稼ぐ2,400+人の検証済みエンジニアに加わりましょう。',
+    ctaSub: 'どの言語でもプロジェクトを投稿するか、私たちの最初の認証エンジニアグループに参加しましょう。',
     ctaPost: 'プロジェクトを投稿——無料', ctaApply: 'エンジニアとして応募',
     // Footer
     footerTagline: 'AI検証済みの産業オートメーション人材の世界的マーケットプレイス。',
@@ -1063,7 +1016,7 @@ const DICT = {
     // Hero
     heroKicker: '// 글로벌 산업 자동화 인재 마켓플레이스',
     heroH1: '국경 없는 자동화 인재. AI가 검증하고, 에스크로가 보호합니다.',
-    heroSub: '38개국의 PLC, SCADA, 로보틱스, 전기 엔지니어 — 실무형 AI 평가로 선별하고 9개 언어로 관리합니다.',
+    heroSub: 'PLC, SCADA, 로보틱스, 전기 엔지니어 — 실무형 AI 평가로 선별하고, 플랫폼 시험으로 인증하며, 9개 언어로 관리합니다.',
     cardHiringKicker: '채용 중입니다', cardHiringTitle: '검증된 현지 엔지니어 찾기',
     cardHiringBody: '어떤 언어로든 등록하세요. AI가 사양을 표준화하고 기술, 지역, 요율에 따라 선별된 엔지니어를 추립니다.',
     cardHiringCta: '엔지니어 채용하기 →', cardHiringNote: '평균 48시간 내 매칭',
@@ -1072,11 +1025,10 @@ const DICT = {
     cardEngCta: '엔지니어로 참여하기 →', cardEngNote: '지원 무료 · 수입의 대부분을 가져가세요',
     // Stats
     stats: [
-      { num: '2,400+', label: '검증된 엔지니어' },
-      { num: '38', label: '개국' },
-      { num: '$4.2M', label: '에스크로 예치액' },
-      { num: '96%', label: '마일스톤 성공률' },
-      { num: '9', label: '개 언어' },
+      { num: '4', label: '인증 트랙' },
+      { num: 'L1–L3', label: '플랫폼 시험 등급' },
+      { num: '100%', label: '에스크로 보호 결제' },
+      { num: '9', label: '지원 언어' },
     ],
     // Categories
     catKicker: '전문 분야별 보기', catH2: '산업 자동화의 모든 분야', catAll: '전체 전문 분야 →',
@@ -1107,13 +1059,8 @@ const DICT = {
       { title: '매번 제때 정산받기', body: '에스크로로 보장된 마일스톤은 시작 전에 대금이 확보됨을 의미합니다.' },
     ],
     // Featured
-    featKicker: '추천 인재', featH2: '이번 주 투입 가능한 엔지니어', featBrowseAll: '2,400+명 전체 보기 →',
+    featKicker: '추천 인재', featH2: '이번 주 투입 가능한 엔지니어', featBrowseAll: '전체 엔지니어 보기 →',
     verified: '✓ AI 검증됨', viewProfile: '프로필 보기 →',
-    engineers: [
-      { initials: 'MN', name: 'Minh N.', loc: '🇻🇳 호치민시', exp: '경력 9년', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '자동차 1차 협력사 3개 라인의 PLC 마이그레이션을 주도했으며, 동남아시아 전역에서 FAT/SAT 시운전 수행.', rate: '$38/hr', ratingJobs: '★ 4.9 (27 jobs)' },
-      { initials: 'DR', name: 'Diego R.', loc: '🇲🇽 몬테레이', exp: '경력 12년', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: '로봇 용접 셀 인티그레이터. 미국 및 멕시코 OEM을 위해 40대 이상의 Fanuc 셀을 시운전.', rate: '$52/hr', ratingJobs: '★ 5.0 (34 jobs)' },
-      { initials: 'PK', name: 'Priya K.', loc: '🇮🇳 푸네', exp: '경력 8년', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition 골드 인증. 제약 및 식음료 시설을 위한 전 공장 규모 SCADA 구축.', rate: '$34/hr', ratingJobs: '★ 4.8 (19 jobs)' },
-    ],
     // Rate benchmarks
     rateKicker: '실시간 시장 데이터', rateH2: '채용 전에 적정 요율을 확인하세요',
     rateBody: '지역 및 전문 분야별 실시간 시급 벤치마크로, 활동 중인 엔지니어 프로필에서 수집합니다. 추측도, 부풀려진 에이전시 마진도 없이 자신 있게 예산을 세우세요.',
@@ -1160,7 +1107,7 @@ const DICT = {
     ],
     // Final CTA
     ctaH2: '당신의 다음 자동화 프로젝트가 여기서 시작됩니다',
-    ctaSub: '어떤 언어로든 프로젝트를 등록하거나, 전 세계에서 수익을 올리는 2,400+명의 검증된 엔지니어에 합류하세요.',
+    ctaSub: '어떤 언어로든 프로젝트를 등록하거나, 저희의 첫 검증된 엔지니어 그룹에 합류하세요.',
     ctaPost: '프로젝트 등록 — 무료', ctaApply: '엔지니어로 지원하기',
     // Footer
     footerTagline: 'AI로 검증된 산업 자동화 인재의 글로벌 마켓플레이스.',
@@ -1186,11 +1133,30 @@ const DICT = {
   },
 };
 
+// 把 /api/talent/list 返回的工程师行映射成 Featured 卡片所需结构（真实数据，替代此前的虚构占位人物）
+function initialsOfName(name) {
+  return (name || '?').split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+}
+function mapFeaturedEngineer(t) {
+  const chips = (t.skills || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  return {
+    id: t.id,
+    initials: initialsOfName(t.name),
+    name: t.name || 'Engineer',
+    loc: (t.region || '').trim(),
+    chips,
+    bio: t.bio || '',
+    rate: t.rate || '—',
+    ratingLine: t.avg_rating ? `★ ${t.avg_rating} (${t.review_count || 0})` : (t.level || ''),
+  };
+}
+
 export default function Home() {
   const [lang, setLang] = useLang();
   const { theme, toggle: toggleTheme } = useTheme();  // 全站主题（真值在 <html data-theme>）
   const [langOpen, setLangOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // 移动端汉堡菜单
+  const [featuredEngineers, setFeaturedEngineers] = useState(null); // null → Featured 板块不渲染
   const langRef = useRef(null);
 
   // 点击语言下拉外部时关闭
@@ -1200,6 +1166,20 @@ export default function Home() {
     }
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  // Featured engineers：拉取公开的真实工程师数据；失败或空数组时整个板块不渲染，绝不回退到虚构人物
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/talent/list?limit=3&sort=verified')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!alive || !j || j.status !== 'ok') return;
+        const rows = Array.isArray(j.data) ? j.data : [];
+        if (rows.length) setFeaturedEngineers(rows.slice(0, 3).map(mapFeaturedEngineer));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
   }, []);
 
   // 逐 key 回退到英文：zh 提供全量，其余语言缺失的 key 用英文兜底
@@ -1243,7 +1223,7 @@ export default function Home() {
         <title>Talengineer | AI-Verified Industrial Automation Talent, Without Borders</title>
         <meta
           name="description"
-          content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers across 38 countries. Milestone escrow protects both sides; an AI project manager works in nine languages."
+          content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers — screened with a practical AI assessment and certified through platform exams. Milestone escrow protects both sides; an AI project manager works in nine languages."
         />
         {/* 品牌字体：Archivo（标题/字标）、IBM Plex Sans（正文）、IBM Plex Mono（数字/kicker）*/}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1441,41 +1421,43 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── FEATURED ENGINEERS ────────────────────────────────────────── */}
-          <section className={styles.section}>
-            <div className={styles.container}>
-              <div className={styles.sectionHead}>
-                <div>
-                  <div className={styles.kicker}>{d.featKicker}</div>
-                  <h2 className={styles.h2}>{d.featH2}</h2>
-                </div>
-                <Link href="/talent" className={styles.headLink}>{d.featBrowseAll}</Link>
-              </div>
-              <div className={styles.engGrid}>
-                {d.engineers.map((e, i) => (
-                  <div key={i} className={styles.engineerCard}>
-                    <div className={styles.engTop}>
-                      <span className={styles.avatar}>{e.initials}</span>
-                      <div className={styles.engMeta}>
-                        <b className={styles.engName}>{e.name}</b>
-                        <div className={styles.engLoc}>{e.loc} · {e.exp}</div>
-                      </div>
-                      <span className={styles.verifiedBadge}>{d.verified}</span>
-                    </div>
-                    <div className={styles.chipRow}>
-                      {e.chips.map((ch, j) => <span key={j} className={styles.chip}>{ch}</span>)}
-                    </div>
-                    <p className={styles.engBio}>{e.bio}</p>
-                    <div className={styles.engFooter}>
-                      <span className={styles.engRate}>{e.rate}</span>
-                      <span className={styles.engRating}>{e.ratingJobs}</span>
-                      <Link href="/talent" className={styles.viewProfile}>{d.viewProfile}</Link>
-                    </div>
+          {/* ── FEATURED ENGINEERS（真实数据，失败或为空时整个板块不渲染）──────── */}
+          {featuredEngineers && featuredEngineers.length > 0 && (
+            <section className={styles.section}>
+              <div className={styles.container}>
+                <div className={styles.sectionHead}>
+                  <div>
+                    <div className={styles.kicker}>{d.featKicker}</div>
+                    <h2 className={styles.h2}>{d.featH2}</h2>
                   </div>
-                ))}
+                  <Link href="/talent" className={styles.headLink}>{d.featBrowseAll}</Link>
+                </div>
+                <div className={styles.engGrid}>
+                  {featuredEngineers.map((e) => (
+                    <div key={e.id} className={styles.engineerCard}>
+                      <div className={styles.engTop}>
+                        <span className={styles.avatar}>{e.initials}</span>
+                        <div className={styles.engMeta}>
+                          <b className={styles.engName}>{e.name}</b>
+                          <div className={styles.engLoc}>{e.loc}</div>
+                        </div>
+                        <span className={styles.verifiedBadge}>{d.verified}</span>
+                      </div>
+                      <div className={styles.chipRow}>
+                        {e.chips.map((ch, j) => <span key={j} className={styles.chip}>{ch}</span>)}
+                      </div>
+                      <p className={styles.engBio}>{e.bio}</p>
+                      <div className={styles.engFooter}>
+                        <span className={styles.engRate}>{e.rate}</span>
+                        <span className={styles.engRating}>{e.ratingLine}</span>
+                        <Link href={`/engineer/${e.id}`} className={styles.viewProfile}>{d.viewProfile}</Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* ── RATE BENCHMARKS (fixed navy) ──────────────────────────────── */}
           <section className={styles.rateBand}>
