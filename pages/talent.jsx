@@ -377,7 +377,7 @@ export default function Talent() {
                       <div className={styles.cardFooter}>
                         <span className={styles.dateLabel}>Posted: {new Date(item.created_at).toLocaleDateString()}</span>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <Link href={`/project/${item.id}`} className={styles.btnAction} style={{ background: '#6b7280' }}>Details</Link>
+                          <Link href={`/project/${item.id}`} className={styles.btnAction} style={{ background: 'var(--text-muted)' }}>Details</Link>
                           {currentUser?.role === 'engineer'
                             ? <button className={styles.btnAction} onClick={() => { setApplyDemand(item); setApplyMsg(''); }}>Apply</button>
                             : <a href={`mailto:${item.contact}?subject=TalEngineer Inquiry: ${encodeURIComponent(item.title)}`} className={styles.btnAction}>Apply Now</a>
@@ -524,7 +524,7 @@ export default function Talent() {
                       <div className={styles.cardFooter}>
                         <span className={styles.dateLabel}>Joined: {new Date(t.created_at).toLocaleDateString()}</span>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <Link href={`/engineer/${t.id}`} className={styles.btnAction} style={{ background: '#6b7280' }}>Profile</Link>
+                          <Link href={`/engineer/${t.id}`} className={styles.btnAction} style={{ background: 'var(--text-muted)' }}>Profile</Link>
                           <a href={`mailto:${t.contact}?subject=TalEngineer Inquiry for ${encodeURIComponent(t.name)}`} className={styles.btnAction}>Invite</a>
                         </div>
                       </div>
@@ -582,7 +582,7 @@ export default function Talent() {
       {/* Apply Modal */}
       {applyDemand && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && setApplyDemand(null)}>
-          <form style={{ background: '#fff', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }} onSubmit={submitApply}>
+          <form style={{ background: 'var(--surface)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 480, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }} onSubmit={submitApply}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>Apply to Project</h3>

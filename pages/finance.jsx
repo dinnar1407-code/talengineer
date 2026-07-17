@@ -783,7 +783,7 @@ export default function Finance() {
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: app.message ? 6 : 0 }}>
                         {app.talents?.region} · {app.talents?.rate}
                       </div>
-                      {app.message && <div style={{ fontSize: 13, fontStyle: 'italic', color: '#374151' }}>{app.message}</div>}
+                      {app.message && <div style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--text)' }}>{app.message}</div>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
                       {app.status === 'accepted'

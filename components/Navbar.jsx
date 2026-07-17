@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
+import { useTheme } from '../hooks/useTheme';
 import styles from './Navbar.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -112,6 +113,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
   const [menuOpen, setMenuOpen]             = useState(false);         // 桌面端用户头像下拉菜单的开关
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);         // 移动端汉堡菜单的开关
   const [lang, setLang]                     = useState(langProp || 'en');
+  const { theme, toggle: toggleTheme }      = useTheme();               // 全站浅/深主题
   const [unreadCount, setUnreadCount]       = useState(0);
   const [notifs, setNotifs]                 = useState([]);
   const [bellOpen, setBellOpen]             = useState(false);
@@ -353,6 +355,15 @@ export default function Navbar({ lang: langProp, onLangChange }) {
             {d.signIn}
           </Link>
         )}
+
+        <button
+          className={styles.themeBtn}
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title="Toggle light / dark"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
         <div className={styles.divider} />
         <select

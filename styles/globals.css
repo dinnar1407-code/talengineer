@@ -1,12 +1,63 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   全站主题系统（浅色 / 深色）
+   - 语义 token 定义在 :root（浅色）与 :root[data-theme="dark"]（深色）。
+   - data-theme 由 _document.jsx 的行内脚本在首帧前写到 <html> 上（防闪烁），
+     由 hooks/useTheme.js 切换并持久化到 localStorage('tal-theme')。
+   - 旧变量（--primary/--secondary/--text-dark/--muted/--border 等）保留为别名，
+     指向新 token，因此各页面已有的 var(--xxx) 引用会自动跟随主题翻转。
+   ══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --primary: #0056b3;
-  --secondary: #f8f9fa;
-  --text-dark: #333333;
-  --text-light: #ffffff;
+  color-scheme: light;
+
+  /* 语义 token —— 浅色 */
+  --bg: #f8f9fa;          /* 页面背景 */
+  --surface: #ffffff;     /* 卡片 / 面板 / 导航条 */
+  --surface-2: #f1f5f9;   /* 次级面 / 输入底 / hover */
+  --surface-3: #e9eef4;   /* 更深一层的浅底 */
+  --text: #1f2937;        /* 主文本 */
+  --text-muted: #6b7280;  /* 次要文本 */
+  --border: #e5e7eb;      /* 描边 */
+  --primary: #0056b3;     /* 品牌蓝（按钮底 / 链接）*/
+  --primary-hover: #004494;
+  --primary-ink: #ffffff; /* 品牌蓝之上的文字 */
   --accent: #ffc107;
-  --muted: #6b7280;
-  --border: #e5e7eb;
   --success: #10b981;
+  --danger: #ef4444;
+  --shadow: 0 4px 6px rgba(0, 0, 0, .05);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, .12);
+
+  /* 旧变量别名（保持向后兼容，令既有引用自动跟随主题）*/
+  --secondary: var(--bg);
+  --text-dark: var(--text);
+  --text-light: #ffffff;
+  --muted: var(--text-muted);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* 语义 token —— 深色（与落地页深色调一致）*/
+  --bg: #0a1626;
+  --surface: #101f34;
+  --surface-2: #16283f;
+  --surface-3: #1c3350;
+  --text: #e6edf6;
+  --text-muted: #8ba0bd;
+  --border: #1c2f47;
+  --primary: #2f74d9;     /* 深色下的品牌蓝：白字可读、作文字色对比也够 */
+  --primary-hover: #4d9fff;
+  --primary-ink: #ffffff;
+  --accent: #f5b301;
+  --success: #3ecf8e;
+  --danger: #f87171;
+  --shadow: 0 4px 14px rgba(0, 0, 0, .4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, .5);
+
+  --secondary: var(--bg);
+  --text-dark: var(--text);
+  --text-light: #ffffff;
+  --muted: var(--text-muted);
 }
 
 * { box-sizing: border-box; }
@@ -15,9 +66,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: var(--secondary);
-  color: var(--text-dark);
+  background-color: var(--bg);
+  color: var(--text);
   line-height: 1.6;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 a { color: inherit; text-decoration: none; }

@@ -1,5 +1,5 @@
 .header {
-  background-color: #fff;
+  background-color: var(--surface);
   padding: 15px 40px;
   display: flex;
   justify-content: space-between;
@@ -15,7 +15,7 @@
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
 .sidebar {
   width: 300px;
-  background: #fff;
+  background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -51,11 +51,11 @@
 .footer p { margin: 4px 0; }
 
 /* ── Chat area ───────────────────────────────────────────────────────── */
-.chatArea { flex: 1; display: flex; flex-direction: column; background: #f1f5f9; overflow: hidden; }
+.chatArea { flex: 1; display: flex; flex-direction: column; background: var(--surface-2); overflow: hidden; }
 
 .chatHeader {
   padding: 20px;
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -109,7 +109,7 @@
   font-size: 14px;
   line-height: 1.5;
   align-self: flex-start;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-dark);
   border-bottom-left-radius: 2px;
@@ -160,7 +160,7 @@
 /* ── Input bar ───────────────────────────────────────────────────────── */
 .chatInput {
   padding: 20px;
-  background: #fff;
+  background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex;
   gap: 12px;
@@ -173,6 +173,8 @@
   border-radius: 24px;
   outline: none;
   font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 .chatInput input[type="text"]:focus { border-color: var(--primary); }
@@ -187,8 +189,8 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-.chatInput button:hover { background: #004494; }
-.chatInput button:disabled { background: #9ca3af; cursor: not-allowed; }
+.chatInput button:hover { background: var(--primary-hover); }
+.chatInput button:disabled { background: var(--text-muted); cursor: not-allowed; }
 .btnCamera {
   background: var(--secondary);
   color: var(--muted);
@@ -202,7 +204,7 @@
   font-size: 20px;
   cursor: pointer;
 }
-.btnCamera:hover { background: #e2e8f0; color: var(--text-dark); }
+.btnCamera:hover { background: var(--border); color: var(--text-dark); }
 
 /* ── Login overlay ───────────────────────────────────────────────────── */
 .loginOverlay {
@@ -216,8 +218,9 @@
   justify-content: center;
   backdrop-filter: blur(5px);
 }
+:global(html[data-theme="dark"]) .loginOverlay { background: rgba(10,22,38,0.9); }
 .loginBox {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   padding: 40px;
   border-radius: 12px;
@@ -231,7 +234,7 @@
 .formGroup input, .formGroup select {
   width: 100%;
   padding: 12px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-dark);
   border-radius: 6px;

@@ -47,7 +47,7 @@
   height: 40px;
   width: 60%;
   max-width: 300px;
-  background: #e5e7eb;
+  background: var(--border);
   border-radius: 18px;
   animation: pulse 1.2s infinite;
 }
@@ -103,7 +103,7 @@
 }
 
 .bubbleTheirs {
-  background: #fff;
+  background: var(--surface, #fff);
   color: var(--text, #111);
   border: 1px solid var(--border, #e5e7eb);
   border-bottom-left-radius: 4px;
@@ -142,7 +142,7 @@
   transition: border-color .15s;
 }
 
-.input:focus { border-color: var(--primary, #0056b3); background: #fff; }
+.input:focus { border-color: var(--primary, #0056b3); background: var(--surface, #fff); }
 
 .btnSend {
   width: 42px;
@@ -161,4 +161,4 @@
 }
 
 .btnSend:disabled { opacity: .4; cursor: not-allowed; }
-.btnSend:not(:disabled):hover { background: #004494; }
+.btnSend:not(:disabled):hover { background: var(--primary-hover, #004494); }

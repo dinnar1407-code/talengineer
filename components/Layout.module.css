@@ -1,5 +1,5 @@
 .header {
-  background-color: #fff;
+  background-color: var(--surface);
   padding: 15px 40px;
   display: flex;
   justify-content: space-between;
@@ -34,7 +34,7 @@
 }
 
 .navLinks a:hover {
-  background: #f1f5f9;
+  background: var(--surface-2);
 }
 
 .btnLogin {
@@ -44,11 +44,11 @@
 }
 
 .btnLogin:hover {
-  background: #004494 !important;
+  background: var(--primary-hover) !important;
 }
 
 .divider {
-  border-left: 1px solid #ccc;
+  border-left: 1px solid var(--border);
   height: 24px;
   margin: 0 10px;
 }

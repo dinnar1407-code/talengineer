@@ -91,10 +91,10 @@ export default function MessagesInbox() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[0, 1, 2].map(i => (
               <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#e5e7eb', flexShrink: 0 }} />
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--border)', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ height: 14, background: '#e5e7eb', borderRadius: 4, width: '50%', marginBottom: 8 }} />
-                  <div style={{ height: 12, background: '#e5e7eb', borderRadius: 4, width: '80%' }} />
+                  <div style={{ height: 14, background: 'var(--border)', borderRadius: 4, width: '50%', marginBottom: 8 }} />
+                  <div style={{ height: 12, background: 'var(--border)', borderRadius: 4, width: '80%' }} />
                 </div>
               </div>
             ))}
@@ -128,7 +128,7 @@ export default function MessagesInbox() {
                   transition: 'box-shadow .15s',
                 }}>
                   {/* Avatar */}
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: thread.unread_count > 0 ? 'rgba(0,86,179,0.1)' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: thread.unread_count > 0 ? 'rgba(0,86,179,0.1)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                     💬
                   </div>
 

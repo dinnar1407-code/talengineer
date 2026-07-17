@@ -1,6 +1,6 @@
 .layout {
   min-height: 100dvh;
-  background: linear-gradient(135deg, #f0f4ff 0%, #fff 60%);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,7 +8,7 @@
 }
 
 .card {
-  background: #fff;
+  background: var(--surface);
   border-radius: 20px;
   box-shadow: 0 8px 40px rgba(0,0,0,.1);
   width: 100%;
@@ -18,7 +18,7 @@
 
 .progressBar {
   height: 4px;
-  background: #e5e7eb;
+  background: var(--border);
 }
 
 .progressFill {
@@ -280,7 +280,7 @@
   transition: background .15s;
 }
 
-.btnNext:hover { background: #004494; }
+.btnNext:hover { background: var(--primary-hover); }
 .btnNext:disabled { opacity: .6; cursor: not-allowed; }
 
 .btnBack {

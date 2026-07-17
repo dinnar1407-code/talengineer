@@ -18,7 +18,7 @@ function StarRating({ value, onChange, size = 24 }) {
       {[1,2,3,4,5].map(n => (
         <span
           key={n}
-          style={{ fontSize: size, cursor: onChange ? 'pointer' : 'default', color: n <= (hover || value) ? '#f59e0b' : '#d1d5db', lineHeight: 1 }}
+          style={{ fontSize: size, cursor: onChange ? 'pointer' : 'default', color: n <= (hover || value) ? '#f59e0b' : 'var(--border)', lineHeight: 1 }}
           onClick={() => onChange?.(n)}
           onMouseEnter={() => onChange && setHover(n)}
           onMouseLeave={() => onChange && setHover(0)}
@@ -383,7 +383,7 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
                     <StarRating value={rev.rating} size={16} />
                     <span style={{ fontSize: 11, color: 'var(--muted)' }}>{new Date(rev.created_at).toLocaleDateString()}</span>
                   </div>
-                  {rev.comment && <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{rev.comment}</p>}
+                  {rev.comment && <p style={{ margin: 0, fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{rev.comment}</p>}
                   {rev.demands?.title && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Project: {rev.demands.title}</div>}
                 </div>
               ))
@@ -401,7 +401,7 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#f3f4f6', position: 'relative', textDecoration: 'none' }}
+                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--surface-2)', position: 'relative', textDecoration: 'none' }}
                   >
                     <img
                       src={item.url}
