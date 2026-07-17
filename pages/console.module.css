@@ -285,3 +285,18 @@
 .notifItemTitle { font-size: 13px; font-weight: 600; color: var(--text); }
 .notifItemBody { font-size: 12px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notifItemTime { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── 演示数据徽标（测试阶段：真实数据为空时兜底展示演示数据，此徽标标明来源）── */
+.demoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}

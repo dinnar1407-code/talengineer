@@ -77,6 +77,13 @@ const DICT = {
     // Featured engineers：真实数据从 /api/talent/list 拉取，不再使用占位人物
     featKicker: 'Featured talent', featH2: 'Engineers ready to deploy this week', featBrowseAll: 'Browse all engineers →',
     verified: '✓ AI-Verified', viewProfile: 'View profile →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'Demo data',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ho Chi Minh City', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Led PLC migration for 3 automotive tier-1 lines; FAT/SAT commissioning across SE Asia.', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Robotic weld-cell integrator; 40+ Fanuc cells commissioned for US & Mexico OEMs.', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition Gold-certified; built plant-wide SCADA for pharma and F&B facilities.', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks（占位，后续接 /rates live data）
     rateKicker: 'Live market data', rateH2: 'Know the fair rate before you hire',
     rateBody: 'Real-time hourly-rate benchmarks by region and specialty, sourced from active engineer profiles. Budget with confidence — no guesswork, no inflated agency markups.',
@@ -200,6 +207,13 @@ const DICT = {
     // Featured
     featKicker: '精选人才', featH2: '本周即可到岗的工程师', featBrowseAll: '浏览全部工程师 →',
     verified: '✓ AI 认证', viewProfile: '查看档案 →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: '测试数据',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 胡志明市', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '主导 3 条汽车一级供应商产线的 PLC 迁移；在东南亚多地完成 FAT/SAT 调试。', rate: '$38/hr', ratingLine: '★ 4.9（27 单）' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 蒙特雷', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: '机器人焊接工作站集成商；为美墨设备厂商调试 40+ 台 Fanuc 工作站。', rate: '$52/hr', ratingLine: '★ 5.0（34 单）' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 浦那', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition 金牌认证；为制药与食品饮料工厂搭建全厂级 SCADA。', rate: '$34/hr', ratingLine: '★ 4.8（19 单）' },
+    ],
     // Rate benchmarks
     rateKicker: '实时市场数据', rateH2: '招人前，先知道公道的行情价',
     rateBody: '按地区与专业实时统计的时薪基准，数据来自活跃工程师档案。让你有据可依地做预算——不靠猜，也没有中介的层层加价。',
@@ -323,6 +337,13 @@ const DICT = {
     // Featured
     featKicker: 'Talento destacado', featH2: 'Ingenieros listos para empezar esta semana', featBrowseAll: 'Ver todos los ingenieros →',
     verified: '✓ Verificado por IA', viewProfile: 'Ver perfil →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'Datos de demostración',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ciudad Ho Chi Minh', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Lideró la migración de PLC de 3 líneas de proveedores tier-1 de automoción; puesta en marcha FAT/SAT en todo el Sudeste Asiático.', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Integrador de celdas de soldadura robotizada; más de 40 celdas Fanuc puestas en marcha para OEM de EE. UU. y México.', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Certificada Ignition Gold; construyó SCADA para toda la planta en instalaciones farmacéuticas y de alimentación y bebidas.', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'Datos de mercado en vivo', rateH2: 'Conoce la tarifa justa antes de contratar',
     rateBody: 'Referencias de tarifas por hora en tiempo real, por región y especialidad, a partir de perfiles de ingenieros activos. Presupuesta con confianza: sin conjeturas ni sobreprecios de agencia.',
@@ -446,6 +467,13 @@ const DICT = {
     // Featured
     featKicker: 'Nhân tài nổi bật', featH2: 'Kỹ sư sẵn sàng nhận việc trong tuần này', featBrowseAll: 'Xem tất cả kỹ sư →',
     verified: '✓ Đã xác minh bằng AI', viewProfile: 'Xem hồ sơ →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'Dữ liệu demo',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Thành phố Hồ Chí Minh', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Dẫn dắt việc chuyển đổi PLC cho 3 dây chuyền nhà cung cấp tier-1 ngành ô tô; chạy thử FAT/SAT khắp Đông Nam Á.', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Nhà tích hợp trạm hàn robot; đã chạy thử hơn 40 trạm Fanuc cho các OEM Mỹ và Mexico.', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Chứng nhận Ignition Gold; xây dựng SCADA toàn nhà máy cho các cơ sở dược phẩm và thực phẩm & đồ uống.', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'Dữ liệu thị trường trực tiếp', rateH2: 'Biết mức phí hợp lý trước khi thuê',
     rateBody: 'Chuẩn mức phí theo giờ thời gian thực theo khu vực và chuyên môn, lấy từ hồ sơ kỹ sư đang hoạt động. Lập ngân sách tự tin — không phỏng đoán, không phụ phí môi giới thổi phồng.',
@@ -569,6 +597,13 @@ const DICT = {
     // Featured
     featKicker: 'चुनिंदा प्रतिभा', featH2: 'इस सप्ताह तैनात होने के लिए तैयार इंजीनियर', featBrowseAll: 'सभी इंजीनियर देखें →',
     verified: '✓ AI-सत्यापित', viewProfile: 'प्रोफ़ाइल देखें →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'डेमो डेटा',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 हो ची मिन्ह सिटी', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '3 ऑटोमोटिव टियर-1 लाइनों के लिए PLC माइग्रेशन का नेतृत्व किया; दक्षिण-पूर्व एशिया में FAT/SAT कमीशनिंग।', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 मॉन्टेरे', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'रोबोटिक वेल्ड-सेल इंटीग्रेटर; अमेरिका व मेक्सिको के OEM के लिए 40+ Fanuc सेल कमीशन किए।', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 पुणे', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition गोल्ड-प्रमाणित; फार्मा और खाद्य-पेय संयंत्रों के लिए संपूर्ण-संयंत्र SCADA बनाया।', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'लाइव बाज़ार डेटा', rateH2: 'नियुक्ति से पहले उचित दर जानें',
     rateBody: 'क्षेत्र और विशेषज्ञता के अनुसार रियल-टाइम प्रति घंटा दर मानक, सक्रिय इंजीनियर प्रोफ़ाइलों से लिए गए। आत्मविश्वास से बजट बनाएँ — कोई अनुमान नहीं, कोई बढ़ा-चढ़ा एजेंसी मार्कअप नहीं।',
@@ -692,6 +727,13 @@ const DICT = {
     // Featured
     featKicker: 'Talents à la une', featH2: 'Ingénieurs prêts à intervenir cette semaine', featBrowseAll: 'Voir tous les ingénieurs →',
     verified: '✓ Vérifié par IA', viewProfile: 'Voir le profil →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'Données de démo',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Hô-Chi-Minh-Ville', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: "A dirigé la migration PLC de 3 lignes de fournisseurs automobiles de rang 1 ; mise en service FAT/SAT dans toute l'Asie du Sud-Est.", rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: "Intégrateur de cellules de soudage robotisées ; plus de 40 cellules Fanuc mises en service pour des OEM américains et mexicains.", rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: "Certifiée Ignition Gold ; a conçu des SCADA à l'échelle de l'usine pour des sites pharmaceutiques et agroalimentaires.", rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'Données de marché en direct', rateH2: 'Connaissez le juste tarif avant de recruter',
     rateBody: "Références de tarifs horaires en temps réel par région et spécialité, issues de profils d'ingénieurs actifs. Budgétez en toute confiance — sans approximation ni marges d'agence gonflées.",
@@ -815,6 +857,13 @@ const DICT = {
     // Featured
     featKicker: 'Ausgewählte Talente', featH2: 'Ingenieure, die diese Woche einsatzbereit sind', featBrowseAll: 'Alle Ingenieure ansehen →',
     verified: '✓ KI-verifiziert', viewProfile: 'Profil ansehen →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'Demodaten',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 Ho-Chi-Minh-Stadt', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: 'Leitete die PLC-Migration für 3 Tier-1-Automobillinien; FAT/SAT-Inbetriebnahme in ganz Südostasien.', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'Integrator für robotergestützte Schweißzellen; über 40 Fanuc-Zellen für OEMs in den USA und Mexiko in Betrieb genommen.', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition-Gold-zertifiziert; baute werksweite SCADA-Systeme für Pharma- und Lebensmittelbetriebe.', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'Live-Marktdaten', rateH2: 'Kennen Sie den fairen Tarif, bevor Sie einstellen',
     rateBody: 'Echtzeit-Stundensatz-Benchmarks nach Region und Fachgebiet, gewonnen aus aktiven Ingenieurprofilen. Budgetieren Sie mit Zuversicht — kein Rätselraten, keine überhöhten Agenturaufschläge.',
@@ -938,6 +987,13 @@ const DICT = {
     // Featured
     featKicker: '注目の人材', featH2: '今週から稼働できるエンジニア', featBrowseAll: 'すべてのエンジニアを見る →',
     verified: '✓ AI検証済み', viewProfile: 'プロフィールを見る →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: 'デモデータ',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 ホーチミン市', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '自動車ティア1の3ラインでPLC移行を主導。東南アジア各地でFAT/SAT試運転を実施。', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 モンテレイ', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: 'ロボット溶接セルのインテグレーター。米国・メキシコのOEM向けに40台超のFanucセルを試運転。', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 プネー', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignitionゴールド認定。製薬・食品飲料施設向けに全工場規模のSCADAを構築。', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: 'ライブ市場データ', rateH2: '雇う前に適正料金を知る',
     rateBody: '地域と専門分野別のリアルタイム時間料金ベンチマーク。稼働中のエンジニアプロフィールから収集。当て推量も、水増しされた代理店マージンもなく、自信を持って予算を立てられます。',
@@ -1061,6 +1117,13 @@ const DICT = {
     // Featured
     featKicker: '추천 인재', featH2: '이번 주 투입 가능한 엔지니어', featBrowseAll: '전체 엔지니어 보기 →',
     verified: '✓ AI 검증됨', viewProfile: '프로필 보기 →',
+    // 测试阶段演示数据：仅当 /api/talent/list 无真实工程师时兜底展示，且必带「🧪」徽标
+    demoData: '데모 데이터',
+    demoEngineers: [
+      { id: 'demo-1', initials: 'MN', name: 'Minh N.', loc: '🇻🇳 호치민시', chips: ['Siemens TIA Portal', 'WinCC', 'Profinet'], bio: '자동차 1차 협력사 3개 라인의 PLC 마이그레이션을 주도했으며, 동남아시아 전역에서 FAT/SAT 시운전 수행.', rate: '$38/hr', ratingLine: '★ 4.9 (27 jobs)' },
+      { id: 'demo-2', initials: 'DR', name: 'Diego R.', loc: '🇲🇽 몬테레이', chips: ['Fanuc Robotics', 'Studio 5000', 'Machine Vision'], bio: '로봇 용접 셀 인티그레이터. 미국 및 멕시코 OEM을 위해 40대 이상의 Fanuc 셀을 시운전.', rate: '$52/hr', ratingLine: '★ 5.0 (34 jobs)' },
+      { id: 'demo-3', initials: 'PK', name: 'Priya K.', loc: '🇮🇳 푸네', chips: ['Ignition SCADA', 'OPC UA', 'Python'], bio: 'Ignition 골드 인증. 제약 및 식음료 시설을 위한 전 공장 규모 SCADA 구축.', rate: '$34/hr', ratingLine: '★ 4.8 (19 jobs)' },
+    ],
     // Rate benchmarks
     rateKicker: '실시간 시장 데이터', rateH2: '채용 전에 적정 요율을 확인하세요',
     rateBody: '지역 및 전문 분야별 실시간 시급 벤치마크로, 활동 중인 엔지니어 프로필에서 수집합니다. 추측도, 부풀려진 에이전시 마진도 없이 자신 있게 예산을 세우세요.',
@@ -1186,6 +1249,12 @@ export default function Home() {
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
   const current = LANGS.find((l) => l.code === lang) || LANGS[0];
   const dark = theme === 'dark';
+
+  // Featured engineers：真实数据优先；/api/talent/list 为空或失败时回退到本地化演示卡（带「🧪」徽标）
+  const engIsDemo = !(featuredEngineers && featuredEngineers.length > 0);
+  const engList = engIsDemo ? (d.demoEngineers || []) : featuredEngineers;
+  // 演示徽标样式（描边 chip，深浅色均可读，走全站 --accent token 并带琥珀色兜底）
+  const demoBadgeStyle = { display: 'inline-block', marginLeft: 10, fontSize: 12, fontWeight: 700, color: 'var(--accent, #b26a00)', background: 'transparent', border: '1px solid var(--accent, #f5b301)', borderRadius: 999, padding: '2px 10px', verticalAlign: 'middle' };
 
   function chooseLang(code) {
     setLang(code);
@@ -1421,19 +1490,19 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── FEATURED ENGINEERS（真实数据，失败或为空时整个板块不渲染）──────── */}
-          {featuredEngineers && featuredEngineers.length > 0 && (
+          {/* ── FEATURED ENGINEERS（真实数据优先；为空/失败时回退到本地化演示卡 + 徽标）──────── */}
+          {engList.length > 0 && (
             <section className={styles.section}>
               <div className={styles.container}>
                 <div className={styles.sectionHead}>
                   <div>
                     <div className={styles.kicker}>{d.featKicker}</div>
-                    <h2 className={styles.h2}>{d.featH2}</h2>
+                    <h2 className={styles.h2}>{d.featH2}{engIsDemo && <span style={demoBadgeStyle}>🧪 {d.demoData} · Demo</span>}</h2>
                   </div>
                   <Link href="/talent" className={styles.headLink}>{d.featBrowseAll}</Link>
                 </div>
                 <div className={styles.engGrid}>
-                  {featuredEngineers.map((e) => (
+                  {engList.map((e) => (
                     <div key={e.id} className={styles.engineerCard}>
                       <div className={styles.engTop}>
                         <span className={styles.avatar}>{e.initials}</span>
@@ -1450,7 +1519,8 @@ export default function Home() {
                       <div className={styles.engFooter}>
                         <span className={styles.engRate}>{e.rate}</span>
                         <span className={styles.engRating}>{e.ratingLine}</span>
-                        <Link href={`/engineer/${e.id}`} className={styles.viewProfile}>{d.viewProfile}</Link>
+                        {/* 演示卡不深链到 /engineer/{id}（不存在），改指 /talent；真实卡照常进档案 */}
+                        <Link href={engIsDemo ? '/talent' : `/engineer/${e.id}`} className={styles.viewProfile}>{d.viewProfile}</Link>
                       </div>
                     </div>
                   ))}

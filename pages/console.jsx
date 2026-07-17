@@ -72,6 +72,8 @@ const DICT = {
     stAiFailed: 'Not passed', stRejected: 'Rejected', stExpired: 'Expired', stInProgress: 'In progress',
     // Generic states
     loading: 'Loading…', errLoad: 'Failed to load. Please retry.',
+    // 测试阶段演示数据徽标 + 演示模式深链拦截文案
+    demoData: 'Demo data', demoReadonly: 'Demo data — not actionable',
     // Admin
     adminDataTitle: 'Platform data manager', adminDataDesc: 'Users, demands, certifications, exams, payouts and PMF signals.',
     adminOpen: 'Open Admin Data Manager →', adminPagesTitle: 'All pages', adminPagesDesc: 'Jump into any page as the super admin.',
@@ -125,6 +127,8 @@ const DICT = {
     stCertified: '已认证', stAiPassed: '待复核', stSubmitted: '人工复核中',
     stAiFailed: '未通过', stRejected: '已驳回', stExpired: '已过期', stInProgress: '进行中',
     loading: '加载中…', errLoad: '加载失败，请重试。',
+    // 测试阶段演示数据徽标 + 演示模式深链拦截文案
+    demoData: '测试数据', demoReadonly: '演示数据不可操作',
     adminDataTitle: '平台数据管理', adminDataDesc: '用户、需求、认证、考试、打款与 PMF 信号。',
     adminOpen: '打开管理后台 →', adminPagesTitle: '所有页面', adminPagesDesc: '以超级管理员身份进入任意页面。',
   },
@@ -136,6 +140,89 @@ const ENGINEERS_PLACEHOLDER = [
   { id: null, initials: 'DR', name: 'Diego R.', loc: '🇲🇽 Monterrey · 12 yrs', chips: ['Fanuc', 'Studio 5000', 'Vision'], rate: '$52/hr', star: '5.0', verified: true },
   { id: null, initials: 'PK', name: 'Priya K.', loc: '🇮🇳 Pune · 8 yrs', chips: ['Ignition', 'OPC UA', 'Python'], rate: '$34/hr', star: '4.8', verified: true },
 ];
+
+// ── 测试阶段演示数据：仅当对应真实数据为空 / 请求失败时兜底展示，且必带「🧪 测试数据 · Demo」徽标。
+//    字段结构已重塑为当前渲染所需（来源：git a9fa494 的占位常量）。真实数据永远优先。────────────
+const DEMO_TS = Date.now();
+const demoAgo = (min) => new Date(DEMO_TS - min * 60000).toISOString();
+
+// 活动流 + 铃铛面板（对应 /api/notifications 的字段形状）
+const DEMO_NOTIFICATIONS = [
+  { id: 'demo-n1', type: 'engineer_assigned', title: 'M2 · SCADA integration — approved', body: 'Line-3 Retrofit · Priya K. · $8,000', created_at: demoAgo(35), read: false },
+  { id: 'demo-n2', type: 'exam_result', title: 'M3 · FAT documentation — awaiting your review', body: 'Weld-cell #4 · Diego R. · $6,500', created_at: demoAgo(180), read: false },
+  { id: 'demo-n3', type: 'new_application', title: 'M1 · PLC migration — funded to escrow', body: 'Packaging Line VN · Minh N. · $12,000', created_at: demoAgo(1440), read: true },
+];
+
+// 待办清单（对应 dashboard todos 的字段形状）
+const DEMO_TODOS = [
+  { icon: '📝', title: 'Review M3 deliverable', sub: 'Weld-cell #4 · due today', active: true },
+  { icon: '💬', title: 'Reply to Minh N.', sub: '2 messages · auto-translated' },
+  { icon: '💰', title: 'Fund M4 milestone', sub: 'Line-3 Retrofit · $5,000' },
+];
+
+// 项目 + 里程碑：归一化后与真实 projects 同结构（demandId/name/meta/budget/milestones[]/派生字段）。
+// milestones 字段对齐 /api/finance/milestones：id/phase_name/status/amount/created_at。
+// 一处定义、三屏共用：Dashboard 指标卡、Escrow 交易表、Projects 时间线都从这里派生。
+const DEMO_PROJECTS = [
+  {
+    demandId: 'demo-p1', name: 'Line-3 SCADA Retrofit', meta: '🇮🇳 Priya K. · Ignition SCADA', budget: '$22,000',
+    milestones: [
+      { id: 'demo-p1-m1', phase_name: 'M1 · Requirements & tag database', status: 'released', amount: 8000, created_at: demoAgo(60 * 24 * 20) },
+      { id: 'demo-p1-m2', phase_name: 'M2 · SCADA integration', status: 'released', amount: 8000, created_at: demoAgo(60 * 24 * 12) },
+      { id: 'demo-p1-m3', phase_name: 'M3 · FAT documentation', status: 'completed', amount: 6000, created_at: demoAgo(60 * 24 * 3) },
+    ],
+  },
+  {
+    demandId: 'demo-p2', name: 'Weld-cell #4 Integration', meta: '🇲🇽 Diego R. · Fanuc Robotics', budget: '$18,500',
+    milestones: [
+      { id: 'demo-p2-m1', phase_name: 'M1 · Cell layout & safety', status: 'released', amount: 6000, created_at: demoAgo(60 * 24 * 14) },
+      { id: 'demo-p2-m2', phase_name: 'M2 · Robot programming', status: 'funded', amount: 7500, created_at: demoAgo(60 * 24 * 5) },
+      { id: 'demo-p2-m3', phase_name: 'M3 · Commissioning & FAT', status: 'locked', amount: 5000, created_at: demoAgo(60 * 24 * 2) },
+    ],
+  },
+  {
+    demandId: 'demo-p3', name: 'Packaging Line VN', meta: '🇻🇳 Minh N. · Siemens TIA', budget: '$31,000',
+    milestones: [
+      { id: 'demo-p3-m1', phase_name: 'M1 · PLC migration', status: 'funded', amount: 12000, created_at: demoAgo(60 * 24 * 4) },
+      { id: 'demo-p3-m2', phase_name: 'M2 · HMI development', status: 'locked', amount: 9000, created_at: demoAgo(60 * 24 * 1) },
+      { id: 'demo-p3-m3', phase_name: 'M3 · Line integration', status: 'locked', amount: 10000, created_at: demoAgo(60 * 12) },
+    ],
+  },
+].map((p) => {
+  // 与组件内真实 projects 的派生保持一致：msCount/doneCount/pct/needsReview
+  const ms = p.milestones;
+  const doneCount = ms.filter((m) => m.status === 'released').length;
+  const needsReview = ms.some((m) => ['funded', 'completed'].includes(m.status));
+  return { ...p, msCount: ms.length, doneCount, pct: ms.length ? Math.round((doneCount / ms.length) * 100) : 0, needsReview };
+});
+
+// 会话列表（对应 /api/messages/inbox 的字段形状）
+const DEMO_CONVERSATIONS = [
+  { demand_id: 'demo-c1', title: 'Packaging Line VN', region: '🇻🇳 Minh N.', last_message: 'Tôi đã hoàn thành phần migration…', last_message_time: demoAgo(2), unread_count: 2 },
+  { demand_id: 'demo-c2', title: 'Weld-cell #4', region: '🇲🇽 Diego R.', last_message: 'FAT report attached, ready for review', last_message_time: demoAgo(60), unread_count: 0 },
+  { demand_id: 'demo-c3', title: 'Line-3 Retrofit', region: '🇮🇳 Priya K.', last_message: 'Thanks, will start M4 next week', last_message_time: demoAgo(180), unread_count: 0 },
+];
+
+// 会话消息（mine=自己发的，避免依赖真实 user.email）
+const DEMO_THREAD = [
+  { id: 'demo-t1', mine: false, sender_name: 'Minh N. 🇻🇳', content: "I've completed the PLC migration and am now running the FAT test.", created_at: demoAgo(20) },
+  { id: 'demo-t2', mine: true, sender_name: 'You', content: 'Great work! Please attach the FAT checklist when ready.', created_at: demoAgo(18) },
+  { id: 'demo-t3', mine: false, sender_name: 'Minh N. 🇻🇳', content: "Sure, I'll send it over today.", created_at: demoAgo(17) },
+];
+
+// 认证 & 考核（对应 /api/training/my：certifications[] + attempts[]）
+const DEMO_CERTIFICATIONS = [
+  { track_name_en: 'PLC Programming (Siemens TIA)', track_name_zh: 'PLC 编程（西门子 TIA）', level: 2 },
+  { track_name_en: 'SCADA / HMI (WinCC)', track_name_zh: 'SCADA / HMI（WinCC）', level: 2 },
+  { track_name_en: 'Industrial Networking (Profinet)', track_name_zh: '工业网络（Profinet）', level: 1 },
+];
+const DEMO_ATTEMPTS = [
+  { id: 'demo-a1', level: 2, status: 'certified', score: 92, cert_tracks: { name_en: 'PLC Programming (Siemens TIA)', name_zh: 'PLC 编程（西门子 TIA）' } },
+  { id: 'demo-a2', level: 2, status: 'certified', score: 88, cert_tracks: { name_en: 'SCADA / HMI (WinCC)', name_zh: 'SCADA / HMI（WinCC）' } },
+  { id: 'demo-a3', level: 1, status: 'submitted', score: 76, cert_tracks: { name_en: 'Industrial Networking (Profinet)', name_zh: '工业网络（Profinet）' } },
+];
+// 档案技能（对应 talentProfile.skills 逗号串拆出的 chip）
+const DEMO_PROFILE_SKILLS = ['Siemens TIA Portal', 'WinCC', 'Profinet'];
 
 // 超级管理员"所有页面"入口（每项均指向真实存在的路由）
 const ADMIN_PAGES = [
@@ -362,12 +449,18 @@ export default function Console() {
       else { setThread({ data: [] }); setErrors(e => ({ ...e, thread: true })); }
     } catch { setThread({ data: [] }); setErrors(e => ({ ...e, thread: true })); }
   }
-  function selectThread(id) { setActiveThread(id); setReplyText(''); loadThread(id); }
+  function selectThread(id) {
+    setActiveThread(id); setReplyText('');
+    // 演示会话没有真实线程可拉：直接注入演示消息，不打 API
+    if (String(id).startsWith('demo-')) { setThread({ data: DEMO_THREAD }); return; }
+    loadThread(id);
+  }
 
   // 快捷回复：真实发送到 /api/messages，成功后重载线程（深度操作仍跳 /messages）
   async function sendReply() {
     const content = replyText.trim();
     if (!content || activeThread == null || sending) return;
+    if (String(activeThread).startsWith('demo-')) return; // 演示会话不可真实发送
     setSending(true);
     try {
       const res = await fetch('/api/messages', {
@@ -453,11 +546,15 @@ export default function Console() {
   const sourceLoading = isEngineer ? ledger === null : myDemands === null;
   const sourceError = isEngineer ? errors.ledger : errors.demands;
   const milestonesPending = projects.length > 0 && Object.keys(milestonesByDemand).length === 0;
-  const projIndex = Math.min(selectedProject, Math.max(0, projects.length - 1));
-  const proj = projects[projIndex] || null;
+  // 真实项目为空或请求失败（已加载完但零条）→ 用演示项目兜底。demo 会一并驱动 Projects 时间线、
+  // Escrow 交易表与 Dashboard 指标卡，保证三屏数据一致，且各处顶部都会打「🧪」徽标。
+  const projectsDemo = !sourceLoading && projects.length === 0;
+  const projList = projectsDemo ? DEMO_PROJECTS : projects;
+  const projIndex = Math.min(selectedProject, Math.max(0, projList.length - 1));
+  const proj = projList[projIndex] || null;
 
-  // ── 派生指标（真实里程碑聚合）────────────────────────────────────────────────
-  const allMs = projects.flatMap(p => p.milestones);
+  // ── 派生指标（真实里程碑聚合；projList 已含演示兜底）──────────────────────────
+  const allMs = projList.flatMap(p => p.milestones);
   // 托管中 = 已托管未放款（funded 工程师做工 + completed 待雇主审批），资金都还锁在托管里
   const escrowedMs = allMs.filter(m => ['funded', 'completed'].includes(m.status));
   const heldSum = escrowedMs.reduce((s, m) => s + Number(m.amount || 0), 0);
@@ -468,7 +565,14 @@ export default function Console() {
   const reviewCount = isEmployer
     ? allMs.filter(m => m.status === 'completed').length
     : allMs.filter(m => m.status === 'funded').length;
-  const unreadTotal = (threads || []).reduce((s, t) => s + (t.unread_count || 0), 0);
+  // 会话：真实收件箱为空或失败 → 演示会话兜底（同时驱动未读数与会话数）
+  const convsDemo = threads !== null && (errors.inbox || threads.length === 0);
+  const convsToShow = convsDemo ? DEMO_CONVERSATIONS : (threads || []);
+  const demoConv = convsToShow.find(c => c.demand_id === activeThread) || convsToShow[0] || null;
+  const unreadTotal = convsToShow.reduce((s, t) => s + (t.unread_count || 0), 0);
+  // 活动流：真实通知为空或失败 → 演示通知兜底
+  const feedIsDemo = notifications !== null && (errors.notif || notifications.length === 0);
+  const feedToShow = feedIsDemo ? DEMO_NOTIFICATIONS : (notifications || []);
 
   // ── 待办推导（雇主/工程师视角不同；逻辑就近注释）──────────────────────────────
   const todos = [];
@@ -499,6 +603,8 @@ export default function Console() {
     if (talentLoaded && !talentProfile) todos.push({ icon: '📇', title: d.tCompleteProfile, sub: '' });
   }
   const todosToShow = todos.slice(0, 8);
+  // 待办：真实项目为空（同 projectsDemo 判据）→ 演示待办兜底
+  const todosDemo = projectsDemo;
 
   // ── 侧栏导航（含仅工程师可见的"学习与考核"外链项）─────────────────────────────
   const navItems = [
@@ -527,11 +633,65 @@ export default function Console() {
   const userInitials = initialsOf(user.name, user.email);
   const userName = user.name || (user.email ? user.email.split('@')[0] : 'User');
   const roleLabel = isEmployer ? d.roleEmployerLabel : isEngineer ? d.roleEngineerLabel : d.roleAdminLabel;
+  // Find Engineers：真实 talent/list 未填充 → 占位工程师兜底（回退逻辑保留，回退时打徽标）
+  const findIsDemo = engineers === null;
   const engineersToShow = engineers || ENGINEERS_PLACEHOLDER;
-  const activeConv = (threads || []).find(c => c.demand_id === activeThread) || null;
+  const activeConv = convsToShow.find(c => c.demand_id === activeThread) || null;
 
   // 考核状态标签本地化
   const stLabel = { certified: d.stCertified, ai_passed: d.stAiPassed, submitted: d.stSubmitted, ai_failed: d.stAiFailed, rejected: d.stRejected, expired: d.stExpired, in_progress: d.stInProgress };
+
+  // 认证 & 技能：真实为空或失败 → 演示兜底
+  const trainingHasReal = training && ((training.certifications || []).length > 0 || (training.attempts || []).length > 0);
+  const certIsDemo = training !== null && !trainingHasReal;
+  const certCerts = certIsDemo ? DEMO_CERTIFICATIONS : (training?.certifications || []);
+  const certAttempts = certIsDemo ? DEMO_ATTEMPTS : (training?.attempts || []);
+  const skillsList = (talentProfile?.skills || '').split(',').map(s => s.trim()).filter(Boolean);
+  const skillsIsDemo = talentLoaded && skillsList.length === 0;   // 未建档或无技能 → 演示技能
+  const skillsToShow = skillsIsDemo ? DEMO_PROFILE_SKILLS : skillsList;
+
+  // 演示徽标：小圆角 chip，样式见 .demoBadge（同一元素在多处复用，非列表无需 key）
+  const demoBadge = <span className={styles.demoBadge}>🧪 {d.demoData} · Demo</span>;
+
+  // 认证卡正文（真实/演示共用同一渲染，避免重复 JSX）
+  function certBody(certs, attempts) {
+    return (
+      <>
+        {certs.length > 0 && (
+          <div style={{ marginBottom: attempts.length ? 18 : 0 }}>
+            <div className={styles.tlLabel}>{d.myCerts}</div>
+            {certs.map((c, i) => (
+              <div key={i} className={styles.certRow}>
+                <span className={styles.certTrack}>{lang === 'zh' ? c.track_name_zh : c.track_name_en}</span>
+                <span className={styles.certLevel}>L{c.level}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {attempts.length > 0 && (
+          <div>
+            <div className={styles.tlLabel}>{d.examHistory}</div>
+            <div className={styles.scoreList}>
+              {attempts.map(a => {
+                const good = (a.score ?? 0) >= 70;
+                return (
+                  <div key={a.id}>
+                    <div className={styles.scoreTop}>
+                      <span>{(lang === 'zh' ? a.cert_tracks?.name_zh : a.cert_tracks?.name_en) || `L${a.level}`} · {stLabel[a.status] || a.status}</span>
+                      <span className={`${styles.scoreVal} ${a.score != null ? (good ? styles.scoreValGood : styles.scoreValMid) : ''}`}>{a.score != null ? `${a.score} / 100` : '—'}</span>
+                    </div>
+                    <div className={styles.scoreBar}>
+                      {a.score != null && <div className={`${styles.scoreFill} ${good ? styles.scoreFillGood : styles.scoreFillMid}`} style={{ width: `${a.score}%` }} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -611,17 +771,13 @@ export default function Console() {
                   <div className={styles.notifBackdrop} onClick={() => setNotifOpen(false)} />
                   <div className={styles.notifPanel}>
                     <div className={styles.notifHead}>
-                      <b>{d.notifications}</b>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><b>{d.notifications}</b>{feedIsDemo && demoBadge}</span>
                       {notifUnread > 0 && <button className={styles.markAllBtn} onClick={markAllRead}>{d.markAllRead}</button>}
                     </div>
                     <div className={styles.notifScroll}>
                       {notifications === null ? (
                         <div className={styles.stateBox}>{d.loading}</div>
-                      ) : errors.notif ? (
-                        <div className={styles.stateBox}>{d.errLoad}</div>
-                      ) : notifications.length === 0 ? (
-                        <div className={styles.stateBox}><div className={styles.stateIcon}>🔔</div><b>{d.notifEmpty}</b></div>
-                      ) : notifications.slice(0, 10).map(n => (
+                      ) : feedToShow.slice(0, 10).map(n => (
                         <button key={n.id} className={`${styles.notifItem} ${n.read ? '' : styles.notifUnreadItem}`} onClick={() => openNotif(n)}>
                           <div className={styles.notifItemTitle}>{n.title}</div>
                           {n.body && <div className={styles.notifItemBody}>{n.body}</div>}
@@ -640,10 +796,12 @@ export default function Console() {
             {/* ===== DASHBOARD ===== */}
             {effScreen === 'dashboard' && (
               <div className={styles.stack}>
+                {/* 指标卡演示值：真实项目为空时兜底，徽标置于指标卡组上方 */}
+                {projectsDemo && <div>{demoBadge}</div>}
                 <div className={styles.metricGrid}>
                   <div className={styles.metric}>
                     <div className={styles.metricLabel}>{d.mActive}</div>
-                    <div className={styles.metricNum}>{sourceLoading ? '…' : projects.length}</div>
+                    <div className={styles.metricNum}>{sourceLoading ? '…' : projList.length}</div>
                     <div className={styles.metricSub}>{allMs.length} {d.mMilestones}</div>
                   </div>
                   <div className={styles.metric}>
@@ -659,24 +817,20 @@ export default function Console() {
                   <div className={styles.metric}>
                     <div className={styles.metricLabel}>{d.mUnread}</div>
                     <div className={styles.metricNum}>{threads === null ? '…' : unreadTotal}</div>
-                    <div className={styles.metricSub}>{(threads || []).length} {d.mConversations}</div>
+                    <div className={styles.metricSub}>{convsToShow.length} {d.mConversations}</div>
                   </div>
                 </div>
 
                 <div className={styles.dash2col}>
                   <div className={styles.card}>
                     <div className={styles.cardHead}>
-                      <b>{d.recentActivity}</b>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><b>{d.recentActivity}</b>{feedIsDemo && demoBadge}</span>
                       <button className={styles.linkBtn} onClick={() => go('projects')}>{d.allProjects}</button>
                     </div>
                     <div className={styles.feed}>
                       {notifications === null ? (
                         <div className={styles.stateBox}>{d.loading}</div>
-                      ) : errors.notif ? (
-                        <div className={styles.stateBox}>{d.errLoad}</div>
-                      ) : notifications.length === 0 ? (
-                        <div className={styles.stateBox}><div className={styles.stateIcon}>🔔</div><b>{d.feedEmpty}</b></div>
-                      ) : notifications.map(n => (
+                      ) : feedToShow.map(n => (
                         <div key={n.id} className={styles.feedRow}>
                           <span className={styles.dot} style={{ background: notifDot(n.type) }} />
                           <div className={styles.feedMain}>
@@ -689,10 +843,20 @@ export default function Console() {
                     </div>
                   </div>
                   <div className={styles.card}>
-                    <div className={styles.cardHead}><b>{d.yourTodos}</b></div>
+                    <div className={styles.cardHead}><span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><b>{d.yourTodos}</b>{todosDemo && demoBadge}</span></div>
                     <div className={styles.todoList}>
                       {sourceLoading ? (
                         <div className={styles.stateBox}>{d.loading}</div>
+                      ) : todosDemo ? (
+                        DEMO_TODOS.map((t, i) => (
+                          <div key={i} className={`${styles.todo} ${t.active ? styles.todoActive : ''}`}>
+                            <span style={{ fontSize: 15 }}>{t.icon}</span>
+                            <div>
+                              <div className={styles.todoTitle}>{t.title}</div>
+                              {t.sub && <div className={styles.todoSub}>{t.sub}</div>}
+                            </div>
+                          </div>
+                        ))
                       ) : todosToShow.length === 0 ? (
                         <div className={styles.stateBox}><div className={styles.stateIcon}>✅</div><b>{d.todosEmpty}</b></div>
                       ) : todosToShow.map((t, i) => (
@@ -714,21 +878,13 @@ export default function Console() {
             {effScreen === 'projects' && (
               sourceLoading ? (
                 <div className={styles.stateBox}>{d.loading}</div>
-              ) : sourceError ? (
-                <div className={styles.stateBox}>{d.errLoad}</div>
-              ) : projects.length === 0 ? (
-                <div className={styles.stateBox}>
-                  <div className={styles.stateIcon}>📁</div>
-                  <b>{isEmployer ? d.projEmptyEmp : d.projEmptyEng}</b>
-                  <div>{isEmployer ? d.projEmptyEmpSub : d.projEmptyEngSub}</div>
-                  {isEmployer
-                    ? <Link href="/talent" className={styles.stateCta}>{d.postProject}</Link>
-                    : <Link href="/finance" className={`${styles.stateCta} ${styles.stateCtaGhost}`}>{d.openFinance}</Link>}
-                </div>
               ) : (
-                <div className={styles.projGrid}>
+                <div className={styles.stack}>
+                  {/* 真实项目为空或请求失败 → 演示项目兜底，徽标置顶 */}
+                  {projectsDemo && <div>{demoBadge}</div>}
+                  <div className={styles.projGrid}>
                   <div className={styles.projList}>
-                    {projects.map((p, i) => (
+                    {projList.map((p, i) => (
                       <button key={p.demandId} className={`${styles.projCard} ${i === projIndex ? styles.projCardActive : ''}`} onClick={() => setSelectedProject(i)}>
                         <div className={styles.projTop}>
                           <b className={styles.projName}>{p.name}</b>
@@ -785,7 +941,8 @@ export default function Console() {
                                   )}
                                   {isEngineer && m.status === 'funded' && (
                                     <div className={styles.msActions}>
-                                      <button className={styles.btnApprove} onClick={() => router.push(`/workorder/${m.id}`)}>{d.submitPayment}</button>
+                                      {/* 演示项目的里程碑没有真实工单页，禁用防误跳 */}
+                                      <button className={styles.btnApprove} disabled={projectsDemo} title={projectsDemo ? d.demoReadonly : undefined} onClick={() => router.push(`/workorder/${m.id}`)}>{d.submitPayment}</button>
                                     </div>
                                   )}
                                   {isEngineer && m.status === 'completed' && (
@@ -801,6 +958,7 @@ export default function Console() {
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
               )
             )}
@@ -808,6 +966,8 @@ export default function Console() {
             {/* ===== ESCROW ===== */}
             {effScreen === 'escrow' && (
               <div className={styles.stack}>
+                {/* 真实项目为空/失败 → 金额与交易表均来自演示项目，徽标置顶 */}
+                {projectsDemo && <div>{demoBadge}</div>}
                 <div className={styles.escrowGrid}>
                   <div className={styles.escrowHero}>
                     <div className={styles.escrowHeroLabel}>{d.heldInEscrow}</div>
@@ -829,8 +989,6 @@ export default function Console() {
                   <div className={styles.cardHead}><b>{d.transactions}</b><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{d.stripeNote}</span></div>
                   {sourceLoading || milestonesPending ? (
                     <div className={styles.stateBox}>{d.loading}</div>
-                  ) : sourceError ? (
-                    <div className={styles.stateBox}>{d.errLoad}</div>
                   ) : allMs.length === 0 ? (
                     <div className={styles.stateBox}><div className={styles.stateIcon}>💰</div><b>{d.escrowEmpty}</b></div>
                   ) : (
@@ -843,7 +1001,7 @@ export default function Console() {
                           </tr>
                         </thead>
                         <tbody>
-                          {projects.flatMap(p => p.milestones.map(m => ({ ...m, projName: p.name })))
+                          {projList.flatMap(p => p.milestones.map(m => ({ ...m, projName: p.name })))
                             .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
                             .map((t, i) => (
                               <tr key={t.id ?? i}>
@@ -868,15 +1026,11 @@ export default function Console() {
             {effScreen === 'messages' && (
               <div className={styles.msgWrap}>
                 <div className={styles.convList}>
-                  <div className={styles.convHead}><b>{d.messages}</b></div>
+                  <div className={styles.convHead}><span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><b>{d.messages}</b>{convsDemo && demoBadge}</span></div>
                   <div className={styles.convScroll}>
                     {threads === null ? (
                       <div className={styles.stateBox}>{d.loading}</div>
-                    ) : errors.inbox ? (
-                      <div className={styles.stateBox}>{d.errLoad}</div>
-                    ) : threads.length === 0 ? (
-                      <div className={styles.stateBox}><div className={styles.stateIcon}>💬</div><b>{d.convEmpty}</b><div>{d.convEmptySub}</div><Link href="/talent" className={styles.stateCta}>{d.browse}</Link></div>
-                    ) : threads.map(c => (
+                    ) : convsToShow.map(c => (
                       <button key={c.demand_id} className={`${styles.conv} ${c.demand_id === activeThread ? styles.convActive : ''}`} onClick={() => selectThread(c.demand_id)}>
                         <span className={`${styles.convAvatar} ${c.demand_id === activeThread ? styles.convAvatarActive : ''}`}>{initialsOf(c.title || `#${c.demand_id}`)}</span>
                         <div className={styles.convBody}>
@@ -899,7 +1053,9 @@ export default function Console() {
                           <div className={styles.threadName}>{activeConv?.title || `Project #${activeThread}`}</div>
                           <div className={styles.threadSub}>{activeConv?.region || ''}</div>
                         </div>
-                        <Link href={`/messages/${activeThread}`} className={styles.aiChip}>{d.openChat}</Link>
+                        {String(activeThread).startsWith('demo-')
+                          ? <span className={styles.aiChip} title={d.demoReadonly} style={{ opacity: .55, cursor: 'not-allowed' }}>{d.openChat}</span>
+                          : <Link href={`/messages/${activeThread}`} className={styles.aiChip}>{d.openChat}</Link>}
                       </div>
                       <div className={styles.bubbles}>
                         {thread === null ? (
@@ -909,7 +1065,8 @@ export default function Console() {
                         ) : (thread.data || []).length === 0 ? (
                           <div className={styles.stateBox}>{d.pickConv}</div>
                         ) : (thread.data || []).map(msg => {
-                          const mine = msg.sender_email === user.email;
+                          // 演示消息自带 mine 标记（不依赖真实邮箱），真实消息按发件人邮箱判定
+                          const mine = msg.mine !== undefined ? msg.mine : msg.sender_email === user.email;
                           return (
                             <div key={msg.id} className={mine ? styles.bubbleMine : styles.bubbleTheir}>
                               <div className={mine ? styles.bubMine : styles.bubTheir}>
@@ -945,6 +1102,8 @@ export default function Console() {
                   <span className={styles.filterChip}>🇻🇳 Vietnam ✕</span>
                   <Link href="/talent" className={styles.searchBtn}>{d.search}</Link>
                 </div>
+                {/* 真实工程师数据未返回时展示占位样例，打演示徽标 */}
+                {findIsDemo && <div>{demoBadge}</div>}
                 <div className={styles.engGrid}>
                   {engineersToShow.length === 0 && <div className={styles.emptyNote}>{d.noEngineers}</div>}
                   {engineersToShow.map((e, i) => (
@@ -988,69 +1147,31 @@ export default function Console() {
                 <div className={styles.certStack}>
                   <div className={styles.certCard}>
                     <div className={styles.certHead}>
-                      <b>{d.screenerStatus}</b>
-                      {training && (training.certifications || []).length > 0 && <span className={`${styles.badge} ${styles.badgePassed}`}>{d.passed}</span>}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><b>{d.screenerStatus}</b>{certIsDemo && demoBadge}</span>
+                      {certCerts.length > 0 && !certIsDemo && <span className={`${styles.badge} ${styles.badgePassed}`}>{d.passed}</span>}
                     </div>
                     {training === null ? (
                       <div className={styles.stateBox}>{d.loading}</div>
-                    ) : errors.training ? (
-                      <div className={styles.stateBox}>{d.errLoad}</div>
-                    ) : (training.certifications.length === 0 && training.attempts.length === 0) ? (
-                      <div className={styles.stateBox}>
-                        <div className={styles.stateIcon}>🎓</div><b>{d.certEmpty}</b><div>{d.certEmptySub}</div>
-                        <Link href="/training" className={styles.stateCta}>{d.takeAssessment}</Link>
-                      </div>
                     ) : (
                       <>
-                        {training.certifications.length > 0 && (
-                          <div style={{ marginBottom: training.attempts.length ? 18 : 0 }}>
-                            <div className={styles.tlLabel}>{d.myCerts}</div>
-                            {training.certifications.map((c, i) => (
-                              <div key={i} className={styles.certRow}>
-                                <span className={styles.certTrack}>{lang === 'zh' ? c.track_name_zh : c.track_name_en}</span>
-                                <span className={styles.certLevel}>L{c.level}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {training.attempts.length > 0 && (
-                          <div>
-                            <div className={styles.tlLabel}>{d.examHistory}</div>
-                            <div className={styles.scoreList}>
-                              {training.attempts.map(a => {
-                                const good = (a.score ?? 0) >= 70;
-                                return (
-                                  <div key={a.id}>
-                                    <div className={styles.scoreTop}>
-                                      <span>{(lang === 'zh' ? a.cert_tracks?.name_zh : a.cert_tracks?.name_en) || `L${a.level}`} · {stLabel[a.status] || a.status}</span>
-                                      <span className={`${styles.scoreVal} ${a.score != null ? (good ? styles.scoreValGood : styles.scoreValMid) : ''}`}>{a.score != null ? `${a.score} / 100` : '—'}</span>
-                                    </div>
-                                    <div className={styles.scoreBar}>
-                                      {a.score != null && <div className={`${styles.scoreFill} ${good ? styles.scoreFillGood : styles.scoreFillMid}`} style={{ width: `${a.score}%` }} />}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                        {/* 真实认证/考核为空 → certCerts/certAttempts 已是演示数据（certIsDemo 打徽标）；
+                            演示态仍保留"去考核"入口，引导真实动作 */}
+                        {certBody(certCerts, certAttempts)}
+                        {certIsDemo && (
+                          <div style={{ marginTop: 14 }}>
+                            <Link href="/training" className={styles.stateCta}>{d.takeAssessment}</Link>
                           </div>
                         )}
                       </>
                     )}
                   </div>
                   <div className={styles.certCard}>
-                    <b style={{ fontSize: 15, color: 'var(--text)' }}>{d.skillsPlatforms}</b>
-                    {talentLoaded && !talentProfile ? (
-                      <div className={styles.stateBox}>
-                        <b>{d.profileEmpty}</b><div>{d.profileEmptySub}</div>
-                        <Link href="/onboarding" className={styles.stateCta}>{d.editProfile}</Link>
-                      </div>
-                    ) : (
-                      <div className={styles.skillWrap}>
-                        {(talentProfile?.skills || '').split(',').map(s => s.trim()).filter(Boolean).map((s, i) => <span key={i} className={styles.skillChip}>{s}</span>)}
-                        {!(talentProfile?.skills || '').trim() && <span className={styles.skillChip} style={{ color: 'var(--text-muted)' }}>{d.noSkills}</span>}
-                        <Link href="/onboarding" className={`${styles.skillChip} ${styles.addSkill}`}>{d.addSkill}</Link>
-                      </div>
-                    )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><b style={{ fontSize: 15, color: 'var(--text)' }}>{d.skillsPlatforms}</b>{skillsIsDemo && demoBadge}</span>
+                    {/* 无档案/无技能 → skillsToShow 已是演示技能（skillsIsDemo 打徽标），"添加技能"入口保留引导建档 */}
+                    <div className={styles.skillWrap}>
+                      {skillsToShow.map((s, i) => <span key={i} className={styles.skillChip}>{s}</span>)}
+                      <Link href="/onboarding" className={`${styles.skillChip} ${styles.addSkill}`}>{d.addSkill}</Link>
+                    </div>
                   </div>
                 </div>
               </div>
