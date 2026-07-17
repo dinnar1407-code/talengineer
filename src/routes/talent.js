@@ -189,6 +189,26 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// ── Get MY OWN engineer profile（"My Profile" 编辑页用）─────────────────────────
+// 属主接口：按登录用户的 user_id 取自己的 talents 行，供档案编辑页回填。
+// 尚未建档（首次进入）返回 data:null，前端显示空表单，不当错误处理。
+// 用 .limit(1) 取首行而非 .single()，避免 0 行时报错。
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('talents')
+      .select(PUBLIC_TALENT_FIELDS) // 表单所需字段都在白名单内，且天然排除 contact 等 PII
+      .eq('user_id', req.user.userId)
+      .limit(1);
+    if (error) throw error;
+    res.json({ status: 'ok', data: (data && data[0]) || null });
+  } catch (err) {
+    console.error('[talent]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
 // ── Update portfolio images ───────────────────────────────────────────────────
 router.put('/portfolio', requireAuth, async (req, res) => {
   try {

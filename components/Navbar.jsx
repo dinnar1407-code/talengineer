@@ -28,7 +28,7 @@ const DICT = {
     rateBenchmarks: 'Rate Benchmarks',
     signIn:         'Sign In',
     dashboard:      'Dashboard',
-    editProfile:    'Edit Profile',
+    editProfile:    'My Profile',
     certCenter:     'Certification Center',
     apiKeys:        'API Keys',
     signOut:        'Sign Out',
@@ -38,7 +38,7 @@ const DICT = {
     rateBenchmarks: '费率基准',
     signIn:         '登录',
     dashboard:      '控制台',
-    editProfile:    '编辑档案',
+    editProfile:    '我的档案',
     certCenter:     '认证中心',
     apiKeys:        'API 密钥',
     signOut:        '退出登录',
@@ -48,7 +48,7 @@ const DICT = {
     rateBenchmarks: 'Tarifas de Mercado',
     signIn:         'Iniciar sesión',
     dashboard:      'Panel de control',
-    editProfile:    'Editar perfil',
+    editProfile:    'Mi perfil',
     apiKeys:        'Claves API',
     signOut:        'Cerrar sesión',
   },
@@ -57,7 +57,7 @@ const DICT = {
     rateBenchmarks: 'Thị Trường Giá',
     signIn:         'Đăng nhập',
     dashboard:      'Bảng điều khiển',
-    editProfile:    'Chỉnh sửa hồ sơ',
+    editProfile:    'Hồ sơ của tôi',
     apiKeys:        'Khóa API',
     signOut:        'Đăng xuất',
   },
@@ -66,7 +66,7 @@ const DICT = {
     rateBenchmarks: 'बाज़ार दरें',
     signIn:         'साइन इन करें',
     dashboard:      'डैशबोर्ड',
-    editProfile:    'प्रोफ़ाइल संपादित करें',
+    editProfile:    'मेरी प्रोफ़ाइल',
     apiKeys:        'API कुंजियाँ',
     signOut:        'साइन आउट',
   },
@@ -75,7 +75,7 @@ const DICT = {
     rateBenchmarks: 'Tarifs du marché',
     signIn:         'Se connecter',
     dashboard:      'Tableau de bord',
-    editProfile:    'Modifier le profil',
+    editProfile:    'Mon profil',
     apiKeys:        'Clés API',
     signOut:        'Se déconnecter',
   },
@@ -84,7 +84,7 @@ const DICT = {
     rateBenchmarks: 'Marktpreise',
     signIn:         'Anmelden',
     dashboard:      'Dashboard',
-    editProfile:    'Profil bearbeiten',
+    editProfile:    'Mein Profil',
     apiKeys:        'API-Schlüssel',
     signOut:        'Abmelden',
   },
@@ -93,7 +93,7 @@ const DICT = {
     rateBenchmarks: '市場レート',
     signIn:         'サインイン',
     dashboard:      'ダッシュボード',
-    editProfile:    'プロフィール編集',
+    editProfile:    'マイプロフィール',
     apiKeys:        'APIキー',
     signOut:        'サインアウト',
   },
@@ -102,7 +102,7 @@ const DICT = {
     rateBenchmarks: '시장 요율',
     signIn:         '로그인',
     dashboard:      '대시보드',
-    editProfile:    '프로필 편집',
+    editProfile:    '내 프로필',
     apiKeys:        'API 키',
     signOut:        '로그아웃',
   },
@@ -332,7 +332,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
                 </Link>
                 {user.role === 'engineer' && (
                   <Link href="/onboarding" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
-                    ✏️ {d.editProfile}
+                    👤 {d.editProfile}
                   </Link>
                 )}
                 {user.role === 'engineer' && (
