@@ -144,6 +144,23 @@ function emailNewMessage({ recipientEmail, senderName, projectTitle, messagePrev
   });
 }
 
+// 开纠纷通知：发给雇主与工程师双方。说明 5 天举证期与截止日期，引导去提交证据。
+function emailDisputeOpened({ recipientEmail, projectTitle, phaseName, deadline, disputeUrl }) {
+  const deadlineStr = deadline
+    ? new Date(deadline).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    : '';
+  return sendEmail({
+    to: recipientEmail,
+    subject: `⚖️ Dispute opened: ${phaseName} — ${projectTitle}`,
+    html: wrap(`
+      <h2 style="color:#ef4444;margin-top:0">Dispute Opened</h2>
+      <p>A dispute has been opened on the <strong>${phaseName}</strong> milestone of <strong>${projectTitle}</strong>.</p>
+      <p>Both parties have a <strong>5-day evidence window</strong> to submit supporting documentation${deadlineStr ? ` — the deadline is <strong>${deadlineStr}</strong>` : ''}. After the window closes, our team reviews the evidence and issues a decision. Milestone funds stay frozen in escrow until the dispute is resolved.</p>
+      <p><a href="${disputeUrl}" style="background:#0056b3;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">Submit Evidence</a></p>
+    `),
+  });
+}
+
 module.exports = {
   emailMilestoneFunded,
   emailMilestoneReleased,
@@ -154,4 +171,5 @@ module.exports = {
   emailRequestReview,
   emailNewMessage,
   emailVerifyEmail,
+  emailDisputeOpened,
 };

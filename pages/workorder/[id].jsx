@@ -11,7 +11,8 @@ export default function WorkOrder() {
   const router  = useRouter();
   const toast   = useToast();
   const { id }  = router.query; // milestone_id
-  const fileRef = useRef(null);
+  const fileRef   = useRef(null);  // 本地 base64 快拍（离线可用）
+  const uploadRef = useRef(null);  // 上传到云端存储桶
 
   const [currentUser, setCurrentUser] = useState(null);
   const [data, setData]               = useState(null);      // { milestone, checkin }
@@ -21,6 +22,7 @@ export default function WorkOrder() {
   const [notes, setNotes]             = useState('');
   const [step, setStep]               = useState('load');    // load | checkin | working | review | done
   const [submitting, setSubmitting]   = useState(false);
+  const [uploading, setUploading]     = useState(false);     // 云端上传照片中
 
   useEffect(() => {
     const stored = localStorage.getItem('tal_user');
@@ -78,6 +80,31 @@ export default function WorkOrder() {
       reader.onload = ev => setPhotos(prev => [...prev, ev.target.result]);
       reader.readAsDataURL(file);
     });
+  }
+
+  // 上传到云端存储桶（bucket=public）：逐张上传，成功一张就把返回的 url 追加进 photos。
+  // 与本地 base64 快拍互补——上传后的照片是稳定的公开 URL，不会撑大提交体积。
+  async function handlePhotoUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (!currentUser?.token) { toast.error('Please sign in first.'); return; }
+    setUploading(true);
+    for (const file of files) {
+      try {
+        const form = new FormData();          // FormData 不手动设 Content-Type，浏览器自动带 multipart 边界
+        form.append('file', file);
+        const res  = await fetch('/api/uploads', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${currentUser.token}` },
+          body: form,
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Upload failed');
+        setPhotos(prev => [...prev, result.url]);
+      } catch (err) { toast.error(err.message || 'Upload failed. Please try again.'); }
+    }
+    setUploading(false);
+    e.target.value = ''; // 重置，允许再次选择同一文件
   }
 
   async function handleComplete() {
@@ -176,6 +203,11 @@ export default function WorkOrder() {
               📸 Add Photos ({photos.length})
             </button>
             <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
+
+            <button className={styles.btnCamera} disabled={uploading} onClick={() => uploadRef.current?.click()}>
+              {uploading ? '⬆️ Uploading…' : '⬆️ Upload Photos'}
+            </button>
+            <input ref={uploadRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoUpload} />
 
             {photos.length > 0 && (
               <div className={styles.photoGrid}>

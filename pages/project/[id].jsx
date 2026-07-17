@@ -28,6 +28,14 @@ export default function ProjectDetail({ initialProject = null }) {
   const [quoteAmount, setQuoteAmount] = useState('');
   const [assigning, setAssigning]   = useState(null);
 
+  // 双向评价（工程师→雇主）
+  const [employerRating, setEmployerRating]       = useState(null);   // { avg, count, reviews } 或 null
+  const [showEmployerReviews, setShowEmployerReviews] = useState(false); // 评论列表展开态
+  const [myEmployerReview, setMyEmployerReview]   = useState(null);   // { reviewed, review } 或 null（未拉取）
+  const [empRating, setEmpRating]     = useState(5);   // 星级输入，默认 5 星
+  const [empComment, setEmpComment]   = useState('');  // 评论框
+  const [submittingEmpReview, setSubmittingEmpReview] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem('tal_user');
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
@@ -56,6 +64,29 @@ export default function ProjectDetail({ initialProject = null }) {
       .then(d => setApplications(d.data || []))
       .catch(() => setApplications([]));
   }, [project, currentUser]);
+
+  // 是否已结算：至少一个里程碑已放款/退款——决定"评价雇主"入口是否出现
+  const settled = !!project?.milestones?.some(m => ['released', 'refunded'].includes(m.status));
+
+  // 拉取雇主评分（公开端点，无需登录）
+  useEffect(() => {
+    if (!project?.employer_id) return;
+    fetch(`/api/reviews/employer/${project.employer_id}`)
+      .then(r => r.json())
+      .then(d => setEmployerRating(d.data || null))
+      .catch(() => {});
+  }, [project?.employer_id]);
+
+  // 工程师且已结算时，查自己是否已评价过该雇主（决定入口显示表单还是只读）
+  useEffect(() => {
+    if (!id || !currentUser?.token || currentUser.role !== 'engineer' || !settled) return;
+    fetch(`/api/reviews/employer/check/${id}`, {
+      headers: { Authorization: `Bearer ${currentUser.token}` },
+    })
+      .then(r => r.json())
+      .then(d => setMyEmployerReview(d))
+      .catch(() => {});
+  }, [id, currentUser, settled]);
 
   async function handleApply(e) {
     e.preventDefault();
@@ -92,6 +123,31 @@ export default function ProjectDetail({ initialProject = null }) {
       } else toast.error(data.error);
     } catch { toast.error('Network error.'); }
     setAssigning(null);
+  }
+
+  async function handleSubmitEmployerReview(e) {
+    e.preventDefault();
+    if (!currentUser?.token) { toast.error(lang === 'zh' ? '请先登录。' : 'Please sign in first.'); return; }
+    setSubmittingEmpReview(true);
+    try {
+      const res  = await fetch('/api/reviews/employer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ demand_id: id, rating: empRating, comment: empComment }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(lang === 'zh' ? '评价已提交，谢谢！' : 'Review submitted — thank you!');
+        // 本地立即切到只读态，无需重拉 check
+        setMyEmployerReview({ reviewed: true, review: { rating: empRating, comment: empComment } });
+        // 刷新雇主评分展示，让新评分立刻体现
+        if (project?.employer_id) {
+          fetch(`/api/reviews/employer/${project.employer_id}`)
+            .then(r => r.json()).then(d => setEmployerRating(d.data || null)).catch(() => {});
+        }
+      } else toast.error(data.error);
+    } catch { toast.error(lang === 'zh' ? '网络错误。' : 'Network error.'); }
+    setSubmittingEmpReview(false);
   }
 
   if (loading) return (
@@ -136,6 +192,47 @@ export default function ProjectDetail({ initialProject = null }) {
           </div>
           <p className={styles.desc}>{project.description}</p>
           <div className={styles.postedDate}>Posted {new Date(project.created_at).toLocaleDateString()}</div>
+
+          {/* ── 雇主评分（点击展开评论列表）── */}
+          {project.employer_id && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border, #e5e7eb)' }}>
+              <button
+                type="button"
+                onClick={() => employerRating?.count > 0 && setShowEmployerReviews(v => !v)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 'none',
+                  padding: 0, cursor: employerRating?.count > 0 ? 'pointer' : 'default', color: 'var(--text, #111827)', fontSize: 14,
+                }}
+              >
+                <span style={{ color: 'var(--muted)' }}>{lang === 'zh' ? '雇主评分' : 'Employer'}:</span>
+                {employerRating && employerRating.count > 0 ? (
+                  <strong style={{ color: '#f59e0b' }}>
+                    ★ {employerRating.avg.toFixed(1)}
+                    <span style={{ color: 'var(--muted)', fontWeight: 400 }}> ({employerRating.count})</span>
+                  </strong>
+                ) : (
+                  <span style={{ color: 'var(--muted)' }}>{lang === 'zh' ? '暂无评价' : 'No reviews yet'}</span>
+                )}
+                {employerRating?.count > 0 && (
+                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>{showEmployerReviews ? '▲' : '▼'}</span>
+                )}
+              </button>
+              {showEmployerReviews && employerRating?.reviews?.length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {employerRating.reviews.map((r, i) => (
+                    <div key={i} style={{ background: 'var(--surface-2, #f8f9fa)', borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ color: '#f59e0b', fontSize: 13 }}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{r.reviewer_name || 'Anonymous'}</span>
+                      </div>
+                      {r.comment && <p style={{ fontSize: 13, color: 'var(--text, #374151)', margin: 0 }}>{r.comment}</p>}
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Milestones ── */}
@@ -156,6 +253,52 @@ export default function ProjectDetail({ initialProject = null }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── Review the employer（该单已指派工程师、结算后可评价）── */}
+        {currentUser?.role === 'engineer' && settled && project.assigned_engineer_id && myEmployerReview && (
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>⭐ {lang === 'zh' ? '评价雇主' : 'Review the Employer'}</h3>
+            {myEmployerReview.reviewed ? (
+              <div>
+                <div style={{ color: '#f59e0b', fontSize: 20, letterSpacing: 2 }}>
+                  {'★'.repeat(myEmployerReview.review?.rating || 0)}{'☆'.repeat(5 - (myEmployerReview.review?.rating || 0))}
+                </div>
+                {myEmployerReview.review?.comment && (
+                  <p style={{ marginTop: 8, color: 'var(--text, #374151)' }}>{myEmployerReview.review.comment}</p>
+                )}
+                <p style={{ marginTop: 8, fontSize: 13, color: 'var(--muted)' }}>
+                  {lang === 'zh' ? '你已提交对该雇主的评价。' : 'You have already reviewed this employer.'}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitEmployerReview}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setEmpRating(n)}
+                      aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, lineHeight: 1, padding: 0, color: n <= empRating ? '#f59e0b' : 'var(--border, #d1d5db)' }}
+                    >
+                      {n <= empRating ? '★' : '☆'}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className={styles.textarea}
+                  rows={4}
+                  value={empComment}
+                  onChange={e => setEmpComment(e.target.value)}
+                  placeholder={lang === 'zh' ? '分享一下和这位雇主合作的体验……' : 'Share your experience working with this employer…'}
+                />
+                <button type="submit" className={styles.btnApply} disabled={submittingEmpReview}>
+                  {submittingEmpReview ? (lang === 'zh' ? '提交中…' : 'Submitting…') : (lang === 'zh' ? '提交评价' : 'Submit Review')}
+                </button>
+              </form>
+            )}
           </div>
         )}
 

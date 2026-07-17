@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import { useLang } from '../../hooks/useLang';
 import Navbar from '../../components/Navbar';
 import styles from './dispute.module.css';
 
@@ -16,10 +17,68 @@ const STATUS_LABELS = {
   resolved_split:    { label: 'Resolved — Split', color: '#10b981' },
 };
 
+// ── 流程时间线与流程说明的中英文案（该页其余数据展示保持原样英文）─────────────
+const FLOW = {
+  en: {
+    timelineTitle: 'Dispute Progress',
+    filed: 'Dispute opened',
+    filedSub: (d) => `Filed on ${d}`,
+    evidence: 'Evidence submission',
+    evidenceDeadline: (d) => `Evidence deadline: ${d}`,
+    daysLeft: (n) => `${n} day${n === 1 ? '' : 's'} left to submit evidence`,
+    windowClosed: 'Evidence window closed',
+    review: 'Platform review',
+    reviewSub: 'Our team reviews both sides’ evidence and decides.',
+    decision: 'Decision',
+    decisionPending: 'Awaiting resolution',
+    payout: 'Engineer payout',
+    resLabels: {
+      resolved_engineer: 'Full amount awarded to the engineer',
+      resolved_employer: 'Full amount refunded to the employer',
+      resolved_split: 'Funds split between the parties',
+    },
+    processSummary: 'How the dispute process works',
+    processSteps: [
+      'Either party opens a dispute on a funded milestone.',
+      'Both sides have a 5-day window to submit evidence.',
+      'After the evidence deadline passes, the platform reviews the case and issues a decision.',
+      'The decision can award the full amount to the engineer, fully refund the employer, or split the funds proportionally. Funds are always handled through the original payment path.',
+    ],
+  },
+  zh: {
+    timelineTitle: '纠纷进度',
+    filed: '纠纷开启',
+    filedSub: (d) => `开启于 ${d}`,
+    evidence: '双方举证',
+    evidenceDeadline: (d) => `举证截止：${d}`,
+    daysLeft: (n) => `距举证截止还剩 ${n} 天`,
+    windowClosed: '举证已截止',
+    review: '平台审理',
+    reviewSub: '平台审阅双方证据后作出裁决。',
+    decision: '裁决结果',
+    decisionPending: '等待裁决',
+    payout: '工程师所得',
+    resLabels: {
+      resolved_engineer: '全额判给工程师',
+      resolved_employer: '全额退回雇主',
+      resolved_split: '按比例分账',
+    },
+    processSummary: '纠纷处理流程说明',
+    processSteps: [
+      '任一方可对已托管的里程碑发起纠纷。',
+      '双方有 5 天举证期提交证据。',
+      '举证期截止后，平台审阅案情并作出裁决。',
+      '裁决可为全额判给工程师、全额退回雇主，或按比例分账；资金一律按原路处理。',
+    ],
+  },
+};
+
 export default function DisputePage() {
   const router = useRouter();
   const { id } = router.query;
   const toast = useToast();
+  const [lang] = useLang();
+  const L = lang === 'zh' ? FLOW.zh : FLOW.en; // 仅区分中英，其余语言回退英文
 
   const [currentUser, setCurrentUser] = useState(null);
   const [dispute, setDispute] = useState(null);
@@ -72,6 +131,49 @@ export default function DisputePage() {
   const statusInfo = dispute ? (STATUS_LABELS[dispute.status] || { label: dispute.status, color: '#6b7280' }) : null;
   const isResolved = dispute?.status?.startsWith('resolved_');
 
+  // ── 流程时间线：① 开启 → ② 举证（倒计时/已截止）→ ③ 审理 → ④ 裁决 ──────────
+  // 每步状态 done / active / pending，决定圆点与连接线的样式。
+  let flowSteps = [];
+  if (dispute) {
+    const deadline = dispute.evidence_deadline ? new Date(dispute.evidence_deadline) : null;
+    const nowMs    = Date.now();
+    const expired  = deadline ? nowMs > deadline.getTime() : false;
+    // 向上取整到天；已过期则为 0，未过期至少显示剩 1 天
+    const daysLeft = deadline ? Math.max(0, Math.ceil((deadline.getTime() - nowMs) / 86400000)) : null;
+
+    flowSteps = [
+      {
+        key: 'filed', state: 'done', label: L.filed,
+        sub: L.filedSub(new Date(dispute.created_at).toLocaleDateString()),
+      },
+      {
+        key: 'evidence',
+        state: isResolved || expired ? 'done' : 'active',
+        label: L.evidence,
+        sub: deadline ? L.evidenceDeadline(deadline.toLocaleDateString()) : null,
+        // 仅未裁决时显示倒计时/截止徽标
+        badge: isResolved || !deadline ? null
+          : (expired ? { text: L.windowClosed, expired: true } : { text: L.daysLeft(daysLeft), expired: false }),
+      },
+      {
+        key: 'review',
+        state: isResolved ? 'done' : (expired || dispute.status === 'under_review') ? 'active' : 'pending',
+        label: L.review,
+        sub: L.reviewSub,
+      },
+      {
+        key: 'decision',
+        state: isResolved ? 'done' : 'pending',
+        label: L.decision,
+        sub: isResolved ? null : L.decisionPending,
+        decision: isResolved ? {
+          label: L.resLabels[dispute.status] || dispute.status,
+          amount: dispute.resolution_amount != null ? parseFloat(dispute.resolution_amount).toLocaleString() : null,
+        } : null,
+      },
+    ];
+  }
+
   return (
     <>
       <Head>
@@ -114,6 +216,41 @@ export default function DisputePage() {
 
             <div className={styles.grid}>
               <div className={styles.main}>
+                {/* Progress timeline + process explanation */}
+                <div className={styles.card}>
+                  <h2 className={styles.cardTitle}>{L.timelineTitle}</h2>
+                  <div className={styles.timeline}>
+                    {flowSteps.map((s, i) => (
+                      <div key={s.key} className={styles.tlStep}>
+                        <div className={styles.tlRail}>
+                          <div className={`${styles.tlDot} ${s.state === 'done' ? styles.tlDotDone : s.state === 'active' ? styles.tlDotActive : ''}`} />
+                          {i < flowSteps.length - 1 && <div className={`${styles.tlConnector} ${s.state === 'done' ? styles.tlConnectorDone : ''}`} />}
+                        </div>
+                        <div className={styles.tlBody}>
+                          <div className={`${styles.tlLabel} ${s.state === 'pending' ? styles.tlLabelPending : ''}`}>{s.label}</div>
+                          {s.sub && <div className={styles.tlSub}>{s.sub}</div>}
+                          {s.badge && (
+                            <span className={`${styles.tlCountdown} ${s.badge.expired ? styles.tlCountdownExpired : ''}`}>{s.badge.text}</span>
+                          )}
+                          {s.decision && (
+                            <div className={styles.tlSub}>
+                              {s.decision.label}
+                              {s.decision.amount != null && <> · <span className={styles.tlAmount}>{L.payout}: ${s.decision.amount}</span></>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <details className={styles.processBlock}>
+                    <summary className={styles.processSummary}>{L.processSummary}</summary>
+                    <ol className={styles.processList}>
+                      {L.processSteps.map((t, i) => <li key={i}>{t}</li>)}
+                    </ol>
+                  </details>
+                </div>
+
                 {/* Dispute details */}
                 <div className={styles.card}>
                   <h2 className={styles.cardTitle}>Dispute Details</h2>
@@ -211,7 +348,7 @@ export default function DisputePage() {
                   <h3>How Disputes Work</h3>
                   <ol className={styles.steps}>
                     <li><strong>Filed</strong> — Either party opens a dispute on a funded milestone</li>
-                    <li><strong>Evidence</strong> — Both parties submit supporting evidence within 72 hours</li>
+                    <li><strong>Evidence</strong> — Both parties submit supporting evidence within 5 days</li>
                     <li><strong>Review</strong> — Our team reviews evidence within 48–72 hours</li>
                     <li><strong>Decision</strong> — Admin resolves in favour of engineer, employer, or splits funds</li>
                   </ol>

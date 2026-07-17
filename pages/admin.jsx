@@ -41,6 +41,21 @@ const DICT = {
     thUser: 'User', thRead: 'Read', thDate: 'Date',
     thCompany: 'Company', thWebsite: 'Website', thPhone: 'Phone', thSubmitted: 'Submitted', thNote: 'Note',
     thDemandId: 'Demand ID', thAmount: 'Amount',
+    navTaxDocs: 'Tax Docs', subTaxDocs: 'W-9 / tax document review queue',
+    // Dispute resolution form
+    resolveTitle: 'Resolve Dispute', reviewBtn: 'Review', closeBtn: 'Close',
+    evEmployer: 'Employer evidence', evEngineer: 'Engineer evidence', evNone: 'Not submitted',
+    evDeadline: 'Evidence deadline',
+    resDir: 'Resolution', resEngineer: 'Award full amount to engineer', resEmployer: 'Refund full amount to employer', resSplit: 'Split funds',
+    grossLabel: 'Gross awarded to engineer ($)',
+    grossHint: 'Platform fee is deducted from this amount; the remainder is refunded to the employer.',
+    decisionLabel: 'Decision note', decisionPh: 'Explain the ruling for both parties…',
+    submitRuling: 'Submit Ruling', submittingRuling: 'Submitting…',
+    resPayout: 'Engineer payout', resRefund: 'Employer refund',
+    // Tax docs panel
+    taxThType: 'Type', taxView: 'View file', taxReceived: 'Mark received', taxReject: 'Return',
+    taxRejectPh: 'Reason for returning…', taxConfirmReject: 'Confirm return', taxCancel: 'Cancel',
+    emptyTax: 'No tax documents with this status.',
   },
   zh: {
     backConsole: '← 控制台', adminPanel: '管理面板', superAdmin: '超级管理员',
@@ -74,6 +89,21 @@ const DICT = {
     thUser: '用户', thRead: '已读', thDate: '日期',
     thCompany: '公司', thWebsite: '网站', thPhone: '电话', thSubmitted: '提交时间', thNote: '备注',
     thDemandId: '需求编号', thAmount: '金额',
+    navTaxDocs: '税务文件', subTaxDocs: 'W-9 等税务文件审核队列',
+    // 纠纷裁决表单
+    resolveTitle: '裁决纠纷', reviewBtn: '裁决', closeBtn: '关闭',
+    evEmployer: '雇主证据', evEngineer: '工程师证据', evNone: '未提交',
+    evDeadline: '举证截止',
+    resDir: '裁决方向', resEngineer: '全额判给工程师', resEmployer: '全额退回雇主', resSplit: '按比例分账',
+    grossLabel: '判给工程师的毛额（$）',
+    grossHint: '平台费从毛额中抽取，余额退回雇主。',
+    decisionLabel: '裁决说明', decisionPh: '向双方说明裁决理由……',
+    submitRuling: '提交裁决', submittingRuling: '提交中……',
+    resPayout: '工程师所得', resRefund: '雇主退款',
+    // 税务文件面板
+    taxThType: '类型', taxView: '查看文件', taxReceived: '确认收讫', taxReject: '退回',
+    taxRejectPh: '退回原因……', taxConfirmReject: '确认退回', taxCancel: '取消',
+    emptyTax: '该状态下暂无税务文件。',
   },
 };
 
@@ -93,6 +123,15 @@ export default function Admin() {
   const [kycList, setKycList]     = useState(null);
   const [funnel, setFunnel]       = useState(null);
   const [examPending, setExamPending] = useState(null); // 培训认证：待复核考卷
+  // 纠纷裁决：选中的纠纷 + 表单 + 返回结果
+  const [selectedDispute, setSelectedDispute] = useState(null);
+  const [resolveForm, setResolveForm] = useState({ resolution: 'resolved_engineer', resolution_amount: '', admin_decision: '' });
+  const [resolveResult, setResolveResult] = useState(null);
+  const [resolving, setResolving] = useState(false);
+  // 税务文件面板：列表 + 行内退回备注
+  const [taxDocs, setTaxDocs]     = useState(null);
+  const [taxRejectId, setTaxRejectId] = useState(null);
+  const [taxRejectNote, setTaxRejectNote] = useState('');
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
@@ -149,6 +188,8 @@ export default function Admin() {
 
   async function loadDisputes(status = 'open') {
     setDisputes(null);
+    setSelectedDispute(null);   // 切换筛选时收起裁决表单
+    setResolveResult(null);
     try {
       const res  = await fetch(`/api/disputes?status=${status}`, { headers: { 'x-admin-password': password } });
       const data = await res.json();
@@ -156,19 +197,74 @@ export default function Admin() {
     } catch { setDisputes([]); }
   }
 
-  async function resolveDispute(disputeId, resolution, adminDecision) {
+  // 打开某纠纷的裁决表单卡：重置表单与上一次的返回结果
+  function openResolveForm(dp) {
+    setSelectedDispute(dp);
+    setResolveForm({ resolution: 'resolved_engineer', resolution_amount: '', admin_decision: '' });
+    setResolveResult(null);
+  }
+
+  async function submitResolution(e) {
+    e.preventDefault();
+    if (!selectedDispute) return;
+    const { resolution, resolution_amount, admin_decision } = resolveForm;
+    if (!admin_decision.trim()) { toast.error('Decision note is required.'); return; }
+    // 仅 split 才传毛额；全给/全退由后端按托管总额计算
+    const body = { resolution, admin_decision };
+    if (resolution === 'resolved_split') body.resolution_amount = resolution_amount;
+    setResolving(true);
     try {
-      const res  = await fetch(`/api/disputes/${disputeId}/resolve`, {
+      const res  = await fetch(`/api/disputes/${selectedDispute.id}/resolve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-        body: JSON.stringify({ resolution, admin_decision: adminDecision }),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Dispute #${selectedDispute.id} resolved.`);
+        setResolveResult(data); // { engineer_payout, employer_refund, refund_error? }
+        setDisputes(prev => (prev || []).filter(d => d.id !== selectedDispute.id));
+      } else {
+        toast.error(data.error || 'Failed to resolve.');
+      }
+    } catch { toast.error('Network error.'); }
+    setResolving(false);
+  }
+
+  // ── Tax Docs 面板（契约见 /api/tax/admin/*，另一 agent 并行实现）──────────────
+  async function loadTaxDocs(status = 'submitted') {
+    setTaxDocs(null);
+    setTaxRejectId(null); setTaxRejectNote('');
+    try {
+      const res  = await fetch(`/api/tax/admin/list?status=${status}`, { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setTaxDocs(data.data || []);
+    } catch { setTaxDocs([]); }
+  }
+
+  async function viewTaxDoc(id) {
+    try {
+      const res  = await fetch(`/api/tax/admin/${id}/url`, { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      if (res.ok && data.url) window.open(data.url, '_blank', 'noopener');
+      else toast.error(data.error || 'Failed to load file.');
+    } catch { toast.error('Network error.'); }
+  }
+
+  async function reviewTaxDoc(id, action, note) {
+    try {
+      const res  = await fetch(`/api/tax/admin/${id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ action, note: note || null }),
       });
       if (res.ok) {
-        toast.success(`Dispute #${disputeId} resolved.`);
-        setDisputes(prev => prev.filter(d => d.id !== disputeId));
+        toast.success(action === 'received' ? 'Marked received.' : 'Document returned.');
+        setTaxDocs(prev => (prev || []).filter(t => t.id !== id));
+        setTaxRejectId(null); setTaxRejectNote('');
       } else {
         const d = await res.json();
-        toast.error(d.error || 'Failed to resolve.');
+        toast.error(d.error || 'Failed.');
       }
     } catch { toast.error('Network error.'); }
   }
@@ -270,6 +366,7 @@ export default function Admin() {
     { id: 'disputes',   icon: '⚖️', label: d.navDisputes },
     { id: 'notifs',     icon: '🔔', label: d.navNotifs, badge: counts.notifications != null ? String(counts.notifications) : undefined },
     { id: 'kyc',        icon: '🪪', label: d.navKyc },
+    { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
   ];
 
@@ -283,6 +380,7 @@ export default function Admin() {
     disputes: [d.navDisputes, d.subDisputes],
     notifs: [d.navNotifs, d.subNotifs],
     kyc: [d.navKyc, d.subKyc],
+    taxDocs: [d.navTaxDocs, d.subTaxDocs],
     analytics: [d.navAnalytics, d.subAnalytics],
   };
   const [pageTitle, pageSub] = titles[activeTab] || titles.users;
@@ -294,6 +392,7 @@ export default function Admin() {
     if (id === 'disputes') loadDisputes();
     if (id === 'notifs') loadNotifs();
     if (id === 'kyc') loadKycList();
+    if (id === 'taxDocs') loadTaxDocs();
     if (id === 'analytics') loadFunnel();
     setSbOpen(false);
   }
@@ -520,9 +619,7 @@ export default function Admin() {
                               <td>
                                 {!dp.status?.startsWith('resolved') && (
                                   <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
-                                    <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(dp.id, 'resolved_engineer', dec); }} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>→ Engineer</button>
-                                    <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(dp.id, 'resolved_employer', dec); }} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>→ Employer</button>
-                                    <button onClick={() => { const dec = window.prompt('Admin decision note:'); if (dec) resolveDispute(dp.id, 'resolved_split', dec); }} style={{ background: '#6366f1', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Split</button>
+                                    <button onClick={() => openResolveForm(dp)} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>⚖️ {d.reviewBtn}</button>
                                     <a href={`/dispute/${dp.id}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--primary)', padding: '3px 8px', border: '1px solid var(--primary)', borderRadius: 4, textAlign: 'center', textDecoration: 'none' }}>View ↗</a>
                                   </div>
                                 )}
@@ -532,6 +629,76 @@ export default function Admin() {
                       }
                     </tbody>
                   </table>
+
+                  {/* 裁决表单卡：选中某纠纷后展开，显示双方证据全文 + 举证截止 + 裁决表单 */}
+                  {selectedDispute && (
+                    <div style={{ marginTop: 20, border: '1px solid var(--primary)', borderRadius: 10, padding: 20, background: 'var(--surface)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{d.resolveTitle} #{selectedDispute.id}</div>
+                        <button onClick={() => { setSelectedDispute(null); setResolveResult(null); }} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>{d.closeBtn}</button>
+                      </div>
+
+                      {/* 举证截止 */}
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                        {d.evDeadline}: {selectedDispute.evidence_deadline ? new Date(selectedDispute.evidence_deadline).toLocaleString() : '—'}
+                      </div>
+
+                      {/* 双方证据全文 */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>🏭 {d.evEmployer}</div>
+                          <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', color: selectedDispute.employer_evidence ? 'var(--text)' : 'var(--muted)' }}>{selectedDispute.employer_evidence || d.evNone}</div>
+                        </div>
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>🔧 {d.evEngineer}</div>
+                          <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', color: selectedDispute.engineer_evidence ? 'var(--text)' : 'var(--muted)' }}>{selectedDispute.engineer_evidence || d.evNone}</div>
+                        </div>
+                      </div>
+
+                      {resolveResult ? (
+                        /* 裁决成功后的资金结果回显 */
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, fontSize: 13 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                            <span>{d.resPayout}</span><span style={{ fontWeight: 800, color: '#059669' }}>${Number(resolveResult.engineer_payout || 0).toLocaleString()}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                            <span>{d.resRefund}</span><span style={{ fontWeight: 800 }}>${Number(resolveResult.employer_refund || 0).toLocaleString()}</span>
+                          </div>
+                          {resolveResult.refund_error && (
+                            <div style={{ marginTop: 8, color: '#ef4444', fontSize: 12 }}>⚠️ {resolveResult.refund_error}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <form onSubmit={submitResolution}>
+                          <div style={{ marginBottom: 12 }}>
+                            <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>{d.resDir}</label>
+                            <select value={resolveForm.resolution} onChange={e => setResolveForm(f => ({ ...f, resolution: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }}>
+                              <option value="resolved_engineer">{d.resEngineer}</option>
+                              <option value="resolved_employer">{d.resEmployer}</option>
+                              <option value="resolved_split">{d.resSplit}</option>
+                            </select>
+                          </div>
+
+                          {resolveForm.resolution === 'resolved_split' && (
+                            <div style={{ marginBottom: 12 }}>
+                              <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>{d.grossLabel}</label>
+                              <input type="number" min="0" step="0.01" value={resolveForm.resolution_amount} onChange={e => setResolveForm(f => ({ ...f, resolution_amount: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)', fontSize: 14 }} required />
+                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>{d.grossHint}</div>
+                            </div>
+                          )}
+
+                          <div style={{ marginBottom: 14 }}>
+                            <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>{d.decisionLabel}</label>
+                            <textarea value={resolveForm.admin_decision} onChange={e => setResolveForm(f => ({ ...f, admin_decision: e.target.value }))} placeholder={d.decisionPh} rows={4} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)', fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} required />
+                          </div>
+
+                          <button type="submit" disabled={resolving} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '9px 22px', borderRadius: 6, cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: resolving ? 0.6 : 1 }}>
+                            {resolving ? d.submittingRuling : d.submitRuling}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -605,6 +772,56 @@ export default function Admin() {
                                   </div>
                                 )}
                                 {u.kyc_status !== 'pending' && <span className={`${styles.badge} ${u.kyc_status === 'verified' ? styles.badgeGreen : styles.badgeGray}`}>{u.kyc_status}</span>}
+                              </td>
+                            </tr>
+                          ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Tax Docs：W-9 等税务文件审核（查看签名 URL / 确认收讫 / 退回带备注）*/}
+              {activeTab === 'taxDocs' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                    {['submitted', 'received', 'rejected'].map(s => (
+                      <button key={s} onClick={() => loadTaxDocs(s)} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 12 }}>{s}</button>
+                    ))}
+                  </div>
+                  <table className={styles.table}>
+                    <thead><tr><th>{d.thEmail}</th><th>{d.taxThType}</th><th>{d.thSubmitted}</th><th>{d.thStatus}</th><th>{d.thAction}</th></tr></thead>
+                    <tbody>
+                      {taxDocs === null
+                        ? <tr><td colSpan={5} className={styles.empty}>{d.loading}</td></tr>
+                        : taxDocs.length === 0
+                          ? <tr><td colSpan={5} className={styles.empty}>{d.emptyTax}</td></tr>
+                          : taxDocs.map(t => (
+                            <tr key={t.id}>
+                              <td style={{ fontSize: 12 }}>{t.users?.email || t.users?.name || `#${t.user_id}`}</td>
+                              <td><span className={`${styles.badge} ${styles.badgeGray}`}>{t.doc_type || '—'}</span></td>
+                              <td className={styles.muted}>{t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}</td>
+                              <td><span className={`${styles.badge} ${t.status === 'received' ? styles.badgeGreen : styles.badgeGray}`}>{t.status}</span></td>
+                              <td>
+                                {taxRejectId === t.id ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+                                    <textarea value={taxRejectNote} onChange={e => setTaxRejectNote(e.target.value)} placeholder={d.taxRejectPh} rows={2} style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                      <button onClick={() => reviewTaxDoc(t.id, 'rejected', taxRejectNote)} disabled={!taxRejectNote.trim()} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: taxRejectNote.trim() ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: taxRejectNote.trim() ? 1 : 0.5 }}>{d.taxConfirmReject}</button>
+                                      <button onClick={() => { setTaxRejectId(null); setTaxRejectNote(''); }} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>{d.taxCancel}</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    <button onClick={() => viewTaxDoc(t.id)} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.taxView}</button>
+                                    {t.status === 'submitted' && (
+                                      <>
+                                        <button onClick={() => reviewTaxDoc(t.id, 'received', null)} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.taxReceived}</button>
+                                        <button onClick={() => { setTaxRejectId(t.id); setTaxRejectNote(''); }} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.taxReject}</button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           ))

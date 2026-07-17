@@ -193,6 +193,14 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
           link: `/workorder/${ms.id}`,
           demand_id: ms.demand_id,
         });
+        // 双向评价入口：结算后提示工程师评价本次合作的雇主
+        createNotification({
+          user_email: talent.contact,
+          type: 'review_employer',
+          title: '评价这次合作的雇主',
+          link: `/project/${ms.demand_id}`,
+          demand_id: ms.demand_id,
+        });
       }
     }
 

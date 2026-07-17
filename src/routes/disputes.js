@@ -13,6 +13,16 @@ const { requireAdmin } = require('../middleware/adminAuth');
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
 const { computeResolutionSplit } = require('../utils/disputeMath'); // 裁决资金分配纯函数（毛额语义，含雇主退款）
 
+// 开纠纷后的站内通知与邮件通知（fire-and-forget，见 POST /）
+const { createNotification } = require('../services/notificationService');
+const { emailDisputeOpened } = require('../services/email');
+
+// 邮件里纠纷页链接用的站点域名（与其它路由一致的取法）
+const DOMAIN = process.env.DOMAIN || 'https://talengineer.us';
+
+// 举证期时长：开纠纷后 5 天（与前端流程说明、迁移 019 的 evidence_deadline 语义一致）
+const EVIDENCE_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
+
 // ── Open a dispute ────────────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -21,7 +31,8 @@ router.post('/', requireAuth, async (req, res) => {
     if (!milestone_id || !reason) return res.status(400).json({ error: 'Missing milestone_id or reason' });
 
     // Check milestone is funded (can't dispute locked or released)
-    const { data: ms } = await supabase.from('project_milestones').select('status, demand_id').eq('id', milestone_id).single();
+    // phase_name 一并取出：用于开纠纷后给双方发的站内通知与邮件文案。
+    const { data: ms } = await supabase.from('project_milestones').select('status, demand_id, phase_name').eq('id', milestone_id).single();
     if (!ms) return res.status(404).json({ error: 'Milestone not found' });
 
     // ── 当事方校验：必须在冻结里程碑之前 ─────────────────────────────────────
@@ -40,13 +51,64 @@ router.post('/', requireAuth, async (req, res) => {
     // Freeze milestone
     await supabase.from('project_milestones').update({ status: 'disputed' }).eq('id', milestone_id);
 
+    // 举证截止：开纠纷即刻起 5 天。写入 disputes.evidence_deadline（迁移 019 新增列），
+    // 供只读端点回显、前端倒计时与逾期判定。
+    const evidenceDeadline = new Date(Date.now() + EVIDENCE_WINDOW_MS).toISOString();
+
     // demand_id 必须来自里程碑的可信数据（ms.demand_id），而非请求体。
     // 若从 req.body 取，攻击者可传合法 milestone_id + 不同 demand_id，写入错配纠纷，
     // 导致后续裁决转账路由查错 demand、打款给错方或打款失败。
     const { data, error } = await supabase.from('disputes').insert({
       milestone_id, demand_id: ms.demand_id, reason, opened_by_email: req.user.email, status: 'open',
+      evidence_deadline: evidenceDeadline,
     }).select().single();
     if (error) throw error;
+
+    // 开纠纷后通知双方（fire-and-forget）：站内通知只发对方当事人，邮件发给双方。
+    // 整段自带 try/catch，任何查询/发信失败仅记日志，绝不影响开纠纷主流程本身。
+    (async () => {
+      try {
+        // 取项目标题与双方联系方式：雇主走 demands→users 外键，工程师走 talents.contact。
+        const { data: dm } = await supabase
+          .from('demands')
+          .select('title, assigned_engineer_id, users(email)')
+          .eq('id', ms.demand_id)
+          .single();
+        if (!dm) return;
+        const employerEmail = dm.users?.email || null;
+        let engineerEmail = null;
+        if (dm.assigned_engineer_id) {
+          const { data: talent } = await supabase.from('talents').select('contact').eq('id', dm.assigned_engineer_id).single();
+          engineerEmail = talent?.contact || null;
+        }
+
+        const disputeUrl = `${DOMAIN}/dispute/${data.id}`;
+        const deadlineStr = new Date(evidenceDeadline).toLocaleDateString();
+
+        // 站内通知：开纠纷者已知情，只提醒对方当事人。
+        const otherEmail = req.user.email === employerEmail ? engineerEmail : employerEmail;
+        if (otherEmail) {
+          await createNotification({
+            user_email: otherEmail,
+            type: 'dispute_opened',
+            title: `Dispute opened: ${dm.title}`,
+            body: `A dispute was opened on the "${ms.phase_name}" milestone. Submit your evidence before ${deadlineStr}.`,
+            link: `/dispute/${data.id}`,
+            demand_id: ms.demand_id,
+          });
+        }
+
+        // 邮件：双方各发一封。
+        [employerEmail, engineerEmail].filter(Boolean).forEach(email => {
+          emailDisputeOpened({
+            recipientEmail: email, projectTitle: dm.title, phaseName: ms.phase_name,
+            deadline: evidenceDeadline, disputeUrl,
+          }).catch(() => {});
+        });
+      } catch (notifyErr) {
+        console.error('[Disputes] Open notify error:', notifyErr.message);
+      }
+    })();
 
     res.json({ status: 'ok', data });
   } catch (err) {

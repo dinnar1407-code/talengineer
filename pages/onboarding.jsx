@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../components/Toast';
@@ -42,6 +42,29 @@ const DICT = {
     viewPublic: 'View public profile →', browseProjects: 'Browse Projects →',
     toastSaved: 'Profile saved!', toastSaveFailed: 'Failed to save profile.',
     toastPortfolioFailed: 'Profile saved, but portfolio failed to save.', toastNetwork: 'Network error.',
+    // Avatar / uploads
+    avatarLabel: 'Profile Photo', uploadImage: '📷 Upload Image', uploading: 'Uploading…',
+    toastUploaded: 'Uploaded!', toastUploadFailed: 'Upload failed.',
+    toastPortfolioMax: 'You can add up to 12 portfolio items.',
+    uploadPhoto: '📷 Upload Photo',
+    // Insurance & compliance
+    insuranceTitle: 'Insurance & Compliance',
+    insuranceDesc: 'Upload your Certificate of Insurance (COI). Our team verifies it before you can be assigned to on-site work.',
+    uploadCoi: '📄 Upload COI (PDF or image)',
+    toastCoiSubmitted: 'Submitted. Awaiting platform verification.',
+    toastCoiFailed: 'Failed to submit insurance certificate.',
+    noInsurance: 'No insurance certificate on file yet.',
+    // Tax documents
+    taxTitle: 'Tax Documents',
+    taxDesc: 'Upload your completed IRS Form W-9 (PDF). This is required before any payout can be processed.',
+    uploadW9: '📄 Upload W-9 (PDF)',
+    w9FormLink: 'Get the official IRS W-9 form ↗',
+    toastW9Submitted: 'W-9 submitted. Awaiting confirmation.',
+    toastW9Failed: 'Failed to submit W-9.',
+    noTax: 'No tax document submitted yet.',
+    // Status badges (tax: submitted|received|rejected · cert: pending|verified|rejected)
+    stSubmitted: 'Pending confirmation', stReceived: 'Received', stReturned: 'Returned',
+    stPending: 'Pending verification', stVerified: 'Verified', stRejected: 'Rejected',
   },
   zh: {
     pageTitle: '我的档案 | Talengineer',
@@ -71,6 +94,29 @@ const DICT = {
     viewPublic: '查看公开档案 →', browseProjects: '浏览项目 →',
     toastSaved: '档案已保存！', toastSaveFailed: '档案保存失败。',
     toastPortfolioFailed: '档案已保存，但作品集保存失败。', toastNetwork: '网络错误，请重试。',
+    // 头像 / 上传
+    avatarLabel: '头像', uploadImage: '📷 上传图片', uploading: '上传中…',
+    toastUploaded: '上传成功！', toastUploadFailed: '上传失败。',
+    toastPortfolioMax: '作品集最多添加 12 项。',
+    uploadPhoto: '📷 上传照片',
+    // 保险与合规
+    insuranceTitle: '保险与合规',
+    insuranceDesc: '上传你的保险凭证（COI）。平台核验通过后，方可被指派到现场作业。',
+    uploadCoi: '📄 上传 COI（PDF 或图片）',
+    toastCoiSubmitted: '已提交，等待平台核验。',
+    toastCoiFailed: '保险证书提交失败。',
+    noInsurance: '暂无保险证书记录。',
+    // 税务文件
+    taxTitle: '税务文件',
+    taxDesc: '上传填好的 IRS W-9 表（PDF）。在处理任何收款之前需先完成此步。',
+    uploadW9: '📄 上传 W-9（PDF）',
+    w9FormLink: '获取官方 IRS W-9 表格 ↗',
+    toastW9Submitted: 'W-9 已提交，等待确认。',
+    toastW9Failed: 'W-9 提交失败。',
+    noTax: '暂无税务文件。',
+    // 状态徽标（税务：submitted|received|rejected · 证书：pending|verified|rejected）
+    stSubmitted: '待确认', stReceived: '已收讫', stReturned: '被退回',
+    stPending: '待核验', stVerified: '已核验', stRejected: '被退回',
   },
 };
 
@@ -105,6 +151,21 @@ export default function MyProfile() {
   const [portfolioUrl, setPortfolioUrl]     = useState('');
   const [portfolioCaption, setPortfolioCaption] = useState('');
 
+  // 头像 + 上传相关状态（新增）
+  const [avatarUrl, setAvatarUrl]           = useState('');
+  const [avatarUploading, setAvatarUploading]       = useState(false);
+  const [portfolioUploading, setPortfolioUploading] = useState(false);
+  const [coiUploading, setCoiUploading]     = useState(false);
+  const [w9Uploading, setW9Uploading]       = useState(false);
+  const [insuranceCerts, setInsuranceCerts] = useState([]);  // 已提交的保险证书
+  const [taxDocs, setTaxDocs]               = useState([]);   // 已提交的税务文件
+
+  // 隐藏 file input 的引用：点按钮触发对应的选择文件对话框
+  const avatarInputRef    = useRef(null);
+  const portfolioInputRef = useRef(null);
+  const coiInputRef       = useRef(null);
+  const w9InputRef        = useRef(null);
+
   // 挂载：校验登录 → 拉取本人档案回填（关键修复：以前从不加载，导致每次都空表单从头填）
   useEffect(() => {
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -132,12 +193,151 @@ export default function MyProfile() {
             setAvailability(data.availability || 'available');
             setAvailableFrom(data.available_from ? String(data.available_from).slice(0, 10) : '');
             setPortfolioItems(Array.isArray(data.portfolio_images) ? data.portfolio_images : []);
+            setAvatarUrl(data.avatar_url || '');
+            // 有档案才拉保险证书（certifications 按 talent_id 查，且 GET 无需鉴权）
+            if (data.id) loadInsurance(data.id);
           }
         }
       } catch { /* 网络异常时显示空表单，用户仍可填写保存 */ }
+      // 税务文件按登录用户查，不依赖是否已有档案
+      loadTax(user.token);
       setLoading(false);
     })();
   }, []);
+
+  // 拉取本人已提交的保险证书（只保留保险类，用于展示核验状态）
+  async function loadInsurance(tid = talentId) {
+    if (!tid) return;
+    try {
+      const res = await fetch(`/api/certifications/${tid}`);
+      if (res.ok) {
+        const { data } = await res.json();
+        setInsuranceCerts((data || []).filter(
+          c => c.cert_type === 'insurance' || c.cert_name === 'General Liability Insurance (COI)'
+        ));
+      }
+    } catch { /* 拉取失败静默：不阻塞主表单 */ }
+  }
+
+  // 拉取本人已提交的税务文件（W-9 等）
+  async function loadTax(token = currentUser?.token) {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/tax/my', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const { data } = await res.json(); setTaxDocs(data || []); }
+    } catch { /* 拉取失败静默 */ }
+  }
+
+  // 通用上传：把文件 POST 到 /api/uploads，bucket='public' 回 {url,path}，bucket='tax' 回 {path}
+  // 注意：FormData 不要手动设 Content-Type，浏览器会自动带上正确的 multipart 边界
+  async function uploadFile(file, bucket = 'public') {
+    const form = new FormData();
+    form.append('file', file);
+    const endpoint = bucket === 'tax' ? '/api/uploads?bucket=tax' : '/api/uploads';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${currentUser.token}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || d.toastUploadFailed);
+    return data;
+  }
+
+  // 头像上传：成功后回填 avatar_url 字段并预览（保存档案时随 payload 一起提交）
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const { url } = await uploadFile(file, 'public');
+      setAvatarUrl(url);
+      toast.success(d.toastUploaded);
+    } catch (err) { toast.error(err.message || d.toastUploadFailed); }
+    setAvatarUploading(false);
+    e.target.value = ''; // 重置，允许再次选择同一文件
+  }
+
+  // 作品集上传：成功后把返回 url 追加进 portfolioItems（上限 12）
+  async function handlePortfolioUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (portfolioItems.length >= 12) { toast.warn(d.toastPortfolioMax); e.target.value = ''; return; }
+    setPortfolioUploading(true);
+    try {
+      const { url } = await uploadFile(file, 'public');
+      setPortfolioItems(prev => [...prev, { url, caption: '' }]);
+      toast.success(d.toastUploaded);
+    } catch (err) { toast.error(err.message || d.toastUploadFailed); }
+    setPortfolioUploading(false);
+    e.target.value = '';
+  }
+
+  // COI 保险凭证上传：上传到公开桶 → 以证书形式提交（复用 /api/certifications）→ 刷新状态
+  async function handleCoiUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoiUploading(true);
+    try {
+      const { url } = await uploadFile(file, 'public');
+      const res = await fetch('/api/certifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({
+          cert_name: 'General Liability Insurance (COI)',
+          cert_type: 'insurance',
+          file_url: url,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || d.toastCoiFailed);
+      toast.success(d.toastCoiSubmitted);
+      loadInsurance();
+    } catch (err) { toast.error(err.message || d.toastCoiFailed); }
+    setCoiUploading(false);
+    e.target.value = '';
+  }
+
+  // W-9 上传：上传到私有桶 tax-docs（只回 path）→ 登记到 /api/tax/w9 → 刷新状态徽标
+  async function handleW9Upload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setW9Uploading(true);
+    try {
+      const { path } = await uploadFile(file, 'tax');
+      const res = await fetch('/api/tax/w9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ storage_path: path }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || d.toastW9Failed);
+      toast.success(d.toastW9Submitted);
+      loadTax();
+    } catch (err) { toast.error(err.message || d.toastW9Failed); }
+    setW9Uploading(false);
+    e.target.value = '';
+  }
+
+  // 税务文件状态 → 徽标文案 + 颜色
+  function taxStatusBadge(status) {
+    const map = {
+      submitted: { label: d.stSubmitted, color: '#f59e0b' },
+      received:  { label: d.stReceived,  color: '#16a34a' },
+      rejected:  { label: d.stReturned,  color: '#dc2626' },
+    };
+    return map[status] || { label: status, color: '#6b7280' };
+  }
+
+  // 证书状态 → 徽标文案 + 颜色（certifications 用 pending|verified|rejected）
+  function certStatusBadge(status) {
+    const map = {
+      pending:  { label: d.stPending,  color: '#f59e0b' },
+      verified: { label: d.stVerified, color: '#16a34a' },
+      rejected: { label: d.stRejected, color: '#dc2626' },
+    };
+    return map[status] || { label: status, color: '#6b7280' };
+  }
 
   function toggleSkill(skill) {
     setSelectedSkills(prev =>
@@ -174,6 +374,7 @@ export default function MyProfile() {
         skills: selectedSkills.join(', '),
         availability,
         available_from: availableFrom || null,
+        avatar_url: avatarUrl || undefined,
       };
       Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
 
@@ -230,6 +431,22 @@ export default function MyProfile() {
 
                 {/* ── Basics ── */}
                 <h2>{d.profileTitle}</h2>
+
+                {/* 头像：URL 输入 + 上传按钮（隐藏 file input），有值则预览 */}
+                <div className={styles.formGroup}>
+                  <label>{d.avatarLabel}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {avatarUrl
+                      ? <img src={avatarUrl} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: 'var(--surface-2)', flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+                      : <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--surface-2)', flexShrink: 0 }} />}
+                    <input value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder={d.phImageUrl} className={styles.input} style={{ flex: 1 }} />
+                    <button type="button" className={styles.btnAdd} disabled={avatarUploading} onClick={() => avatarInputRef.current?.click()}>
+                      {avatarUploading ? d.uploading : d.uploadImage}
+                    </button>
+                    <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+                  </div>
+                </div>
+
                 <div className={styles.formGroup}>
                   <label>{d.lblRegion}</label>
                   <input value={region} onChange={e => setRegion(e.target.value)} placeholder={d.phRegion} className={styles.input} />
@@ -328,7 +545,13 @@ export default function MyProfile() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   <input className={styles.input} value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} placeholder={d.phImageUrl} />
                   <input className={styles.input} value={portfolioCaption} onChange={e => setPortfolioCaption(e.target.value)} placeholder={d.phCaption} />
-                  <button type="button" className={styles.btnAdd} onClick={addPortfolioItem}>{d.addItem}</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className={styles.btnAdd} style={{ flex: 1 }} onClick={addPortfolioItem}>{d.addItem}</button>
+                    <button type="button" className={styles.btnAdd} style={{ flex: 1 }} disabled={portfolioUploading} onClick={() => portfolioInputRef.current?.click()}>
+                      {portfolioUploading ? d.uploading : d.uploadImage}
+                    </button>
+                    <input ref={portfolioInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePortfolioUpload} />
+                  </div>
                 </div>
                 {portfolioItems.length > 0 && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10, marginBottom: 8 }}>
@@ -344,6 +567,55 @@ export default function MyProfile() {
                     ))}
                   </div>
                 )}
+
+                {/* ── Insurance & Compliance (COI) ── */}
+                <h2 style={sectionHeadStyle}>{d.insuranceTitle}</h2>
+                <p className={styles.stepDesc}>{d.insuranceDesc}</p>
+                <button type="button" className={styles.btnAdd} disabled={coiUploading} onClick={() => coiInputRef.current?.click()}>
+                  {coiUploading ? d.uploading : d.uploadCoi}
+                </button>
+                <input ref={coiInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleCoiUpload} />
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {insuranceCerts.length === 0
+                    ? <p className={styles.stepDesc} style={{ margin: 0 }}>{d.noInsurance}</p>
+                    : insuranceCerts.map(c => {
+                        const b = certStatusBadge(c.status);
+                        return (
+                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                            <span style={{ flex: 1, fontSize: 14 }}>{c.cert_name}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: b.color, padding: '2px 8px', borderRadius: 999 }}>{b.label}</span>
+                            {c.status === 'rejected' && c.admin_notes && <span style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>{c.admin_notes}</span>}
+                          </div>
+                        );
+                      })}
+                </div>
+
+                {/* ── Tax Documents (W-9) ── */}
+                <h2 style={sectionHeadStyle}>{d.taxTitle}</h2>
+                <p className={styles.stepDesc}>{d.taxDesc}</p>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button type="button" className={styles.btnAdd} disabled={w9Uploading} onClick={() => w9InputRef.current?.click()}>
+                    {w9Uploading ? d.uploading : d.uploadW9}
+                  </button>
+                  <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener noreferrer" className={styles.btnSecondary} style={{ fontSize: 13 }}>
+                    {d.w9FormLink}
+                  </a>
+                  <input ref={w9InputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleW9Upload} />
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {taxDocs.length === 0
+                    ? <p className={styles.stepDesc} style={{ margin: 0 }}>{d.noTax}</p>
+                    : taxDocs.map(t => {
+                        const b = taxStatusBadge(t.status);
+                        return (
+                          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8 }}>
+                            <span style={{ flex: 1, fontSize: 14 }}>{(t.doc_type || 'w9').toUpperCase()}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: b.color, padding: '2px 8px', borderRadius: 999 }}>{b.label}</span>
+                            {t.status === 'rejected' && t.note && <span style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)' }}>{t.note}</span>}
+                          </div>
+                        );
+                      })}
+                </div>
 
                 {/* ── Save ── */}
                 <div className={styles.btnRow}>
