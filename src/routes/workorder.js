@@ -7,6 +7,7 @@ const { assertDemandParticipant } = require('../middleware/ownership');
 const { emailMilestoneReleased, emailRequestReview } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 const { checkAssignEligibility } = require('../services/certService'); // 认证兜底门禁（到场开工前二道防线）
+const { geofenceCheck } = require('../utils/geo'); // GPS 签到围栏：服务端算距离，警示不拦截
 
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
 const stripe = require('../config/stripe').getStripe();
@@ -63,7 +64,7 @@ router.post('/:milestoneId/checkin', requireAuth, async (req, res) => {
     // 主门禁在 demand.js assign；这里是到场开工前的第二道防线，防历史指派/证被吊销后
     // 仍然开工。规则同 assign：持有效平台认证，需求指定方向则须持该方向。
     const { data: gateDemand } = await supabase.from('demands')
-      .select('required_cert_track').eq('id', ms.demand_id).single();
+      .select('required_cert_track, site_lat, site_lng, site_radius_m').eq('id', ms.demand_id).single();
     const eligibility = await checkAssignEligibility(supabase, talent.id, gateDemand?.required_cert_track || null);
     if (!eligibility.allowed) {
       return res.status(403).json({
@@ -72,17 +73,26 @@ router.post('/:milestoneId/checkin', requireAuth, async (req, res) => {
       });
     }
 
+    // ── GPS 围栏：与需求站点坐标比对（服务端计算防伪造）。策略 = 警示不拦截：
+    // 厂房内 GPS 漂移常见，越界签到照常成功，仅落库标记供雇主/admin 查看。
+    const fence = geofenceCheck({
+      siteLat: gateDemand?.site_lat, siteLng: gateDemand?.site_lng,
+      radiusM: gateDemand?.site_radius_m, lat, lng,
+    });
+
     const { data, error } = await supabase.from('work_order_checkins').upsert({
       milestone_id: parseInt(req.params.milestoneId),
       demand_id: ms.demand_id,
       engineer_id: talent.id,
       checkin_lat: lat || null,
       checkin_lng: lng || null,
+      distance_m: fence.distanceM,
+      geofence_ok: fence.ok,
       status: 'checked_in',
     }, { onConflict: 'milestone_id,engineer_id' }).select().single();
 
     if (error) throw error;
-    res.json({ status: 'ok', data });
+    res.json({ status: 'ok', data, fence });
   } catch (err) {
     // 真实错误记录到日志(供 Sentry/排查)，客户端只收到通用文案，避免泄露数据库/内部细节
     console.error('[workorder]', err);
