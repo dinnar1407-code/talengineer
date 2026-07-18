@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../components/Toast';
+import ConsoleShell from '../components/ConsoleShell';
 import styles from './console.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -303,20 +304,17 @@ function mapEngineer(t) {
 export default function Console() {
   const router = useRouter();
   const [lang, setLang] = useLang();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const toast = useToast();
 
   const [user, setUser] = useState(null);
   const [role, setRole] = useState('employer');
   const [screen, setScreen] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState(0);
-  const [sbOpen, setSbOpen] = useState(false);
   const [engineers, setEngineers] = useState(null); // null → 用占位
 
   // ── 真实数据（null=加载中，[]/{}=已加载）──────────────────────────────────────
-  const [notifications, setNotifications] = useState(null);   // 活动流 + 铃铛面板（/api/notifications）
-  const [notifUnread, setNotifUnread] = useState(0);          // 铃铛未读数（/api/notifications/unread-count）
-  const [notifOpen, setNotifOpen] = useState(false);          // 铃铛下拉面板开合
+  const [notifications, setNotifications] = useState(null);   // 活动流（/api/notifications）；铃铛下拉已移至 ConsoleShell 自取
   const [threads, setThreads] = useState(null);               // 消息收件箱（/api/messages/inbox）
   const [ledger, setLedger] = useState(null);                 // 工程师项目来源（/api/finance/ledger）
   const [myDemands, setMyDemands] = useState(null);           // 雇主项目来源（/api/demand/my）
@@ -378,11 +376,6 @@ export default function Console() {
       .then(r => (r.ok ? r.json() : Promise.reject()))
       .then(j => { if (alive) setNotifications(j.data || []); })
       .catch(() => { if (alive) { setNotifications([]); setErrors(e => ({ ...e, notif: true })); } });
-
-    fetch('/api/notifications/unread-count', { headers: h })
-      .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(j => { if (alive) setNotifUnread(j.count || 0); })
-      .catch(() => {});
 
     fetch('/api/messages/inbox', { headers: h })
       .then(r => (r.ok ? r.json() : Promise.reject()))
@@ -475,21 +468,6 @@ export default function Console() {
     setSending(false);
   }
 
-  // 铃铛"全部已读"：真实调用 /api/notifications/read-all，成功后清零徽标并本地标记已读
-  async function markAllRead() {
-    if (!user) return;
-    try {
-      await fetch('/api/notifications/read-all', { method: 'POST', headers: { Authorization: `Bearer ${user.token}` } });
-      setNotifUnread(0);
-      setNotifications(prev => (prev || []).map(n => ({ ...n, read: true })));
-    } catch { /* 静默：面板体验不因失败阻断，未读数下次刷新会回正 */ }
-  }
-  // 点击某条通知：有 link 则跳转，并关闭面板
-  function openNotif(n) {
-    setNotifOpen(false);
-    if (n.link) router.push(n.link);
-  }
-
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
   if (!user) return null;
 
@@ -504,13 +482,14 @@ export default function Console() {
   if (!isEngineer && effScreen === 'profile') effScreen = 'dashboard';
   if (effScreen === 'admin' && !isSuper) effScreen = 'dashboard';
 
-  function go(s) { setScreen(s); setSbOpen(false); }
+  // 七屏切换（作为 onNavigate 传给 ConsoleShell；外壳负责关闭移动端抽屉）
+  function go(s) { setScreen(s); }
+  // 超级管理员切换视角（作为 onRoleChange 传给 ConsoleShell）
   function switchRole(r) {
     setRole(r);
     if (r !== 'employer' && screen === 'find') setScreen('dashboard');
     if (r !== 'engineer' && screen === 'profile') setScreen('dashboard');
     if (r !== 'admin' && screen === 'admin') setScreen('dashboard');
-    setSbOpen(false);
   }
 
   // ── 归一化项目模型（两种来源，同一渲染结构）──────────────────────────────────
@@ -606,18 +585,7 @@ export default function Console() {
   // 待办：真实项目为空（同 projectsDemo 判据）→ 演示待办兜底
   const todosDemo = projectsDemo;
 
-  // ── 侧栏导航（含仅工程师可见的"学习与考核"外链项）─────────────────────────────
-  const navItems = [
-    { key: 'dashboard', icon: '▦', label: d.navDashboard },
-    { key: 'projects', icon: '📁', label: d.navProjects },
-    { key: 'escrow', icon: '💰', label: d.navEscrow },
-    { key: 'messages', icon: '💬', label: d.navMessages },
-  ];
-  if (isEmployer) navItems.push({ key: 'find', icon: '🔍', label: d.navFind });
-  if (isEngineer) navItems.push({ key: 'profile', icon: '👤', label: d.navProfile });
-  if (isEngineer) navItems.push({ key: 'training', icon: '🎓', label: d.navTraining, href: '/training' }); // 外链到 /training 页面
-  if (isAdminView) navItems.push({ key: 'admin', icon: '🛡️', label: d.navAdmin });
-
+  // 顶栏标题/副标题：按当前屏派生，传给 ConsoleShell（侧栏导航已移入外壳）
   const titles = {
     dashboard: [d.navDashboard, isEmployer ? d.subDashEmployer : isEngineer ? d.subDashEngineer : d.subAdmin],
     projects: [d.navProjects, d.subProjects],
@@ -628,11 +596,8 @@ export default function Console() {
     admin: [d.navAdmin, d.subAdmin],
   };
   const [pageTitle, pageSub] = titles[effScreen] || titles.dashboard;
-  const primaryCta = isEmployer ? d.ctaPost : isEngineer ? d.ctaBrowse : d.ctaManage;
-  const primaryHref = isAdminView ? '/admin' : '/talent';
   const userInitials = initialsOf(user.name, user.email);
   const userName = user.name || (user.email ? user.email.split('@')[0] : 'User');
-  const roleLabel = isEmployer ? d.roleEmployerLabel : isEngineer ? d.roleEngineerLabel : d.roleAdminLabel;
   // Find Engineers：真实 talent/list 未填充 → 占位工程师兜底（回退逻辑保留，回退时打徽标）
   const findIsDemo = engineers === null;
   const engineersToShow = engineers || ENGINEERS_PLACEHOLDER;
@@ -697,102 +662,22 @@ export default function Console() {
     <>
       <Head><title>Console | Talengineer</title></Head>
 
-      <div className={styles.shell}>
-        <div className={sbOpen ? styles.backdropOpen : styles.backdrop} onClick={() => setSbOpen(false)} />
-
-        {/* ── SIDEBAR ── */}
-        <aside className={`${styles.sidebar} ${sbOpen ? styles.sidebarOpen : ''}`}>
-          <Link href="/" className={styles.sbLogo}>
-            <img src="/img/logo-macaw.svg" alt="" width={28} height={28} />
-            <b>Talengineer</b>
-          </Link>
-
-          <div className={styles.sbSection}>
-            <div className={styles.sbLabel}>{d.workspace}</div>
-            {/* 角色切换仅对超级管理员开放（需要视角预览）；普通用户显示自己身份的静态标签 */}
-            {isSuper ? (
-              <div className={styles.roleSwitch}>
-                <button className={`${styles.roleTab} ${isEmployer ? styles.roleTabActive : ''}`} onClick={() => switchRole('employer')}>{d.employer}</button>
-                <button className={`${styles.roleTab} ${isEngineer ? styles.roleTabActive : ''}`} onClick={() => switchRole('engineer')}>{d.engineer}</button>
-                <button className={`${styles.roleTab} ${isAdminView ? styles.roleTabActive : ''}`} onClick={() => switchRole('admin')}>{d.admin}</button>
-              </div>
-            ) : (
-              <div className={styles.roleStatic}>{isEmployer ? d.employer : d.engineer}</div>
-            )}
-          </div>
-
-          <nav className={styles.nav}>
-            {navItems.map(it => (
-              <button key={it.key} className={`${styles.navItem} ${effScreen === it.key ? styles.navItemActive : ''}`} onClick={() => (it.href ? router.push(it.href) : go(it.key))}>
-                <span className={styles.navIcon}>{it.icon}</span>
-                <span className={styles.navLabel}>{it.label}</span>
-                {it.key === 'messages' && unreadTotal > 0 && <span className={styles.navBadge}>{unreadTotal}</span>}
-              </button>
-            ))}
-          </nav>
-
-          <div className={styles.sbFooter}>
-            <span className={styles.sbAvatar}>{userInitials}</span>
-            <div className={styles.sbUserMeta}>
-              <div className={styles.sbUserName}>{userName}</div>
-              <div className={styles.sbUserRole}>{roleLabel}</div>
-            </div>
-            <Link href="/onboarding" className={styles.sbGear} title="Settings">⚙</Link>
-          </div>
-        </aside>
-
-        {/* ── MAIN ── */}
-        <div className={styles.main}>
-          <header className={styles.topbar}>
-            <button className={styles.hamburger} onClick={() => setSbOpen(v => !v)} aria-label="Menu">☰</button>
-            <div>
-              <div className={styles.topTitle}>{pageTitle}</div>
-              <div className={styles.topSub}>{pageSub}</div>
-            </div>
-            <div className={styles.grow} />
-            <div className={styles.search}>
-              <span>🔍</span>
-              <input placeholder={d.searchPh} />
-            </div>
-            <button className={styles.iconBtn} onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            {/* 语言切换：console 文案为 en/zh 双语，按钮显示"对面"语言标签，点击即切换（与 admin 页同款交互） */}
-            <button className={styles.iconBtn} onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title="Toggle language" aria-label="Toggle language">
-              {lang === 'zh' ? 'EN' : '中'}
-            </button>
-            {/* 通知铃铛：点击展开下拉面板（真实 /api/notifications），面板外点击关闭 */}
-            <div className={styles.notifWrap}>
-              <button className={styles.iconBtn} onClick={() => setNotifOpen(v => !v)} aria-label="Notifications">
-                🔔{notifUnread > 0 && <span className={styles.bellBadge}>{notifUnread}</span>}
-              </button>
-              {notifOpen && (
-                <>
-                  <div className={styles.notifBackdrop} onClick={() => setNotifOpen(false)} />
-                  <div className={styles.notifPanel}>
-                    <div className={styles.notifHead}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><b>{d.notifications}</b>{feedIsDemo && demoBadge}</span>
-                      {notifUnread > 0 && <button className={styles.markAllBtn} onClick={markAllRead}>{d.markAllRead}</button>}
-                    </div>
-                    <div className={styles.notifScroll}>
-                      {notifications === null ? (
-                        <div className={styles.stateBox}>{d.loading}</div>
-                      ) : feedToShow.slice(0, 10).map(n => (
-                        <button key={n.id} className={`${styles.notifItem} ${n.read ? '' : styles.notifUnreadItem}`} onClick={() => openNotif(n)}>
-                          <div className={styles.notifItemTitle}>{n.title}</div>
-                          {n.body && <div className={styles.notifItemBody}>{n.body}</div>}
-                          <div className={styles.notifItemTime}>{relTime(n.created_at)}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <Link href={primaryHref} className={styles.ctaBtn}>{primaryCta}</Link>
-          </header>
-
-          <main className={styles.content}>
+      {/* 统一外壳：左侧栏 + 顶栏 + 铃铛均由 ConsoleShell 提供；本页只负责七屏内容。
+          role/onRoleChange 传入让超管切换视角，onNavigate 让七屏在页内切换（不跳转）。 */}
+      <ConsoleShell
+        user={user}
+        active={effScreen}
+        title={pageTitle}
+        subtitle={pageSub}
+        role={role}
+        onRoleChange={switchRole}
+        onNavigate={go}
+        unreadTotal={unreadTotal}
+        lang={lang}
+        setLang={setLang}
+        theme={theme}
+        setTheme={setTheme}
+      >
             {/* ===== DASHBOARD ===== */}
             {effScreen === 'dashboard' && (
               <div className={styles.stack}>
@@ -1210,9 +1095,7 @@ export default function Console() {
                 </div>
               </div>
             )}
-          </main>
-        </div>
-      </div>
+      </ConsoleShell>
     </>
   );
 }

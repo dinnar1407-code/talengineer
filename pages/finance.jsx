@@ -3,9 +3,11 @@ import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
 import Navbar from '../components/Navbar';
+import ConsoleShell from '../components/ConsoleShell';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabaseClient';
 import { useLang } from '../hooks/useLang';
+import { useTheme } from '../hooks/useTheme';
 import styles from './finance.module.css';
 
 const DICT = {
@@ -25,6 +27,7 @@ const LS_USER_KEY = 'tal_user';
 export default function Finance() {
   const toast = useToast();
   const [lang, setLang]             = useLang();
+  const { theme, setTheme }         = useTheme(); // 深浅主题：登录态套 ConsoleShell 时用
   const [authMode, setAuthMode]     = useState('signin');
   const [currentUser, setCurrentUser] = useState(null);
   const [ledger, setLedger]         = useState(null); // null = loading
@@ -539,9 +542,20 @@ export default function Finance() {
         </div>
       )}
 
-      <Navbar lang={lang} onLangChange={setLang} />
+      {/* 未登录时保留公共 Navbar；登录后由 ConsoleShell 提供统一顶栏，不再重复导航 */}
+      {!currentUser && <Navbar lang={lang} onLangChange={setLang} />}
 
       {currentUser && (
+        <ConsoleShell
+          user={currentUser}
+          active="finance"
+          title={d.dashTitle}
+          subtitle={d.dashSub}
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          setTheme={setTheme}
+        >
         <div className={styles.container}>
           <div className={styles.welcomeBar}>
             <div>
@@ -739,6 +753,7 @@ export default function Finance() {
             </tbody>
           </table>
         </div>
+        </ConsoleShell>
       )}
 
       {/* KYC Form Modal */}

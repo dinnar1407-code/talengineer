@@ -3,8 +3,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import ChatBot from '../components/ChatBot';
+import ConsoleShell from '../components/ConsoleShell';
 import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
+import { useTheme } from '../hooks/useTheme';
 import styles from './talent.module.css';
 
 const PAGE_SIZE = 12;
@@ -132,6 +134,7 @@ const CERT_TRACKS = [
 export default function Talent() {
   const toast = useToast();
   const [lang, setLang]        = useLang();
+  const { theme, setTheme }    = useTheme(); // 深浅主题：登录态套 ConsoleShell 时用
   const [activeTab, setActiveTab] = useState('projects');
   const [demands, setDemands]  = useState(null); // null = loading
   const [talents, setTalents]  = useState(null); // null = loading
@@ -373,26 +376,8 @@ export default function Talent() {
 
   const d = DICT[lang];
 
-  return (
-    <>
-      <Head>
-        <title>Talent & Projects | Talengineer</title>
-        <meta name="description" content="Browse and hire AI-verified industrial automation engineers — PLC, robotics, machine vision, and electrical. Post a project and match with certified talent under milestone escrow." />
-        <link rel="canonical" href="https://talengineer.us/talent" />
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content="Find Automation Engineers | Talengineer" />
-        <meta property="og:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers. Milestone escrow protects both sides." />
-        <meta property="og:url" content="https://talengineer.us/talent" />
-        <meta property="og:image" content="https://talengineer.us/og.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Find Automation Engineers | Talengineer" />
-        <meta name="twitter:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers." />
-        <meta name="twitter:image" content="https://talengineer.us/og.png" />
-      </Head>
-      <ChatBot lang={lang} />
-
-      <Navbar lang={lang} onLangChange={setLang} />
-
+  // 页面主体（tabs + 浏览项目/工程师）：登录/未登录复用同一份内容，避免重复 JSX
+  const pageBody = (
       <div className={styles.container}>
         <div className={styles.headerBlock}>
           <h1>{d.hubTitle}</h1>
@@ -669,6 +654,45 @@ export default function Talent() {
           </div>
         )}
       </div>
+  );
+
+  return (
+    <>
+      <Head>
+        <title>Talent & Projects | Talengineer</title>
+        <meta name="description" content="Browse and hire AI-verified industrial automation engineers — PLC, robotics, machine vision, and electrical. Post a project and match with certified talent under milestone escrow." />
+        <link rel="canonical" href="https://talengineer.us/talent" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Find Automation Engineers | Talengineer" />
+        <meta property="og:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers. Milestone escrow protects both sides." />
+        <meta property="og:url" content="https://talengineer.us/talent" />
+        <meta property="og:image" content="https://talengineer.us/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Find Automation Engineers | Talengineer" />
+        <meta name="twitter:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers." />
+        <meta name="twitter:image" content="https://talengineer.us/og.png" />
+      </Head>
+      <ChatBot lang={lang} />
+
+      {/* 登录用户套 ConsoleShell 统一外壳（active=find）；未登录访客保持原公开营销页（Navbar + 内容一字不动） */}
+      {currentUser ? (
+        <ConsoleShell
+          user={currentUser}
+          active="find"
+          title={d.hubTitle}
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          setTheme={setTheme}
+        >
+          {pageBody}
+        </ConsoleShell>
+      ) : (
+        <>
+          <Navbar lang={lang} onLangChange={setLang} />
+          {pageBody}
+        </>
+      )}
 
       {/* Apply Modal */}
       {applyDemand && (
