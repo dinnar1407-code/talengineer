@@ -381,9 +381,12 @@ export default function MyProfile() {
     };
     Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
 
-    // 离线：把「最终档案提交」原样入队（type:'profile-edit'），回网后 outbox 自动重放。
-    // 只包档案提交端点 /api/talent/profile；头像/COI/W9/作品集等上传中间步骤不动（都需实时存储往返）。
-    // request.body 传对象（不 stringify）：outbox 重放时会自行 stringify 并刷新为当下 token。
+    // 离线：把「档案保存」的两步写请求原样入队（都 type:'profile-edit'），回网后 outbox
+    // 按 createdAt 升序重放——先 profile（首次会自动建 talents 行）、后 portfolio 覆盖，
+    // 依赖顺序天然满足，避免只同步档案却静默丢作品集的「误导性半保存」。
+    // 与在线 saveAll 一致：portfolio 无条件 PUT（现有代码本就无脏检查，这里不新造脏检查）。
+    // 头像/COI/W9 等上传中间步骤不动（都需实时存储往返）。request.body 传对象（不 stringify）：
+    // outbox 重放时会自行 stringify 并刷新为当下 token。
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       await enqueue({
         type: 'profile-edit',
@@ -392,6 +395,15 @@ export default function MyProfile() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
           body: payload,
+        },
+      });
+      await enqueue({
+        type: 'profile-edit',
+        request: {
+          url: '/api/talent/portfolio',
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+          body: { portfolio_images: portfolioItems },
         },
       });
       toast.success(d.toastOfflineQueued);
