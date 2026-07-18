@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useToast } from '../components/Toast';
 import Navbar from '../components/Navbar';
 import { useLang } from '../hooks/useLang';
+import { enqueue } from '../lib/offline/outbox';
 import styles from './onboarding.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -42,6 +43,7 @@ const DICT = {
     viewPublic: 'View public profile →', browseProjects: 'Browse Projects →',
     toastSaved: 'Profile saved!', toastSaveFailed: 'Failed to save profile.',
     toastPortfolioFailed: 'Profile saved, but portfolio failed to save.', toastNetwork: 'Network error.',
+    toastOfflineQueued: 'Saved offline — will sync automatically when you reconnect.',
     // Avatar / uploads
     avatarLabel: 'Profile Photo', uploadImage: '📷 Upload Image', uploading: 'Uploading…',
     toastUploaded: 'Uploaded!', toastUploadFailed: 'Upload failed.',
@@ -94,6 +96,7 @@ const DICT = {
     viewPublic: '查看公开档案 →', browseProjects: '浏览项目 →',
     toastSaved: '档案已保存！', toastSaveFailed: '档案保存失败。',
     toastPortfolioFailed: '档案已保存，但作品集保存失败。', toastNetwork: '网络错误，请重试。',
+    toastOfflineQueued: '已离线保存，回网后自动同步。',
     // 头像 / 上传
     avatarLabel: '头像', uploadImage: '📷 上传图片', uploading: '上传中…',
     toastUploaded: '上传成功！', toastUploadFailed: '上传失败。',
@@ -364,20 +367,39 @@ export default function MyProfile() {
   // 一键保存：先存档案（首次会自动建行），再存作品集
   async function saveAll() {
     if (!currentUser?.token) return;
+
+    // 档案提交 payload（离线入队与在线提交共用同一份，避免重复构造）
+    const payload = {
+      bio,
+      region,
+      rate: rate ? `$${rate}/hr` : undefined,
+      pricing_model: pricingModel,
+      skills: selectedSkills.join(', '),
+      availability,
+      available_from: availableFrom || null,
+      avatar_url: avatarUrl || undefined,
+    };
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+
+    // 离线：把「最终档案提交」原样入队（type:'profile-edit'），回网后 outbox 自动重放。
+    // 只包档案提交端点 /api/talent/profile；头像/COI/W9/作品集等上传中间步骤不动（都需实时存储往返）。
+    // request.body 传对象（不 stringify）：outbox 重放时会自行 stringify 并刷新为当下 token。
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      await enqueue({
+        type: 'profile-edit',
+        request: {
+          url: '/api/talent/profile',
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+          body: payload,
+        },
+      });
+      toast.success(d.toastOfflineQueued);
+      return; // 在线行为完全不变；离线到此为止，不触发真实网络请求
+    }
+
     setSaving(true);
     try {
-      const payload = {
-        bio,
-        region,
-        rate: rate ? `$${rate}/hr` : undefined,
-        pricing_model: pricingModel,
-        skills: selectedSkills.join(', '),
-        availability,
-        available_from: availableFrom || null,
-        avatar_url: avatarUrl || undefined,
-      };
-      Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
-
       const res = await fetch('/api/talent/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
