@@ -16,6 +16,9 @@ const jwt = require('jsonwebtoken');
 
 const { getClient } = require('./config/db');
 const { assertDemandParticipant } = require('./middleware/ownership');
+// markerParse 复用离线契约里的 QC 图标记正则（'[qc-image:<path>]'），
+// 保证服务端签名逻辑与客户端解析用的是同一份格式定义，避免两处正则漂移。
+const { markerParse } = require('../lib/offline/replayCore');
 const {
   translateTechnicalMessage,
   generateDailyReport,
@@ -42,6 +45,26 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
  */
 function inProjectRoom(socket, projectId) {
   return socket.rooms.has(`project_${projectId}`);
+}
+
+/**
+ * 为聊天历史里的 QC 图标记行签发临时可读 URL。
+ * project_messages.original_text 存 '[qc-image:<path>]' 标记：这里逐行解析，命中标记就用
+ * 私有 bucket（qc-images）的 createSignedUrl 换一个 10 分钟有效的临时链接，附加为 image_url。
+ * 为什么逐行并发签名：历史一批可能几十行，用 Promise.all 并发避免串行等待；
+ * 单行签名失败不附加 image_url（前端据此显示"图片暂不可用"占位），不影响其它行。
+ */
+async function signQcImageRows(supabase, rows) {
+  return Promise.all((rows || []).map(async (row) => {
+    const marker = markerParse(row.original_text);
+    if (!marker) return row; // 非 QC 图标记的普通消息原样返回
+    try {
+      const { data } = await supabase.storage.from('qc-images').createSignedUrl(marker.path, 600);
+      return data?.signedUrl ? { ...row, image_url: data.signedUrl } : row;
+    } catch {
+      return row; // 签名失败：不附加 image_url，交给前端占位
+    }
+  }));
 }
 
 /**
@@ -171,6 +194,38 @@ function attachSocket(server) {
         if (!inProjectRoom(socket, projectId)) {
           return socket.emit('messageError', { error: 'Join the project room first.' });
         }
+
+        // ── QC 图先落盘再分析 ─────────────────────────────────────────────────
+        // 为什么落盘：原先 base64 只送 Gemini 分析后即丢，聊天历史刷新即失、无法回看。
+        // 现在先压缩上传到私有 bucket（qc-images），并在 project_messages 里插一条
+        // 标记消息 [qc-image:<path>]，历史拉取时服务端再签发临时可读 URL 回看。
+        // 落盘失败绝不能影响后续 AI 分析——整段用 try/catch 包住，失败只记录日志。
+        try {
+          const supabase = getClient();
+          if (supabase && imageData) {
+            const sharp = require('sharp');
+            const base64 = (imageData.split(',')[1] || '');
+            const raw = Buffer.from(base64, 'base64');
+            // rotate() 按 EXIF 摆正手机竖拍；限宽 1600 避免大图撑爆存储；质量 80 兼顾清晰与体积
+            const jpg = await sharp(raw).rotate().resize({ width: 1600, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
+            const storagePath = `${projectId}/${Date.now()}.jpg`;
+            const { error: upErr } = await supabase.storage.from('qc-images').upload(storagePath, jpg, { contentType: 'image/jpeg' });
+            if (!upErr) {
+              // 消息行字段形状同上方 chatMessage 的 insert；original_text 用契约标记格式，供历史回看识别
+              const uploaderName = socket.user.email ? socket.user.email.split('@')[0] : socket.user.role;
+              await supabase.from('project_messages').insert([{
+                demand_id: projectId,
+                sender_role: socket.user.role,
+                sender_name: uploaderName,
+                original_text: `[qc-image:${storagePath}]`,
+                translated_text: `[qc-image:${storagePath}]`,
+              }]);
+            }
+          }
+        } catch (persistErr) {
+          console.error('[Socket] QC image persist error:', persistErr);
+        }
+
         // analyzeQualityImage 签名为 (base64Data, mimeType, projectContext)：需先把前端传来的 dataURL 拆成 mimeType 与纯 base64
         const parts = imageData.split(';');
         const mimeType = parts[0].split(':')[1];
@@ -187,6 +242,30 @@ function attachSocket(server) {
         });
       } catch (err) {
         socket.emit('messageError', { error: 'Failed to analyse image.' });
+      }
+    });
+
+    // 拉取项目聊天历史（含 QC 图回看）：warroom 加入房间后调用一次，把过往消息补回。
+    // 为什么直接做当事方校验而非 inProjectRoom：loadHistory 可能与 joinRoom 几乎同时到达，
+    // 此刻房间可能尚未 join 完成；历史是只读的，直接用 assertDemandParticipant 判定归属可避免竞态。
+    socket.on('loadHistory', async ({ projectId }) => {
+      try {
+        const supabase = getClient();
+        if (!supabase || !projectId) return socket.emit('history', []);
+        const { allowed } = await assertDemandParticipant(supabase, projectId, socket.user);
+        if (!allowed) return socket.emit('history', []);
+        const { data: rows } = await supabase
+          .from('project_messages')
+          .select('*')
+          .eq('demand_id', projectId)
+          .order('created_at', { ascending: true })
+          .limit(100);
+        // QC 图标记行逐个签发临时可读 URL 后再下发，前端据 image_url 渲染图片
+        const withUrls = await signQcImageRows(supabase, rows || []);
+        socket.emit('history', withUrls);
+      } catch (err) {
+        console.error('[Socket] loadHistory error:', err);
+        socket.emit('history', []);
       }
     });
 

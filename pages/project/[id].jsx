@@ -28,6 +28,13 @@ export default function ProjectDetail({ initialProject = null }) {
   const [quoteAmount, setQuoteAmount] = useState('');
   const [assigning, setAssigning]   = useState(null);
 
+  // 站点坐标（GPS 围栏）+ 现场签到记录（均雇主视角）
+  const [siteLat, setSiteLat]       = useState('');
+  const [siteLng, setSiteLng]       = useState('');
+  const [siteRadius, setSiteRadius] = useState('');
+  const [savingSite, setSavingSite] = useState(false);
+  const [checkins, setCheckins]     = useState(null);   // 该单的签到记录（含围栏结果）或 null（未拉取）
+
   // 双向评价（工程师→雇主）
   const [employerRating, setEmployerRating]       = useState(null);   // { avg, count, reviews } 或 null
   const [showEmployerReviews, setShowEmployerReviews] = useState(false); // 评论列表展开态
@@ -63,6 +70,25 @@ export default function ProjectDetail({ initialProject = null }) {
       .then(r => r.json())
       .then(d => setApplications(d.data || []))
       .catch(() => setApplications([]));
+  }, [project, currentUser]);
+
+  // 站点坐标回显：项目数据到手后，把已有的 site_lat/lng/radius 填进输入框
+  useEffect(() => {
+    if (!project) return;
+    if (project.site_lat != null)      setSiteLat(String(project.site_lat));
+    if (project.site_lng != null)      setSiteLng(String(project.site_lng));
+    if (project.site_radius_m != null) setSiteRadius(String(project.site_radius_m));
+  }, [project]);
+
+  // 雇主视角拉取现场签到记录（含围栏结果）——仅雇主本人可见，走鉴权端点
+  useEffect(() => {
+    if (!project || !currentUser || currentUser.role !== 'employer' || !id) return;
+    fetch(`/api/demand/${id}/checkins`, {
+      headers: { Authorization: `Bearer ${currentUser.token}` },
+    })
+      .then(r => r.json())
+      .then(d => setCheckins(d.data || []))
+      .catch(() => setCheckins([]));
   }, [project, currentUser]);
 
   // 是否已结算：至少一个里程碑已放款/退款——决定"评价雇主"入口是否出现
@@ -123,6 +149,23 @@ export default function ProjectDetail({ initialProject = null }) {
       } else toast.error(data.error);
     } catch { toast.error('Network error.'); }
     setAssigning(null);
+  }
+
+  async function handleSaveSite() {
+    if (!currentUser?.token) { toast.error(lang === 'zh' ? '请先登录。' : 'Please sign in first.'); return; }
+    setSavingSite(true);
+    try {
+      const res = await fetch('/api/demand/site', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        // 半径留空则不传，让服务端用缺省 500
+        body: JSON.stringify({ demand_id: id, site_lat: siteLat, site_lng: siteLng, site_radius_m: siteRadius || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) toast.success(lang === 'zh' ? '站点坐标已保存。' : 'Site coordinates saved.');
+      else toast.error(data.error);
+    } catch { toast.error(lang === 'zh' ? '网络错误。' : 'Network error.'); }
+    setSavingSite(false);
   }
 
   async function handleSubmitEmployerReview(e) {
@@ -355,6 +398,61 @@ export default function ProjectDetail({ initialProject = null }) {
                 {applying ? 'Submitting…' : 'Submit Proposal'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* ── Site coordinates (employer) — GPS 围栏中心 ── */}
+        {currentUser?.role === 'employer' && (
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>📌 {lang === 'zh' ? '站点坐标（GPS 围栏）' : 'Site Coordinates (GPS Geofence)'}</h3>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: -6, marginBottom: 14 }}>
+              {lang === 'zh'
+                ? '设置现场坐标后，工程师签到会自动计算与站点的距离并标注是否在范围内。'
+                : 'Once set, engineer check-ins auto-compute distance from the site and flag out-of-range visits.'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{lang === 'zh' ? '纬度' : 'Latitude'}</label>
+                <input type="number" className={styles.textarea} style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 0 }} value={siteLat} onChange={e => setSiteLat(e.target.value)} placeholder="e.g. 31.2304" />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{lang === 'zh' ? '经度' : 'Longitude'}</label>
+                <input type="number" className={styles.textarea} style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 0 }} value={siteLng} onChange={e => setSiteLng(e.target.value)} placeholder="e.g. 121.4737" />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{lang === 'zh' ? '半径（米）' : 'Radius (m)'}</label>
+                <input type="number" className={styles.textarea} style={{ padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 0 }} value={siteRadius} onChange={e => setSiteRadius(e.target.value)} placeholder="500" min="50" max="50000" />
+              </div>
+            </div>
+            <button className={styles.btnApply} disabled={savingSite} onClick={handleSaveSite}>
+              {savingSite ? (lang === 'zh' ? '保存中…' : 'Saving…') : (lang === 'zh' ? '保存站点坐标' : 'Save Site Coordinates')}
+            </button>
+          </div>
+        )}
+
+        {/* ── On-site check-in records (employer) — 含围栏警示徽章 ── */}
+        {currentUser?.role === 'employer' && checkins && checkins.length > 0 && (
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>📍 {lang === 'zh' ? '现场签到记录' : 'On-site Check-ins'}</h3>
+            {checkins.map(c => {
+              const ms = project.milestones?.find(m => m.id === c.milestone_id);
+              return (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border, #eee)' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{ms?.phase_name || `Milestone #${c.milestone_id}`}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      {c.checkin_time ? new Date(c.checkin_time).toLocaleString() : ''}{c.status ? ` · ${c.status}` : ''}
+                    </div>
+                  </div>
+                  {/* 围栏警示：仅 geofence_ok===false 才显示距离徽章；null/true 不显示 */}
+                  {c.geofence_ok === false && c.distance_m != null && (
+                    <span style={{ background: 'rgba(239,68,68,.12)', color: '#ef4444', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 12, whiteSpace: 'nowrap' }}>
+                      ⚠️ {lang === 'zh' ? `距站点 ${(c.distance_m / 1000).toFixed(1)}km` : `${(c.distance_m / 1000).toFixed(1)}km from site`}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

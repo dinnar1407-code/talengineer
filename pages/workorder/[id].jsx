@@ -3,6 +3,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
 import Navbar from '../../components/Navbar';
+import OfflineBanner from '../../components/OfflineBanner';
+import { useOfflineData } from '../../lib/offline/useOfflineData';
+import { enqueue } from '../../lib/offline/outbox';
 import styles from './workorder.module.css';
 
 const STATUS_LABEL = { checked_in: '🟡 Checked In', completed: '🔵 Awaiting Approval', approved: '✅ Approved & Paid' };
@@ -23,28 +26,46 @@ export default function WorkOrder() {
   const [step, setStep]               = useState('load');    // load | checkin | working | review | done
   const [submitting, setSubmitting]   = useState(false);
   const [uploading, setUploading]     = useState(false);     // 云端上传照片中
+  const [queuedCheckin, setQueuedCheckin]   = useState(false); // 离线签到已入队待同步
+  const [queuedComplete, setQueuedComplete] = useState(false); // 离线提交完工已入队待同步
 
   useEffect(() => {
     const stored = localStorage.getItem('tal_user');
     if (stored) { try { setCurrentUser(JSON.parse(stored)); } catch {} }
   }, []);
 
-  useEffect(() => {
-    if (!id) return;
+  // 页面数据经 useOfflineData 拉取：在线正常 fetch，断网时回放 IndexedDB 镜像（真实现由离线同步引擎提供）。
+  const { data: woData } = useOfflineData('workorder-' + id, async () => {
+    if (!id) return undefined;
     const token = (() => { try { return JSON.parse(localStorage.getItem('tal_user') || '{}').token || ''; } catch { return ''; } })();
-    fetch(`/api/workorder/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      .then(r => r.json())
-      .then(d => {
-        setData(d);
-        const c = d.checkin;
-        if (!c)                              setStep('checkin');
-        else if (c.status === 'checked_in')  setStep('working');
-        else if (c.status === 'completed')   setStep('review');
-        else                                 setStep('done');
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const r = await fetch(`/api/workorder/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    return r.json();
   }, [id]);
+
+  const loadedRef = useRef(false); // 首拉是否已拿到数据（供离线兜底判定）
+
+  // woData 到手后落本地 state 并推导当前步骤（原地保留 setData(d => ...) 的乐观更新能力）
+  useEffect(() => {
+    if (woData == null) return;
+    loadedRef.current = true;
+    setData(woData);
+    const c = woData.checkin;
+    if (!c)                              setStep('checkin');
+    else if (c.status === 'checked_in')  setStep('working');
+    else if (c.status === 'completed')   setStep('review');
+    else                                 setStep('done');
+    setLoading(false);
+  }, [woData]);
+
+  // 兜底：断网首拉被离线 hook 吞错时，2.5s 后收起 loading；若始终没拿到数据则默认落到"签到"步，
+  // 让离线签到仍然可用（回网后以服务端状态为准）。若已加载则不覆盖已推导的步骤。
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!loadedRef.current) setStep('checkin');
+      setLoading(false);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   function getGPS() {
     if (!navigator.geolocation) { toast.warn('GPS not available on this device.'); return; }
@@ -59,6 +80,21 @@ export default function WorkOrder() {
 
   async function handleCheckin() {
     if (!currentUser?.token) { toast.error('Please sign in first.'); return; }
+    // 离线：把签到请求原样入队，回网后 outbox 重放；按钮转「已排队待同步」，在线行为不变。
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      await enqueue({
+        type: 'checkin',
+        request: {
+          url: `/api/workorder/${id}/checkin`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+          body: { lat: location?.lat, lng: location?.lng },
+        },
+      });
+      setQueuedCheckin(true);
+      toast.success('Offline — check-in queued, will sync when back online.');
+      return;
+    }
     setSubmitting(true);
     try {
       const res  = await fetch(`/api/workorder/${id}/checkin`, {
@@ -109,6 +145,21 @@ export default function WorkOrder() {
 
   async function handleComplete() {
     if (!notes.trim()) { toast.warn('Please add completion notes before submitting.'); return; }
+    // 离线：把提交完工请求原样入队（type=checkout），回网后 outbox 重放；按钮转「已排队待同步」。
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      await enqueue({
+        type: 'checkout',
+        request: {
+          url: `/api/workorder/${id}/complete`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+          body: { notes, photos },
+        },
+      });
+      setQueuedComplete(true);
+      toast.success('Offline — submission queued, will sync when back online.');
+      return;
+    }
     setSubmitting(true);
     try {
       const res  = await fetch(`/api/workorder/${id}/complete`, {
@@ -164,6 +215,9 @@ export default function WorkOrder() {
       {/* 全站共享导航（菜单/语言/主题切换） */}
       <Navbar />
 
+      {/* 离线状态横幅：断网中 + N 条待同步（在线且队列空时组件自渲染为 null） */}
+      <OfflineBanner />
+
       <div className={styles.header}>
         {/* 回退上一页：工单页多从项目/控制台深链进入，返回优先走历史栈，无历史则回控制台 */}
         <button type="button" className={styles.backBtn} onClick={() => (window.history.length > 1 ? router.back() : router.push('/console'))}>←</button>
@@ -187,8 +241,8 @@ export default function WorkOrder() {
             <button className={styles.btnGPS} onClick={getGPS}>
               {location ? `📍 ${location.lat}, ${location.lng}` : '📍 Capture GPS Location'}
             </button>
-            <button className={styles.btnPrimary} disabled={submitting} onClick={handleCheckin}>
-              {submitting ? 'Checking in…' : '✅ Check In Now'}
+            <button className={styles.btnPrimary} disabled={submitting || queuedCheckin} onClick={handleCheckin}>
+              {queuedCheckin ? '⏳ Queued — will sync' : submitting ? 'Checking in…' : '✅ Check In Now'}
             </button>
           </div>
         )}
@@ -228,8 +282,8 @@ export default function WorkOrder() {
               placeholder="Describe the work completed: what was done, any issues found, parts used, test results…"
             />
 
-            <button className={styles.btnPrimary} disabled={submitting} onClick={handleComplete}>
-              {submitting ? 'Submitting…' : '🚀 Submit for Approval'}
+            <button className={styles.btnPrimary} disabled={submitting || queuedComplete} onClick={handleComplete}>
+              {queuedComplete ? '⏳ Queued — will sync' : submitting ? 'Submitting…' : '🚀 Submit for Approval'}
             </button>
           </div>
         )}
@@ -300,6 +354,16 @@ export default function WorkOrder() {
           <div className={styles.timestamp}>
             Checked in: {new Date(checkin.checkin_time).toLocaleString()}
             {checkin.checkin_lat && ` · 📍 ${checkin.checkin_lat}, ${checkin.checkin_lng}`}
+          </div>
+        )}
+
+        {/* 围栏警示：签到点在站点半径之外时提示距离（geofence_ok===false 才显示；null/true 不显示）。
+            警示不拦截——签到照常成立，只是给雇主/工程师一个"距站点较远"的可见信号。 */}
+        {checkin?.geofence_ok === false && checkin?.distance_m != null && (
+          <div style={{ marginTop: 6 }}>
+            <span style={{ display: 'inline-block', background: 'rgba(239,68,68,.12)', color: '#ef4444', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 12 }}>
+              ⚠️ {(checkin.distance_m / 1000).toFixed(1)}km from site
+            </span>
           </div>
         )}
       </div>

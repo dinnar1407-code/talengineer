@@ -105,6 +105,33 @@ async function runAutoInvite(demand, config) {
   }
 }
 
+/**
+ * 校验站点坐标三元组（GPS 围栏用）。
+ * 语义：三个字段全空 = "本单不设站点"，合法且返回空 values（调用方据此不落任何字段）；
+ *       只要有一个非空，就要求 lat/lng 均合法（radius 缺省 500）。
+ * 边界：lat∈[-90,90]、lng∈[-180,180]、radius∈[50,50000]，任一越界返回 ok=false 带错误文案。
+ * 为什么用助手：POST /submit 与 PUT /site 两处都要同一套校验，抽一处避免规则漂移。
+ * @returns {{ok:boolean, error?:string, values?:{site_lat:number,site_lng:number,site_radius_m:number}}}
+ */
+function validateSiteCoords({ site_lat, site_lng, site_radius_m }) {
+  const provided = site_lat != null || site_lng != null || site_radius_m != null;
+  if (!provided) return { ok: true, values: {} }; // 未提供站点，合法跳过
+
+  const lat = Number(site_lat);
+  const lng = Number(site_lng);
+  const radius = site_radius_m == null ? 500 : Number(site_radius_m); // 缺省半径 500m
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    return { ok: false, error: 'Invalid site_lat (must be a number between -90 and 90)' };
+  }
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+    return { ok: false, error: 'Invalid site_lng (must be a number between -180 and 180)' };
+  }
+  if (!Number.isFinite(radius) || radius < 50 || radius > 50000) {
+    return { ok: false, error: 'Invalid site_radius_m (must be between 50 and 50000)' };
+  }
+  return { ok: true, values: { site_lat: lat, site_lng: lng, site_radius_m: Math.round(radius) } };
+}
+
 // ── Parse demand (AI) ─────────────────────────────────────────────────────────
 router.post('/parse', async (req, res) => {
   try {
@@ -179,6 +206,10 @@ router.post('/submit', requireAuth, async (req, res) => {
 
     if (!title) return res.status(400).json({ error: 'Missing title' });
 
+    // 可选站点坐标（GPS 围栏）：非法直接 400；未提供则 values 为空、不落任何站点字段（现有发单行为不变）。
+    const siteCheck = validateSiteCoords(req.body);
+    if (!siteCheck.ok) return res.status(400).json({ error: siteCheck.error });
+
     // 自动邀请配置（可选）：zod 校验；非法则安全忽略（不阻断发单）。仅在 enabled 时落库并触发邀请。
     let autoDispatch = null;
     if (auto_dispatch) {
@@ -202,7 +233,7 @@ router.post('/submit', requireAuth, async (req, res) => {
 
     const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open', required_cert_track: certTrack, auto_dispatch: autoDispatch }])
+      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open', required_cert_track: certTrack, auto_dispatch: autoDispatch, ...siteCheck.values }])
       .select()
       .single();
 
@@ -230,6 +261,46 @@ router.post('/submit', requireAuth, async (req, res) => {
     res.json({ status: 'ok', id: demand.id });
   } catch (err) {
     console.error('[Demand] Submit error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── Update site coordinates (employer) ────────────────────────────────────────
+// 雇主为已发布的需求设置/更新现场站点坐标（GPS 围栏中心 + 半径）。
+// 只允许更新 site_lat/site_lng/site_radius_m 三个字段；归属校验防 IDOR（仅该单雇主可改）。
+router.put('/site', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { demand_id } = req.body;
+    if (!demand_id) return res.status(400).json({ error: 'Missing demand_id' });
+
+    // 校验坐标合法性（与 /submit 同一套规则）
+    const siteCheck = validateSiteCoords(req.body);
+    if (!siteCheck.ok) return res.status(400).json({ error: siteCheck.error });
+    // /site 是"设置站点"语义：必须给出经纬度（校验助手保证有效、radius 缺省 500）
+    if (siteCheck.values.site_lat == null || siteCheck.values.site_lng == null) {
+      return res.status(400).json({ error: 'site_lat and site_lng are required' });
+    }
+
+    // 归属校验：只有该 demand 的雇主本人可改站点坐标（防 IDOR，模式同 /assign）
+    const { data: demand, error: demandErr } = await supabase
+      .from('demands')
+      .select('employer_id')
+      .eq('id', demand_id)
+      .single();
+    if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    // update 对象只含三个站点字段，杜绝顺带改到别的列
+    const { error: updErr } = await supabase
+      .from('demands')
+      .update(siteCheck.values)
+      .eq('id', demand_id);
+    if (updErr) throw updErr;
+
+    res.json({ status: 'ok', data: siteCheck.values });
+  } catch (err) {
+    console.error('[Demand] Site update error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
@@ -436,6 +507,36 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
     res.json({ status: 'ok', data: enriched });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[demand]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── Get check-ins for a demand (employer) — 现场签到记录 + 围栏结果 ───────────────
+// 仅雇主本人可见：签到含 GPS 距离/围栏判定，属敏感信息，绝不能塞进公开的 GET /:id（SSR/爬虫可读）。
+router.get('/:id/checkins', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+
+    // 归属校验：只有该 demand 的雇主本人可查签到记录（防 IDOR，模式同 /:id/applications）
+    const { data: demand, error: demandErr } = await supabase
+      .from('demands')
+      .select('employer_id')
+      .eq('id', req.params.id)
+      .single();
+    if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
+    if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    // select('*') 兼容迁移 021 尚未应用的库：distance_m/geofence_ok 列不存在时字段缺省，
+    // 前端据 geofence_ok===false 才显示围栏警示，缺省(undefined)自然不显示。
+    const { data: checkins } = await supabase
+      .from('work_order_checkins')
+      .select('*')
+      .eq('demand_id', req.params.id)
+      .order('checkin_time', { ascending: false });
+
+    res.json({ status: 'ok', data: checkins || [] });
+  } catch (err) {
     console.error('[demand]', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }

@@ -5,6 +5,8 @@ const { requireAuth } = require('../middleware/auth');
 const { assertDemandParticipant } = require('../middleware/ownership');
 const { createNotification } = require('../services/notificationService');
 const { emailNewMessage } = require('../services/email');
+// markerParse 复用离线契约里的 QC 图标记正则，历史回看时用它识别 [qc-image:<path>] 标记行。
+const { markerParse } = require('../../lib/offline/replayCore');
 
 // ── Get thread for a demand ───────────────────────────────────────────────────
 router.get('/thread/:demandId', requireAuth, async (req, res) => {
@@ -46,7 +48,19 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
         .eq('read', false);
     }
 
-    res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgs || [] });
+    // QC 图历史回看：若某行是 [qc-image:<path>] 标记，签发 10 分钟临时可读 URL 附加为 image_url，
+    // 前端据此渲染图片（签名失败则不附加，显示占位）。逐行并发签名；整段失败降级为原始行，不阻断线程。
+    let msgsWithUrls = msgs || [];
+    try {
+      msgsWithUrls = await Promise.all((msgs || []).map(async (m) => {
+        const marker = markerParse(m.original_text);
+        if (!marker) return m;
+        const { data: signed } = await supabase.storage.from('qc-images').createSignedUrl(marker.path, 600);
+        return signed?.signedUrl ? { ...m, image_url: signed.signedUrl } : m;
+      }));
+    } catch { msgsWithUrls = msgs || []; }
+
+    res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgsWithUrls });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[messages]', err);
@@ -58,7 +72,7 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { demand_id, content } = req.body;
+    const { demand_id, content, client_msg_id } = req.body;
 
     if (!demand_id || !content?.trim()) {
       return res.status(400).json({ error: 'demand_id and content are required' });
@@ -85,15 +99,24 @@ router.post('/', requireAuth, async (req, res) => {
       .eq('read', false);
     const startsNewRound = (unreadFromMe || 0) === 0;
 
-    const { data, error } = await supabase.from('messages').insert({
+    const insertRow = {
       demand_id,
       sender_email: req.user.email,
       sender_name:  req.user.name || req.user.email.split('@')[0],
       sender_role:  req.user.role,
       content:      content.trim(),
-    }).select().single();
+    };
+    // 离线重放幂等：客户端带 client_msg_id 时一并写入（online 正常发消息不带，行为不变）。
+    // 依赖 (demand_id, client_msg_id) 唯一约束把重复重放挡在数据库层，见下方 23505 处理。
+    if (client_msg_id) insertRow.client_msg_id = client_msg_id;
 
-    if (error) throw error;
+    const { data, error } = await supabase.from('messages').insert(insertRow).select().single();
+
+    if (error) {
+      // 23505 = 唯一约束冲突：同一条离线消息被重放了两次，静默幂等返回，不当作错误
+      if (error.code === '23505') return res.json({ ok: true, deduped: true });
+      throw error;
+    }
 
     // Notify the other party (fire-and-forget, don't block response)
     ;(async () => {
