@@ -17,6 +17,7 @@ const next = require('next');
 const app = require('./app');          // existing Express app
 const { initDB } = require('./config/db');
 const { attachSocket } = require('./socketServer');
+const { cspHeaderValue } = require('./config/csp'); // 页面直出链路的 CSP（与 /api 的 helmet 同源同值）
 
 const PORT = process.env.PORT || 4000;
 const dev  = process.env.NODE_ENV !== 'production';
@@ -41,6 +42,8 @@ async function main() {
       return app(req, res);
     }
     // Everything else → Next.js
+    // 页面路径绕过 Express 中间件链，helmet 的 CSP 到不了这里——手动补同一份头（防 XSS 主战场就是 HTML 页面）。
+    res.setHeader('Content-Security-Policy', cspHeaderValue);
     return handle(req, res);
   });
 

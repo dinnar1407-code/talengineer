@@ -18,19 +18,12 @@ const app = express();
 // Next.js pages-router 会注入大量内联脚本/样式，故 script-src/style-src 放开 'unsafe-inline'
 // （'unsafe-eval' 供其运行时所需）；其余按实际依赖精确放行：Stripe(支付)、Supabase(数据/存储)、Sentry(上报)。
 // data:/blob: 供内联图片与前端生成的对象 URL；wss: 供 Socket.IO 实时聊天。
+// CSP 指令表抽到 src/config/csp.js 单一来源——nextServer 的页面直出链路也要同一份（helmet 到不了那条链）。
+const { directives: cspDirectives } = require('./config/csp');
 app.use(helmet({
   contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      // 'unsafe-inline' 供 Next pages-router 内联运行时；'unsafe-eval' 仅开发环境注入——
-      // Next dev（React Refresh/HMR）需要 eval，生产构建的 pages-router 运行时不用 eval，故 prod 不放开，收窄 XSS 面。
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com', ...(process.env.NODE_ENV !== 'production' ? ["'unsafe-eval'"] : [])],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.supabase.co'],
-      connectSrc: ["'self'", 'https://*.supabase.co', 'https://api.stripe.com', 'wss:', 'https://*.ingest.sentry.io'],
-      frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com'],
-      workerSrc: ["'self'"],
-    },
+    useDefaults: false, // 指令表已含 helmet 默认集等价项，关掉默认合并保证两条链路逐字一致
+    directives: cspDirectives,
   },
 }));
 
