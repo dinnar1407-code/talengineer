@@ -10,7 +10,7 @@ const CONSOLE_SCREENS = ['dashboard', 'projects', 'escrow', 'messages', 'find', 
 for (const path of PUBLIC_PAGES) {
   test(`public page ${path} loads without error`, async ({ page }) => {
     const pageErrors = [];
-    page.on('pageerror', (err) => pageErrors.push(err));
+    page.on('pageerror', (err) => pageErrors.push(String(err)));
 
     const response = await page.goto(path);
     expect(response.status()).toBeLessThan(400);
@@ -40,10 +40,14 @@ test.describe('logged-in console + finance smoke', () => {
     }, user);
   });
 
+  // console.jsx 对角色做了闸门：非 employer 请求 'find'、非 engineer 请求 'profile'、
+  // 非 admin 请求 'admin' 都会静默回退渲染成 'dashboard'（见 pages/console.jsx:503-505）。
+  // 演示账号只有一个固定角色，所以下面 7 屏里至少有 2 屏实际渲染的是 dashboard 内容——
+  // 这里测的是"该路由能加载、无报错"的冒烟覆盖，不是逐屏的功能断言。
   for (const screen of CONSOLE_SCREENS) {
     test(`console screen=${screen} loads without error`, async ({ page }) => {
       const pageErrors = [];
-      page.on('pageerror', (err) => pageErrors.push(err));
+      page.on('pageerror', (err) => pageErrors.push(String(err)));
 
       await page.goto(`/console?screen=${screen}`, { waitUntil: 'networkidle' });
 
@@ -56,7 +60,7 @@ test.describe('logged-in console + finance smoke', () => {
 
   test('finance page loads without error', async ({ page }) => {
     const pageErrors = [];
-    page.on('pageerror', (err) => pageErrors.push(err));
+    page.on('pageerror', (err) => pageErrors.push(String(err)));
 
     await page.goto('/finance', { waitUntil: 'networkidle' });
 
