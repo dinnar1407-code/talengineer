@@ -14,11 +14,23 @@ const app = express();
 // (禁止浏览器猜测 MIME 类型)、X-Frame-Options:SAMEORIGIN(防点击劫持/iframe 嵌套)等。
 // 这些默认头是“保守且安全”的，不会破坏前后端功能，所以放在最前面、所有路由之前。
 //
-// ⚠️ 为什么 contentSecurityPolicy 先设为 false：
-// CSP(内容安全策略)会严格限制页面能加载/执行哪些脚本、样式。Next.js 前端会注入大量
-// 内联脚本(inline script)和内联样式，helmet 默认的 CSP 会直接把它们拦掉，导致前端白屏/功能失效。
-// 因此这里先关闭 CSP，避免破坏现有前端；CSP 留作后续单独评估、配好白名单(nonce/hash)后再单独开启。
-app.use(helmet({ contentSecurityPolicy: false }));
+// ⚠️ CSP(内容安全策略) 白名单：限制页面可加载/执行的脚本、样式、连接来源，收窄 XSS/数据外泄面。
+// Next.js pages-router 会注入大量内联脚本/样式，故 script-src/style-src 放开 'unsafe-inline'
+// （'unsafe-eval' 供其运行时所需）；其余按实际依赖精确放行：Stripe(支付)、Supabase(数据/存储)、Sentry(上报)。
+// data:/blob: 供内联图片与前端生成的对象 URL；wss: 供 Socket.IO 实时聊天。
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com'], // Next pages-router 内联运行时所需
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.supabase.co'],
+      connectSrc: ["'self'", 'https://*.supabase.co', 'https://api.stripe.com', 'wss:', 'https://*.ingest.sentry.io'],
+      frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com'],
+      workerSrc: ["'self'"],
+    },
+  },
+}));
 
 // 移除 X-Powered-By: Express 响应头，避免向外暴露后端框架信息（减少被针对性攻击的线索）。
 app.disable('x-powered-by');

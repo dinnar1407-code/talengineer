@@ -5,6 +5,27 @@ const { getClient } = require('../config/db');
 const { requireAdmin } = require('../middleware/adminAuth');
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例单一来源（营收估算与真实放款用同一费率）
 
+// ── admin 写操作审计中间件 ────────────────────────────────────────────────────
+// 挂在 requireAdmin 之后：此时 req.adminEmail / req.adminAuthMethod 已就绪（谁、用哪条通道）。
+// 对 POST/PUT/DELETE fire-and-forget 落一条 admin_audit_logs，不 await、不阻塞主流程；写失败仅记日志。
+// 只记 body 的键名（bodyKeys）不记值——避免把口令、证据等敏感值写进审计表。
+function auditLog(req, res, next) {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const supabase = getClient();
+    if (supabase) {
+      supabase.from('admin_audit_logs').insert({
+        admin_email: req.adminEmail || null,
+        auth_method: req.adminAuthMethod || null,
+        action: `${req.method} ${req.baseUrl}${req.path}`,
+        target: req.params?.id || req.params?.userId || null,
+        meta: { bodyKeys: Object.keys(req.body || {}) },
+        ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null,
+      }).then(() => {}, (e) => console.error('[admin:audit]', e));
+    }
+  }
+  next();
+}
+
 // GET /api/admin/stats
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
@@ -94,7 +115,7 @@ router.get('/kyc', requireAdmin, async (req, res) => {
 });
 
 // ── KYC: approve or reject ────────────────────────────────────────────────────
-router.put('/kyc/:userId', requireAdmin, async (req, res) => {
+router.put('/kyc/:userId', requireAdmin, auditLog, async (req, res) => {
   try {
     const supabase = getClient();
     const { decision, note } = req.body; // decision: 'verified' | 'rejected'
@@ -114,86 +135,50 @@ router.put('/kyc/:userId', requireAdmin, async (req, res) => {
   }
 });
 
-// ── Analytics: platform conversion funnel ────────────────────────────────────
+// ── Analytics: 平台汇总（SQL 聚合）───────────────────────────────────────────
+// 改用 admin_analytics_summary() SQL 函数下推聚合，取代此前 Node 端 limit(1000) 拉全表内存聚合
+// （量级上来后内存聚合会漏数且慢）。RPC 返回 jsonb：
+//   users_total / users_engineers / users_employers / demands_total / demands_assigned /
+//   milestones_total / gmv_released / escrow_funded
 router.get('/analytics', requireAdmin, async (req, res) => {
   try {
     const supabase = getClient();
-
-    const [
-      { count: totalDemands },
-      { count: openDemands },
-      { count: inProgressDemands },
-      { count: completedDemands },
-      { count: totalApplications },
-      { count: pendingKyc },
-      { data: demandOwners },
-      { count: totalDisputes },
-      { data: reviewRows },
-      { data: talentScores },
-    ] = await Promise.all([
-      supabase.from('demands').select('id', { count: 'exact', head: true }),
-      supabase.from('demands').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-      supabase.from('demands').select('id', { count: 'exact', head: true }).eq('status', 'in_progress'),
-      supabase.from('demands').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-      supabase.from('demand_applications').select('id', { count: 'exact', head: true }),
-      supabase.from('users').select('id', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
-      // ── PMF 验证指标的数据源（设计文档"七、如何验证"：复购/纠纷率/口碑）──
-      // 表当前都是小数据量，拉回 Node 里聚合即可；量级上来后再下推 SQL。
-      supabase.from('demands').select('employer_id').limit(1000),
-      supabase.from('disputes').select('id', { count: 'exact', head: true }),
-      supabase.from('engineer_reviews').select('rating').limit(1000),
-      supabase.from('talents').select('verified_score').limit(1000),
-    ]);
-
-    const assignedDemands = (inProgressDemands || 0) + (completedDemands || 0);
-    const conversionRate  = totalDemands ? ((assignedDemands / totalDemands) * 100).toFixed(1) : '0';
-
-    // ── PMF 指标（路径 A 判定信号）────────────────────────────────────────────
-    // 复购雇主：发过 ≥2 单的雇主数——"愿付溢价且复购"是 A 成立进阶段二的核心判据。
-    const ownerCounts = {};
-    (demandOwners || []).forEach((d) => {
-      if (d.employer_id != null) ownerCounts[d.employer_id] = (ownerCounts[d.employer_id] || 0) + 1;
-    });
-    const uniqueEmployers = Object.keys(ownerCounts).length;
-    const repeatEmployers = Object.values(ownerCounts).filter((n) => n >= 2).length;
-
-    // 纠纷率：纠纷数 / 已成交需求数（交付质量的反向指标）。
-    const disputeRate = assignedDemands ? (((totalDisputes || 0) / assignedDemands) * 100).toFixed(1) : '0';
-
-    // 口碑：全部评价的平均分（交付质量的正向指标）。
-    const ratings = (reviewRows || []).map((r) => Number(r.rating)).filter((n) => Number.isFinite(n));
-    const avgRating = ratings.length ? (ratings.reduce((s, n) => s + n, 0) / ratings.length).toFixed(2) : null;
-
-    // 筛选分覆盖率：分数 >0 的工程师占比——决定何时可以拧开入网门槛（MIN_POOL_VERIFIED_SCORE）。
-    const scores = talentScores || [];
-    const scoredTalents = scores.filter((t) => (t.verified_score || 0) > 0).length;
-
-    res.json({
-      status: 'ok',
-      funnel: {
-        posted:         totalDemands      || 0,
-        open:           openDemands       || 0,
-        applied:        null, // demands with ≥1 application — expensive query, skip
-        assigned:       assignedDemands,
-        completed:      completedDemands  || 0,
-        total_applies:  totalApplications || 0,
-        conversion_pct: conversionRate,
-      },
-      pmf: {
-        unique_employers:  uniqueEmployers,
-        repeat_employers:  repeatEmployers,
-        repeat_rate_pct:   uniqueEmployers ? ((repeatEmployers / uniqueEmployers) * 100).toFixed(1) : '0',
-        disputes_total:    totalDisputes || 0,
-        dispute_rate_pct:  disputeRate,
-        avg_rating:        avgRating,
-        reviews_total:     ratings.length,
-        talents_total:     scores.length,
-        talents_scored:    scoredTalents,
-      },
-      kyc_pending: pendingKyc || 0,
-    });
+    const { data, error } = await supabase.rpc('admin_analytics_summary');
+    if (error) throw error;
+    res.json({ status: 'ok', summary: data || {} });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── Rates: 工程师费率分布（SQL 聚合）─────────────────────────────────────────
+// admin_rates_summary() 返回 jsonb：count / avg_rate / min_rate / max_rate
+router.get('/rates', requireAdmin, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase.rpc('admin_rates_summary');
+    if (error) throw error;
+    res.json({ status: 'ok', summary: data || {} });
+  } catch (err) {
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /api/admin/audit-logs — 最近 200 条管理员写操作审计（只读）──────────────
+router.get('/audit-logs', requireAdmin, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('admin_audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    res.json({ status: 'ok', data: data || [] });
+  } catch (err) {
     console.error('[admin]', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
@@ -202,7 +187,7 @@ router.get('/analytics', requireAdmin, async (req, res) => {
 // ── PUT /api/admin/demands/:id/fee：单需求费率覆盖（founding 客户让利）─────────────
 // body {fee_pct}：null 清除（回退全局 PLATFORM_FEE）；否则须 0<=x<1（如 0.05=5%），越界即 400。
 // 费率生效逻辑在 config/fees.js 的 feeFor(demand) 里，此处仅负责写入 demands.fee_pct。
-router.put('/demands/:id/fee', requireAdmin, async (req, res) => {
+router.put('/demands/:id/fee', requireAdmin, auditLog, async (req, res) => {
   try {
     const supabase = getClient();
     const { fee_pct } = req.body;

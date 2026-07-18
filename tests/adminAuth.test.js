@@ -1,98 +1,46 @@
-// ── 管理员口令中间件 requireAdmin 的单元测试 ────────────────────────────────
-// 这是 admin/纠纷/认证等敏感路由的守门人。它读 process.env.ADMIN_PASSWORD，
-// 比较请求头 x-admin-password，用 timingSafeEqual 做恒时比较。
-// 我们用手写的 req/res/next mock 来观察它最终走向 503 / 401 / 放行哪条分支。
-
-const { describe, it, beforeEach, afterEach } = require('node:test');
+// ── admin 双通道鉴权中间件（TOTP 2FA JWT + break-glass 共享口令）单元测试 ──────
+// 主通道：Bearer JWT（role=admin 且 adm2fa=true）；应急通道：x-admin-password 共享口令。
+// 用 supertest 起一个最小 express 应用挂上中间件，直接观察 401 / 放行与 req.adminAuthMethod 标记。
+// 注：账号化改造后不再对"未配置 ADMIN_PASSWORD"做 503 fail-closed——未认证一律 401。
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const jwt = require('jsonwebtoken');
 
-const { requireAdmin } = require('../src/middleware/adminAuth');
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+process.env.ADMIN_PASSWORD = 'break-glass-pw'; // 测试用假口令，绝不使用真实值
+const express = require('express');
+const request = require('supertest');
+const adminAuth = require('../src/middleware/adminAuth');
 
-// 极简的 res mock：记录 status 码与 json 负载；status() 返回自身以支持链式 .status().json()。
-function makeRes() {
-  const res = {
-    statusCode: null,
-    body: null,
-    status(code) { this.statusCode = code; return this; },
-    json(payload) { this.body = payload; return this; },
-  };
-  return res;
+function app() {
+  const a = express();
+  a.get('/x', adminAuth, (req, res) => res.json({ method: req.adminAuthMethod, email: req.adminEmail }));
+  return a;
 }
 
-describe('requireAdmin（管理员口令守卫）', () => {
-  // 保存原始环境变量，测试结束后还原，避免污染其它用例。
-  let originalPwd;
-  beforeEach(() => { originalPwd = process.env.ADMIN_PASSWORD; });
-  afterEach(() => {
-    if (originalPwd === undefined) delete process.env.ADMIN_PASSWORD;
-    else process.env.ADMIN_PASSWORD = originalPwd;
-  });
+test('无凭证 → 401', async () => {
+  await request(app()).get('/x').expect(401);
+});
 
-  it('未配置 ADMIN_PASSWORD 时 fail-closed：返回 503，绝不放行', () => {
-    delete process.env.ADMIN_PASSWORD;
-    const res = makeRes();
-    let nextCalled = false;
+test('共享口令通过，方法标记 shared-password', async () => {
+  const r = await request(app()).get('/x').set('x-admin-password', 'break-glass-pw').expect(200);
+  assert.equal(r.body.method, 'shared-password');
+});
 
-    requireAdmin({ headers: {} }, res, () => { nextCalled = true; });
+test('共享口令错误 → 401（且长度差异不抛异常）', async () => {
+  await request(app()).get('/x').set('x-admin-password', 'x').expect(401);
+});
 
-    assert.equal(res.statusCode, 503);
-    assert.equal(nextCalled, false);
-  });
+test('adm2fa JWT 通过；无 adm2fa 声明拒绝', async () => {
+  const ok = jwt.sign({ email: 'a@b.c', role: 'admin', adm2fa: true }, process.env.JWT_SECRET);
+  const bad = jwt.sign({ email: 'a@b.c', role: 'admin' }, process.env.JWT_SECRET);
+  const r = await request(app()).get('/x').set('Authorization', `Bearer ${ok}`).expect(200);
+  assert.equal(r.body.method, 'jwt-2fa');
+  assert.equal(r.body.email, 'a@b.c');
+  await request(app()).get('/x').set('Authorization', `Bearer ${bad}`).expect(401);
+});
 
-  it('缺少 x-admin-password 请求头：返回 401', () => {
-    process.env.ADMIN_PASSWORD = 'topsecret';
-    const res = makeRes();
-    let nextCalled = false;
-
-    requireAdmin({ headers: {} }, res, () => { nextCalled = true; });
-
-    assert.equal(res.statusCode, 401);
-    assert.equal(nextCalled, false);
-  });
-
-  it('口令为空字符串：返回 401', () => {
-    process.env.ADMIN_PASSWORD = 'topsecret';
-    const res = makeRes();
-    let nextCalled = false;
-
-    requireAdmin({ headers: { 'x-admin-password': '' } }, res, () => { nextCalled = true; });
-
-    assert.equal(res.statusCode, 401);
-    assert.equal(nextCalled, false);
-  });
-
-  it('口令错误（长度相同）：返回 401', () => {
-    process.env.ADMIN_PASSWORD = 'topsecret';
-    const res = makeRes();
-    let nextCalled = false;
-
-    requireAdmin({ headers: { 'x-admin-password': 'wrongpass' } }, res, () => { nextCalled = true; });
-
-    assert.equal(res.statusCode, 401);
-    assert.equal(nextCalled, false);
-  });
-
-  it('口令错误（长度不同）：仍返回 401，且不因长度差异抛异常', () => {
-    // 设计上先各自 SHA-256 再比较，摘要等长，所以长度不同也不会让 timingSafeEqual 抛错。
-    process.env.ADMIN_PASSWORD = 'topsecret';
-    const res = makeRes();
-    let nextCalled = false;
-
-    assert.doesNotThrow(() => {
-      requireAdmin({ headers: { 'x-admin-password': 'x' } }, res, () => { nextCalled = true; });
-    });
-    assert.equal(res.statusCode, 401);
-    assert.equal(nextCalled, false);
-  });
-
-  it('口令正确：调用 next() 放行，不写任何错误响应', () => {
-    process.env.ADMIN_PASSWORD = 'topsecret';
-    const res = makeRes();
-    let nextCalled = false;
-
-    requireAdmin({ headers: { 'x-admin-password': 'topsecret' } }, res, () => { nextCalled = true; });
-
-    assert.equal(nextCalled, true);
-    assert.equal(res.statusCode, null); // 没有写过任何状态码
-  });
+test('非 admin 角色即便带 adm2fa 也拒绝', async () => {
+  const t = jwt.sign({ email: 'e@b.c', role: 'engineer', adm2fa: true }, process.env.JWT_SECRET);
+  await request(app()).get('/x').set('Authorization', `Bearer ${t}`).expect(401);
 });

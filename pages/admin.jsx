@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useToast } from '../components/Toast';
@@ -14,6 +14,16 @@ const DICT = {
     refresh: '↻ Refresh', exit: 'Exit',
     loginTitle: 'Admin Dashboard', loginSub: 'Enter your admin password to continue',
     loginPh: 'Admin password', loginBtn: 'Enter Dashboard', loginBtnBusy: 'Verifying...',
+    // 双 Tab 登录 + TOTP 2FA
+    tabAccount: 'Account · 2FA', tabPassword: 'Password · break-glass',
+    emailPh: 'Admin email', pwdPh: 'Password', continueBtn: 'Continue',
+    codePh: '6-digit code', verifyBtn: 'Verify & Enter', backBtn: 'Back',
+    setupTitle: 'Enable 2FA — add this key to your authenticator',
+    setupHint: 'Enter this secret manually in Google Authenticator / 1Password.',
+    emergencyHint: 'Emergency shared-password access. Prefer account login.',
+    // 审计日志面板
+    navAudit: 'Audit Log', subAudit: 'Admin action audit trail',
+    thTime: 'Time', thMethod: 'Method', thTarget: 'Target', thIp: 'IP', emptyAudit: 'No audit entries.',
     navUsers: 'Users', navProjects: 'Projects', navEngineers: 'Engineers', navLedger: 'Ledger',
     navCerts: 'Certifications', navExamReview: 'Cert Exams', navDisputes: 'Disputes',
     navNotifs: 'Notifications', navKyc: 'KYC', navAnalytics: 'Analytics',
@@ -75,6 +85,16 @@ const DICT = {
     refresh: '↻ 刷新', exit: '退出',
     loginTitle: '管理后台', loginSub: '请输入管理员密码以继续',
     loginPh: '管理员密码', loginBtn: '进入后台', loginBtnBusy: '验证中…',
+    // 双 Tab 登录 + TOTP 2FA
+    tabAccount: '账号登录 · 2FA', tabPassword: '口令登录 · 应急',
+    emailPh: '管理员邮箱', pwdPh: '密码', continueBtn: '下一步',
+    codePh: '6 位验证码', verifyBtn: '验证并进入', backBtn: '返回',
+    setupTitle: '启用 2FA —— 把此密钥加入认证器',
+    setupHint: '在 Google Authenticator / 1Password 中手动输入下方密钥。',
+    emergencyHint: '应急共享口令通道，优先使用账号登录。',
+    // 审计日志面板
+    navAudit: '审计日志', subAudit: '管理员操作审计',
+    thTime: '时间', thMethod: '方式', thTarget: '目标', thIp: 'IP', emptyAudit: '暂无审计记录。',
     navUsers: '用户', navProjects: '项目', navEngineers: '工程师', navLedger: '账本',
     navCerts: '资质认证', navExamReview: '考证复核', navDisputes: '纠纷',
     navNotifs: '通知', navKyc: 'KYC 审核', navAnalytics: '数据分析',
@@ -177,14 +197,55 @@ export default function Admin() {
   const [pipeline, setPipeline]   = useState(null);
   const [pipelineForm, setPipelineForm] = useState({ company: '', line: 'cn', contact: '', note: '' });
   const [pipelineDrafts, setPipelineDrafts] = useState({});
+  // ── 账号化 2FA 登录 + 审计面板状态 ──────────────────────────────────────────
+  const [adminToken, setAdminToken] = useState(null);   // 账号化 admin 令牌（带 adm2fa，localStorage 持久）
+  const [loginMode, setLoginMode]   = useState('account'); // 'account'（推荐）| 'password'（应急）
+  const [acctEmail, setAcctEmail]   = useState('');
+  const [acctPassword, setAcctPassword] = useState('');
+  const [loginJwt, setLoginJwt]     = useState(null);    // 账号登录后的普通 JWT，仅用于走 2FA setup/verify
+  const [twoFAStage, setTwoFAStage] = useState('creds'); // 'creds' | 'code'
+  const [setupInfo, setSetupInfo]   = useState(null);    // { secret, otpauthUrl } 或 null（已启用直接输码）
+  const [totpCode, setTotpCode]     = useState('');
+  const [auditLogs, setAuditLogs]   = useState(null);
+  const [rates, setRates]           = useState(null);    // 费率分布（admin_rates_summary）
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
+  // 统一 admin API 鉴权头：优先账号化 Bearer 令牌，无令牌则回退共享口令（应急通道）。
+  function authHeaders(json = false) {
+    const h = json ? { 'Content-Type': 'application/json' } : {};
+    if (adminToken) h.Authorization = `Bearer ${adminToken}`;
+    else if (password) h['x-admin-password'] = password;
+    return h;
+  }
+
+  // 会话恢复：localStorage 有令牌就用 Bearer 探测 /stats，通过即免登录进后台；失效则清理。
+  useEffect(() => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('tal_admin_token') : null;
+    if (!t) return;
+    setAdminToken(t);
+    fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${t}` } })
+      .then(async (res) => {
+        if (res.ok) { setStats(await res.json()); setAuthed(true); }
+        else { localStorage.removeItem('tal_admin_token'); setAdminToken(null); }
+      })
+      .catch(() => {});
+  }, []);
+
+  // 登录卡 Tab 按钮样式（激活态高亮）
+  const tabStyle = (active) => ({
+    flex: 1, padding: '8px 10px', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    border: '1px solid var(--border)',
+    background: active ? 'var(--primary)' : 'var(--surface)',
+    color: active ? '#fff' : 'var(--text)',
+  });
+
+  // ── 应急口令登录（break-glass）：沿用旧流程，用 x-admin-password 直连 /stats ──
   async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res  = await fetch('/api/admin/stats', { headers: { 'x-admin-password': password } });
+      const res  = await fetch('/api/admin/stats', { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Wrong password'); setLoading(false); return; }
       setStats(data);
@@ -193,10 +254,58 @@ export default function Admin() {
     setLoading(false);
   }
 
+  // ── 账号登录第一步：邮箱+密码换普通 JWT，确认 admin 角色后探测 2FA 状态 ──
+  async function handleAccountCreds(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: acctEmail, password: acctPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Login failed'); setLoading(false); return; }
+      if (data.role !== 'admin') { toast.error('This account is not an admin.'); setLoading(false); return; }
+      setLoginJwt(data.token);
+      // 探测是否已启用 2FA：调 setup —— 200=首次(返回密钥待录入)，400=已启用(直接输码)
+      const su = await fetch('/api/auth/admin-2fa-setup', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+      setSetupInfo(su.ok ? await su.json() : null);
+      setTwoFAStage('code');
+    } catch { toast.error('Network error.'); }
+    setLoading(false);
+  }
+
+  // ── 账号登录第二步：一次性码换取 adm2fa 令牌，存 localStorage 后 Bearer 进后台 ──
+  async function handle2FACode(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res  = await fetch('/api/auth/admin-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${loginJwt}` },
+        body: JSON.stringify({ code: totpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Invalid code'); setLoading(false); return; }
+      localStorage.setItem('tal_admin_token', data.token);
+      setAdminToken(data.token);
+      // 立即用新令牌拉一次 /stats 进后台（此时 adminToken 状态可能还没刷新，直接用 data.token）
+      const sres  = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${data.token}` } });
+      const sdata = await sres.json();
+      if (sres.ok) { setStats(sdata); setAuthed(true); setTotpCode(''); }
+      else { toast.error(sdata.error || 'Failed to load dashboard.'); }
+    } catch { toast.error('Network error.'); }
+    setLoading(false);
+  }
+
   async function refresh() {
     setLoading(true);
     try {
-      const res  = await fetch('/api/admin/stats', { headers: { 'x-admin-password': password } });
+      const res  = await fetch('/api/admin/stats', { headers: authHeaders() });
       const data = await res.json();
       if (res.ok) { setStats(data); toast.success('Refreshed.'); }
     } catch { toast.error('Failed to refresh.'); }
@@ -208,13 +317,48 @@ export default function Admin() {
       <>
         <Head><title>Admin | Talengineer</title></Head>
         <div className={styles.loginWrap}>
-          <form className={styles.loginBox} onSubmit={handleLogin}>
+          <div className={styles.loginBox}>
             <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 8 }}>🔐</div>
             <h2>{d.loginTitle}</h2>
-            <p style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>{d.loginSub}</p>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={d.loginPh} className={styles.input} autoFocus required />
-            <button type="submit" className={styles.btnPrimary} disabled={loading}>{loading ? d.loginBtnBusy : d.loginBtn}</button>
-          </form>
+
+            {/* 双 Tab：账号登录（推荐，走 TOTP 2FA）/ 口令登录（应急 break-glass）*/}
+            <div style={{ display: 'flex', gap: 8, margin: '14px 0 18px' }}>
+              <button type="button" onClick={() => setLoginMode('account')} style={tabStyle(loginMode === 'account')}>{d.tabAccount}</button>
+              <button type="button" onClick={() => setLoginMode('password')} style={tabStyle(loginMode === 'password')}>{d.tabPassword}</button>
+            </div>
+
+            {loginMode === 'account' ? (
+              twoFAStage === 'creds' ? (
+                /* 第一步：邮箱 + 密码 */
+                <form onSubmit={handleAccountCreds}>
+                  <input type="email" value={acctEmail} onChange={e => setAcctEmail(e.target.value)} placeholder={d.emailPh} className={styles.input} autoFocus required />
+                  <input type="password" value={acctPassword} onChange={e => setAcctPassword(e.target.value)} placeholder={d.pwdPh} className={styles.input} required />
+                  <button type="submit" className={styles.btnPrimary} disabled={loading}>{loading ? d.loginBtnBusy : d.continueBtn}</button>
+                </form>
+              ) : (
+                /* 第二步：首次展示密钥待录入认证器 + 输入一次性码 */
+                <form onSubmit={handle2FACode}>
+                  {setupInfo && (
+                    <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>{d.setupTitle}</div>
+                      <div style={{ color: 'var(--muted)', marginBottom: 8 }}>{d.setupHint}</div>
+                      <code style={{ display: 'block', wordBreak: 'break-all', fontFamily: 'monospace', background: 'var(--surface)', padding: '8px 10px', borderRadius: 6, userSelect: 'all' }}>{setupInfo.secret}</code>
+                    </div>
+                  )}
+                  <input type="text" inputMode="numeric" autoComplete="one-time-code" value={totpCode} onChange={e => setTotpCode(e.target.value)} placeholder={d.codePh} className={styles.input} autoFocus required />
+                  <button type="submit" className={styles.btnPrimary} disabled={loading}>{loading ? d.loginBtnBusy : d.verifyBtn}</button>
+                  <button type="button" onClick={() => { setTwoFAStage('creds'); setTotpCode(''); setSetupInfo(null); }} style={{ marginTop: 8, background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 13, width: '100%' }}>← {d.backBtn}</button>
+                </form>
+              )
+            ) : (
+              /* 应急口令登录（break-glass）*/
+              <form onSubmit={handleLogin}>
+                <p style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>{d.emergencyHint}</p>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={d.loginPh} className={styles.input} required />
+                <button type="submit" className={styles.btnPrimary} disabled={loading}>{loading ? d.loginBtnBusy : d.loginBtn}</button>
+              </form>
+            )}
+          </div>
         </div>
       </>
     );
@@ -225,7 +369,7 @@ export default function Admin() {
   async function loadCerts() {
     if (certs !== null) return;
     try {
-      const res  = await fetch('/api/certifications?status=pending', { headers: { 'x-admin-password': password } });
+      const res  = await fetch('/api/certifications?status=pending', { headers: authHeaders() });
       const data = await res.json();
       setCerts(data.data || []);
     } catch { setCerts([]); }
@@ -236,7 +380,7 @@ export default function Admin() {
     setSelectedDispute(null);   // 切换筛选时收起裁决表单
     setResolveResult(null);
     try {
-      const res  = await fetch(`/api/disputes?status=${status}`, { headers: { 'x-admin-password': password } });
+      const res  = await fetch(`/api/disputes?status=${status}`, { headers: authHeaders() });
       const data = await res.json();
       setDisputes(data.data || []);
     } catch { setDisputes([]); }
@@ -261,7 +405,7 @@ export default function Admin() {
     try {
       const res  = await fetch(`/api/disputes/${selectedDispute.id}/resolve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -281,7 +425,7 @@ export default function Admin() {
     setTaxDocs(null);
     setTaxRejectId(null); setTaxRejectNote('');
     try {
-      const res  = await fetch(`/api/tax/admin/list?status=${status}`, { headers: { 'x-admin-password': password } });
+      const res  = await fetch(`/api/tax/admin/list?status=${status}`, { headers: authHeaders() });
       const data = await res.json();
       setTaxDocs(data.data || []);
     } catch { setTaxDocs([]); }
@@ -289,7 +433,7 @@ export default function Admin() {
 
   async function viewTaxDoc(id) {
     try {
-      const res  = await fetch(`/api/tax/admin/${id}/url`, { headers: { 'x-admin-password': password } });
+      const res  = await fetch(`/api/tax/admin/${id}/url`, { headers: authHeaders() });
       const data = await res.json();
       if (res.ok && data.url) window.open(data.url, '_blank', 'noopener');
       else toast.error(data.error || 'Failed to load file.');
@@ -300,7 +444,7 @@ export default function Admin() {
     try {
       const res  = await fetch(`/api/tax/admin/${id}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify({ action, note: note || null }),
       });
       if (res.ok) {
@@ -320,7 +464,7 @@ export default function Admin() {
     setPipelineDrafts({});
     try {
       const qs   = stage && stage !== 'all' ? `?stage=${stage}` : '';
-      const res  = await fetch(`/api/pipeline${qs}`, { headers: { 'x-admin-password': password } });
+      const res  = await fetch(`/api/pipeline${qs}`, { headers: authHeaders() });
       const data = await res.json();
       setPipeline(data.data || []);
     } catch { setPipeline([]); }
@@ -332,7 +476,7 @@ export default function Admin() {
     try {
       const res  = await fetch('/api/pipeline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify(pipelineForm),
       });
       const data = await res.json();
@@ -349,7 +493,7 @@ export default function Admin() {
     try {
       const res  = await fetch(`/api/pipeline/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify(patch),
       });
       const data = await res.json();
@@ -385,7 +529,7 @@ export default function Admin() {
   async function deleteLead(id) {
     if (!window.confirm('Delete this lead?')) return;
     try {
-      const res = await fetch(`/api/pipeline/${id}`, { method: 'DELETE', headers: { 'x-admin-password': password } });
+      const res = await fetch(`/api/pipeline/${id}`, { method: 'DELETE', headers: authHeaders() });
       if (res.ok) { toast.success('Deleted.'); setPipeline(prev => (prev || []).filter(r => r.id !== id)); }
       else { const dd = await res.json(); toast.error(dd.error || 'Failed.'); }
     } catch { toast.error('Network error.'); }
@@ -396,7 +540,7 @@ export default function Admin() {
     try {
       const res  = await fetch(`/api/admin/demands/${demandId}/fee`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify({ fee_pct: feePct === '' ? null : feePct }),
       });
       const data = await res.json();
@@ -486,7 +630,7 @@ export default function Admin() {
   async function loadNotifs() {
     if (notifs !== null) return;
     try {
-      const res  = await fetch('/api/admin/notifications', { headers: { 'x-admin-password': password } });
+      const res  = await fetch('/api/admin/notifications', { headers: authHeaders() });
       const data = await res.json();
       setNotifs(data);
     } catch { setNotifs({ data: [], byType: {}, unreadCount: 0 }); }
@@ -495,7 +639,7 @@ export default function Admin() {
   async function loadKycList(status = 'pending') {
     setKycList(null);
     try {
-      const res  = await fetch(`/api/admin/kyc?status=${status}`, { headers: { 'x-admin-password': password } });
+      const res  = await fetch(`/api/admin/kyc?status=${status}`, { headers: authHeaders() });
       const data = await res.json();
       setKycList(data.data || []);
     } catch { setKycList([]); }
@@ -507,7 +651,7 @@ export default function Admin() {
     try {
       const res = await fetch(`/api/admin/kyc/${userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify({ decision, note }),
       });
       if (res.ok) {
@@ -520,20 +664,36 @@ export default function Admin() {
     } catch { toast.error('Network error.'); }
   }
 
+  // analytics + rates 均改为读 SQL 聚合 RPC 的 summary（键见后端 admin_analytics_summary/admin_rates_summary）
   async function loadFunnel() {
     if (funnel !== null) return;
     try {
-      const res  = await fetch('/api/admin/analytics', { headers: { 'x-admin-password': password } });
-      const data = await res.json();
-      if (res.ok) setFunnel(data);
+      const [aRes, rRes] = await Promise.all([
+        fetch('/api/admin/analytics', { headers: authHeaders() }),
+        fetch('/api/admin/rates', { headers: authHeaders() }),
+      ]);
+      const aData = await aRes.json();
+      const rData = await rRes.json();
+      if (aRes.ok) setFunnel(aData.summary || {});
+      if (rRes.ok) setRates(rData.summary || {});
     } catch {}
+  }
+
+  // 审计日志：最近 200 条管理员写操作（只读）
+  async function loadAuditLogs() {
+    if (auditLogs !== null) return;
+    try {
+      const res  = await fetch('/api/admin/audit-logs', { headers: authHeaders() });
+      const data = await res.json();
+      setAuditLogs(data.data || []);
+    } catch { setAuditLogs([]); }
   }
 
   // ── 培训认证：待复核考卷（AI 出分后由人工把最后一关再发证）──────────────────
   async function loadExamPending() {
     if (examPending !== null) return;
     try {
-      const res  = await fetch('/api/training/admin/pending', { headers: { 'x-admin-password': password } });
+      const res  = await fetch('/api/training/admin/pending', { headers: authHeaders() });
       const data = await res.json();
       setExamPending(data.data || []);
     } catch { setExamPending([]); }
@@ -545,7 +705,7 @@ export default function Admin() {
     try {
       const res = await fetch(`/api/training/admin/${attemptId}/review`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify({ approve, note }),
       });
       if (res.ok) {
@@ -562,7 +722,7 @@ export default function Admin() {
     try {
       await fetch(`/api/certifications/${certId}/review`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: authHeaders(true),
         body: JSON.stringify({ status }),
       });
       setCerts(prev => prev.filter(c => c.id !== certId));
@@ -583,6 +743,7 @@ export default function Admin() {
     { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
     { id: 'pipeline',   icon: '🤝', label: d.navPipeline },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
+    { id: 'audit',      icon: '🗂️', label: d.navAudit },
   ];
 
   const titles = {
@@ -598,6 +759,7 @@ export default function Admin() {
     taxDocs: [d.navTaxDocs, d.subTaxDocs],
     pipeline: [d.navPipeline, d.subPipeline],
     analytics: [d.navAnalytics, d.subAnalytics],
+    audit: [d.navAudit, d.subAudit],
   };
   const [pageTitle, pageSub] = titles[activeTab] || titles.users;
 
@@ -611,6 +773,7 @@ export default function Admin() {
     if (id === 'taxDocs') loadTaxDocs();
     if (id === 'pipeline') loadPipeline();
     if (id === 'analytics') loadFunnel();
+    if (id === 'audit') loadAuditLogs();
     setSbOpen(false);
   }
 
@@ -665,7 +828,12 @@ export default function Admin() {
               {lang === 'zh' ? 'EN' : '中'}
             </button>
             <button className={styles.btnRefresh} onClick={refresh} disabled={loading}>{d.refresh}</button>
-            <button className={styles.btnLogout} onClick={() => { setAuthed(false); setStats(null); }}>{d.exit}</button>
+            <button className={styles.btnLogout} onClick={() => {
+              // 退出：清空后台状态 + 抹掉账号化令牌与应急口令，回到登录卡
+              setAuthed(false); setStats(null); setAdminToken(null); setPassword('');
+              setTwoFAStage('creds'); setTotpCode(''); setSetupInfo(null); setLoginJwt(null);
+              if (typeof window !== 'undefined') localStorage.removeItem('tal_admin_token');
+            }}>{d.exit}</button>
           </header>
 
           <main className={consoleStyles.content}>
@@ -1112,7 +1280,7 @@ export default function Admin() {
                 </div>
               )}
 
-              {/* Analytics / Funnel */}
+              {/* Analytics（SQL 聚合汇总 admin_analytics_summary + 费率分布 admin_rates_summary）*/}
               {activeTab === 'analytics' && (
                 <div>
                   {funnel === null ? (
@@ -1121,32 +1289,31 @@ export default function Admin() {
                     <>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
                         {[
-                          { label: 'Total Posted', value: funnel.funnel?.posted ?? 0 },
-                          { label: 'Open', value: funnel.funnel?.open ?? 0 },
-                          { label: 'Assigned', value: funnel.funnel?.assigned ?? 0 },
-                          { label: 'Completed', value: funnel.funnel?.completed ?? 0 },
-                          { label: 'Total Applications', value: funnel.funnel?.total_applies ?? 0 },
-                          { label: 'Conversion %', value: `${funnel.funnel?.conversion_pct ?? 0}%` },
-                          { label: 'KYC Pending', value: funnel.kyc_pending ?? 0 },
+                          { label: 'Total Users', value: funnel.users_total ?? 0 },
+                          { label: 'Engineers', value: funnel.users_engineers ?? 0 },
+                          { label: 'Employers', value: funnel.users_employers ?? 0 },
+                          { label: 'Total Demands', value: funnel.demands_total ?? 0 },
+                          { label: 'Assigned Demands', value: funnel.demands_assigned ?? 0 },
+                          { label: 'Milestones', value: funnel.milestones_total ?? 0 },
+                          { label: 'GMV Released', value: `$${Number(funnel.gmv_released || 0).toLocaleString()}` },
+                          { label: 'Escrow Funded', value: `$${Number(funnel.escrow_funded || 0).toLocaleString()}` },
                         ].map(stat => (
                           <div key={stat.label} style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 26, fontWeight: 800 }}>{stat.value}</div>
+                            <div style={{ fontSize: 24, fontWeight: 800 }}>{stat.value}</div>
                             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
                           </div>
                         ))}
                       </div>
-                      {/* PMF 验证指标（设计文档"七、如何验证"：复购/纠纷率/口碑/筛选分覆盖） */}
-                      {funnel.pmf && (
-                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 24 }}>
-                          <div style={{ fontWeight: 700, marginBottom: 4 }}>PMF Signals（路径 A 判定指标）</div>
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>核心判据：雇主复购 + 低纠纷 + 高口碑 → 精英策展成立，可进阶段二</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                      {/* 工程师费率分布（admin_rates_summary）*/}
+                      {rates && (
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 700, marginBottom: 10 }}>Engineer Rate Benchmarks</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
                             {[
-                              { label: 'Repeat Employers（复购雇主）', value: `${funnel.pmf.repeat_employers} / ${funnel.pmf.unique_employers}` },
-                              { label: 'Repeat Rate（复购率）', value: `${funnel.pmf.repeat_rate_pct}%` },
-                              { label: 'Dispute Rate（纠纷率）', value: `${funnel.pmf.dispute_rate_pct}%（${funnel.pmf.disputes_total} 起）` },
-                              { label: 'Avg Rating（平均评分）', value: funnel.pmf.avg_rating != null ? `⭐ ${funnel.pmf.avg_rating}（${funnel.pmf.reviews_total} 条）` : '暂无评价' },
-                              { label: 'Scored Talents（筛选分覆盖）', value: `${funnel.pmf.talents_scored} / ${funnel.pmf.talents_total}` },
+                              { label: 'Count', value: rates.count ?? 0 },
+                              { label: 'Avg Rate', value: `$${Number(rates.avg_rate || 0).toFixed(0)}` },
+                              { label: 'Min Rate', value: `$${Number(rates.min_rate || 0).toFixed(0)}` },
+                              { label: 'Max Rate', value: `$${Number(rates.max_rate || 0).toFixed(0)}` },
                             ].map(stat => (
                               <div key={stat.label} style={{ background: 'var(--primary-bg, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 20, fontWeight: 800 }}>{stat.value}</div>
@@ -1156,30 +1323,33 @@ export default function Admin() {
                           </div>
                         </div>
                       )}
-                      <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 700, marginBottom: 10 }}>Conversion Funnel</div>
-                        {[
-                          { label: 'Projects Posted', value: funnel.funnel?.posted, color: '#6366f1' },
-                          { label: 'Open (Accepting Applications)', value: funnel.funnel?.open, color: '#f59e0b' },
-                          { label: 'Assigned / In Progress', value: funnel.funnel?.assigned, color: '#10b981' },
-                          { label: 'Completed', value: funnel.funnel?.completed, color: '#059669' },
-                        ].map(row => {
-                          const pct = funnel.funnel?.posted ? Math.round((row.value / funnel.funnel.posted) * 100) : 0;
-                          return (
-                            <div key={row.label} style={{ marginBottom: 10 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                                <span>{row.label}</span><span style={{ fontWeight: 700 }}>{row.value} ({pct}%)</span>
-                              </div>
-                              <div style={{ background: 'var(--border)', borderRadius: 4, height: 6 }}>
-                                <div style={{ width: `${pct}%`, background: row.color, height: 6, borderRadius: 4, transition: 'width 0.4s' }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
                     </>
                   )}
                 </div>
+              )}
+
+              {/* 审计日志：管理员写操作审计（只读）*/}
+              {activeTab === 'audit' && (
+                <table className={styles.table}>
+                  <thead><tr><th>{d.thTime}</th><th>{d.thEmail}</th><th>{d.thMethod}</th><th>{d.thAction}</th><th>{d.thTarget}</th><th>{d.thIp}</th></tr></thead>
+                  <tbody>
+                    {auditLogs === null
+                      ? <tr><td colSpan={6} className={styles.empty}>{d.loading}</td></tr>
+                      : auditLogs.length === 0
+                        ? <tr><td colSpan={6} className={styles.empty}>{d.emptyAudit}</td></tr>
+                        : auditLogs.map(a => (
+                          <tr key={a.id}>
+                            <td className={styles.muted}>{a.created_at ? new Date(a.created_at).toLocaleString() : '—'}</td>
+                            <td style={{ fontSize: 12 }}>{a.admin_email || '—'}</td>
+                            <td><span className={`${styles.badge} ${styles.badgeGray}`}>{a.auth_method || '—'}</span></td>
+                            <td style={{ fontSize: 12 }}>{a.action}</td>
+                            <td className={styles.muted}>{a.target || '—'}</td>
+                            <td className={styles.muted} style={{ fontSize: 12 }}>{a.ip || '—'}</td>
+                          </tr>
+                        ))
+                    }
+                  </tbody>
+                </table>
               )}
 
               {/* Ledger */}

@@ -6,6 +6,7 @@ const { z } = require('zod');
 const { getClient } = require('../config/db');
 const { emailPasswordReset, emailVerifyEmail } = require('../services/email');
 const { requireAuth } = require('../middleware/auth');
+const { authenticator } = require('otplib'); // admin 账号化第二因子（TOTP）
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
@@ -348,6 +349,70 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('[Auth] Reset password error:', err);
     res.status(500).json({ error: 'Failed to reset password. Please try again.' });
+  }
+});
+
+// ── Admin 2FA（TOTP）────────────────────────────────────────────────────────
+// 账号化 admin 登录的第二因子：先 setup 生成密钥并让管理员录入认证器（Google Authenticator / 1Password），
+// 再用一次性码换取带 adm2fa 声明的短期 admin JWT（12h）——该 JWT 即 adminAuth 中间件的主通道凭证。
+
+// POST /api/auth/admin-2fa-setup（需登录）：为 admin 账号生成 TOTP 密钥。
+// 非 admin 403；已启用则 400（防他人拿到会话后重置密钥顶替）；返回 secret 与 otpauth URL 供录入认证器。
+router.post('/admin-2fa-setup', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, role, totp_enabled')
+      .eq('id', req.user.userId)
+      .single();
+    if (error || !user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    // 已启用则不允许重新生成密钥：否则拿到有效会话即可把 2FA 换成自己的
+    if (user.totp_enabled) return res.status(400).json({ error: '2FA already enabled' });
+
+    const secret = authenticator.generateSecret();
+    const { error: upErr } = await supabase.from('users').update({ totp_secret: secret }).eq('id', user.id);
+    if (upErr) throw upErr;
+
+    const otpauthUrl = authenticator.keyuri(user.email, 'TalEngineer Admin', secret);
+    res.json({ secret, otpauthUrl });
+  } catch (err) {
+    console.error('[Auth] admin-2fa-setup error:', err);
+    res.status(500).json({ error: 'Failed to start 2FA setup. Please try again.' });
+  }
+});
+
+// POST /api/auth/admin-2fa（需登录，body {code}）：校验一次性码，签发带 adm2fa 的 admin JWT。
+// 非 admin 403；未 setup 400；校验失败 401；首次成功即把 totp_enabled 置真（完成绑定）。
+router.post('/admin-2fa', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { code } = req.body;
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, role, totp_secret, totp_enabled')
+      .eq('id', req.user.userId)
+      .single();
+    if (error || !user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    if (!user.totp_secret) return res.status(400).json({ error: 'Set up 2FA first' });
+
+    // token 强制转字符串：前端可能传数字，otplib 只接受字符串
+    const valid = authenticator.verify({ token: String(code || ''), secret: user.totp_secret });
+    if (!valid) return res.status(401).json({ error: 'Invalid verification code' });
+
+    // 首次校验成功即完成绑定
+    if (!user.totp_enabled) {
+      await supabase.from('users').update({ totp_enabled: true }).eq('id', user.id);
+    }
+
+    // 带 adm2fa 声明的短期 admin 令牌：adminAuth 中间件的主通道凭证
+    const token = jwt.sign({ email: user.email, role: 'admin', adm2fa: true }, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token });
+  } catch (err) {
+    console.error('[Auth] admin-2fa error:', err);
+    res.status(500).json({ error: 'Failed to verify code. Please try again.' });
   }
 });
 
