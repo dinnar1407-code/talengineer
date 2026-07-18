@@ -4,7 +4,7 @@
  */
 
 // 缓存版本号：改动预缓存内容或缓存策略时递增，activate 会清掉旧版本缓存。
-const CACHE_VERSION = 'tal-v1';
+const CACHE_VERSION = 'tal-v2';
 const CACHE_NAME = `talengineer-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline';
 
@@ -46,6 +46,20 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // 跨源资源不管
   if (url.pathname.startsWith('/api')) return;      // 接口不缓存
+
+  // Next 构建产物带内容哈希、永不变化：cache-first 省流量提速（尤其厂区弱网）
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((hit) => hit || fetch(request).then((resp) => {
+        if (resp && resp.status === 200) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return resp;
+      }))
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(request)
@@ -104,4 +118,16 @@ self.addEventListener('notificationclick', (event) => {
       if (self.clients.openWindow) return self.clients.openWindow(link);
     })
   );
+});
+
+// Background Sync：回网时浏览器唤醒 SW，SW 广播消息让页面执行 outbox 重放。
+// SW 自身不碰业务逻辑，只负责"叫醒页面"——重放交给页面里的同步引擎（sync.js）跑。
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'outbox-sync') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((c) => c.postMessage({ type: 'outbox-sync' }));
+      })
+    );
+  }
 });

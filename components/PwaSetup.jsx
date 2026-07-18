@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { runSync } from '../lib/offline/sync';
 
-// 全站挂载一次（_app.jsx）：注册 Service Worker、显示安装提示条、登录态下订阅 Web Push。
+// 全站挂载一次（_app.jsx）：注册 Service Worker、显示安装提示条、登录态下订阅 Web Push、启动离线同步引擎。
 const LS_USER_KEY = 'tal_user';
 const LS_INSTALL_DISMISSED = 'tal_pwa_install_dismissed';
+const LS_IOS_A2HS_DISMISSED = 'tal-ios-a2hs-dismissed';
 
 // base64url 编码的 VAPID 公钥 → Uint8Array（PushManager.subscribe 的 applicationServerKey 要求）
 function urlBase64ToUint8Array(base64String) {
@@ -26,6 +28,7 @@ function getToken() {
 export default function PwaSetup() {
   const [installEvent, setInstallEvent] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [showIosA2hs, setShowIosA2hs] = useState(false);
 
   // 1) 注册 Service Worker（离线壳 + 推送接收）
   useEffect(() => {
@@ -33,6 +36,23 @@ export default function PwaSetup() {
     navigator.serviceWorker.register('/sw.js').catch((err) => {
       console.warn('[PWA] SW registration failed:', err && err.message);
     });
+  }, []);
+
+  // 1.5) 启动离线同步引擎：PwaSetup 全站挂载，是同步引擎全局初始化的天然位置。
+  // runSync 内部绑定 online / SW message / 回前台三个触发器（幂等，重复调用不重复绑定）。
+  useEffect(() => {
+    runSync();
+  }, []);
+
+  // 1.6) iOS 安装引导：iOS Safari 不支持 beforeinstallprompt，只能提示用户手动"添加到主屏幕"。
+  // 条件：非已安装（standalone）+ 是 iPhone/iPad + 用户没关闭过提示。
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isIos = /iPhone|iPad/.test(navigator.userAgent);
+    const isStandalone = navigator.standalone === true; // iOS 专有：已加到主屏幕运行时为 true
+    if (isIos && !isStandalone && !localStorage.getItem(LS_IOS_A2HS_DISMISSED)) {
+      setShowIosA2hs(true);
+    }
   }, []);
 
   // 2) 安装提示条：捕获 beforeinstallprompt，用户关闭后记住（localStorage）不再打扰
@@ -111,9 +131,17 @@ export default function PwaSetup() {
     setShowInstall(false);
   }
 
-  if (!showInstall) return null;
+  function dismissIosA2hs() {
+    localStorage.setItem(LS_IOS_A2HS_DISMISSED, '1'); // 记住用户已关闭，下次不再提示
+    setShowIosA2hs(false);
+  }
+
+  // 两个提示条互相独立：Android 走 beforeinstallprompt，iOS 走手动引导；都没有就不渲染。
+  if (!showInstall && !showIosA2hs) return null;
 
   return (
+    <>
+      {showInstall && (
     <div
       role="dialog"
       aria-label="Install TalEngineer"
@@ -172,5 +200,51 @@ export default function PwaSetup() {
         ×
       </button>
     </div>
+      )}
+
+      {showIosA2hs && (
+        <div
+          role="dialog"
+          aria-label="Add to Home Screen"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            bottom: '1rem',
+            transform: 'translateX(-50%)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            maxWidth: 'calc(100vw - 2rem)',
+            padding: '0.75rem 1rem',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-lg)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.9rem',
+          }}
+        >
+          <span style={{ flex: 1 }}>📲 添加到主屏幕：点分享按钮 → 添加到主屏幕</span>
+          <button
+            type="button"
+            onClick={dismissIosA2hs}
+            aria-label="Dismiss"
+            style={{
+              padding: '0.4rem 0.5rem',
+              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
   );
 }
