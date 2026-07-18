@@ -31,7 +31,7 @@ const DICT = {
     ctaPost: '＋ Post a Project', ctaBrowse: '＋ Browse Projects', ctaManage: '＋ Manage Platform',
     roleEmployerLabel: 'Employer · OEM', roleEngineerLabel: 'Engineer · Verified', roleAdminLabel: 'Super Admin · Platform',
     notifications: 'Notifications', markAllRead: 'Mark all read', notifEmpty: 'No notifications', loading: 'Loading…',
-    settings: 'Settings', logout: 'Sign out',
+    demoData: 'Demo data', settings: 'Settings', logout: 'Sign out',
   },
   zh: {
     workspace: '工作台', employer: '雇主', engineer: '工程师', admin: '管理员',
@@ -42,9 +42,20 @@ const DICT = {
     ctaPost: '＋ 发布项目', ctaBrowse: '＋ 浏览项目', ctaManage: '＋ 平台管理',
     roleEmployerLabel: '雇主 · 设备厂商', roleEngineerLabel: '工程师 · 已认证', roleAdminLabel: '超级管理员 · 平台',
     notifications: '通知', markAllRead: '全部已读', notifEmpty: '暂无通知', loading: '加载中…',
-    settings: '设置', logout: '退出登录',
+    demoData: '测试数据', settings: '设置', logout: '退出登录',
   },
 };
+
+// 铃铛演示通知（测试阶段兜底）：真实通知为空/拉取失败时展示，均带 read 标记与相对时间。
+// 独立自持，不依赖 console.jsx 的数据逻辑（Terry 铁律：每个数据位真数据优先，空/失败给演示 + 🧪 标注）。
+// 演示条目无 link，点击不触发任何已读/跳转调用。
+const DEMO_TS = Date.now();
+const demoAgo = (min) => new Date(DEMO_TS - min * 60000).toISOString();
+const DEMO_NOTIFICATIONS = [
+  { id: 'demo-n1', type: 'engineer_assigned', title: 'M2 · SCADA integration — approved', body: 'Line-3 Retrofit · Priya K. · $8,000', created_at: demoAgo(35), read: false },
+  { id: 'demo-n2', type: 'exam_result', title: 'M3 · FAT documentation — awaiting your review', body: 'Weld-cell #4 · Diego R. · $6,500', created_at: demoAgo(180), read: false },
+  { id: 'demo-n3', type: 'new_application', title: 'M1 · PLC migration — funded to escrow', body: 'Packaging Line VN · Minh N. · $12,000', created_at: demoAgo(1440), read: true },
+];
 
 // 姓名/邮箱取首字母做头像
 function initialsOf(name, email) {
@@ -94,6 +105,11 @@ export default function ConsoleShell({
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
+  // 铃铛演示回退：真实通知加载完为空/失败（两种都会置为 []）→ 回退演示通知 + 🧪 徽标，
+  // 与仪表盘活动流保持一致（避免同页一处有 demo 一处「暂无通知」）。null 时仍显示加载态。
+  const feedIsDemo = notifications !== null && notifications.length === 0;
+  const feedToShow = feedIsDemo ? DEMO_NOTIFICATIONS : notifications;
+
   // 角色推导：优先用受控 role（console 超管切换视角），否则回退 user.role
   const effRole = role || user?.role || 'employer';
   const isSuper = user?.role === 'admin';        // 超级账户：可切换视角
@@ -141,7 +157,7 @@ export default function ConsoleShell({
   // 退出：先清离线镜像（换账号不能读到上一个人的数据），再登出 supabase + 清本地登录态，跳登录页。
   // mirrorClearAll 用 fire-and-forget 包 try/catch，不阻塞登出主流程。
   async function handleLogout() {
-    try { require('../lib/offline/idb').mirrorClearAll(); } catch { /* 离线库不可用时忽略 */ }
+    try { require('../lib/offline/idb').mirrorClearAll().catch(() => {}); } catch { /* 离线库不可用/同步抛错时忽略 */ }
     try { await supabase.auth.signOut(); } catch { /* OAuth 会话登出失败不阻塞 */ }
     try { localStorage.removeItem('tal_user'); } catch { /* 隐私模式等无 localStorage */ }
     window.location.href = '/finance';
@@ -231,15 +247,17 @@ export default function ConsoleShell({
                 <div className={styles.notifBackdrop} onClick={() => setNotifOpen(false)} />
                 <div className={styles.notifPanel}>
                   <div className={styles.notifHead}>
-                    <b>{d.notifications}</b>
-                    {notifUnread > 0 && <button className={styles.markAllBtn} onClick={markAllRead}>{d.markAllRead}</button>}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <b>{d.notifications}</b>
+                      {feedIsDemo && <span className={styles.demoBadge}>🧪 {d.demoData} · Demo</span>}
+                    </span>
+                    {/* 演示态下不显示"全部已读"（演示条目不做已读调用）；仅真实未读 > 0 才可点 */}
+                    {!feedIsDemo && notifUnread > 0 && <button className={styles.markAllBtn} onClick={markAllRead}>{d.markAllRead}</button>}
                   </div>
                   <div className={styles.notifScroll}>
                     {notifications === null ? (
                       <div className={styles.stateBox}>{d.loading}</div>
-                    ) : notifications.length === 0 ? (
-                      <div className={styles.stateBox}>{d.notifEmpty}</div>
-                    ) : notifications.slice(0, 10).map(n => (
+                    ) : feedToShow.slice(0, 10).map(n => (
                       <button key={n.id} className={`${styles.notifItem} ${n.read ? '' : styles.notifUnreadItem}`} onClick={() => openNotif(n)}>
                         <div className={styles.notifItemTitle}>{n.title}</div>
                         {n.body && <div className={styles.notifItemBody}>{n.body}</div>}
