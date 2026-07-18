@@ -54,10 +54,13 @@ function inProjectRoom(socket, projectId) {
  * 为什么逐行并发签名：历史一批可能几十行，用 Promise.all 并发避免串行等待；
  * 单行签名失败不附加 image_url（前端据此显示"图片暂不可用"占位），不影响其它行。
  */
-async function signQcImageRows(supabase, rows) {
+async function signQcImageRows(supabase, rows, projectId) {
+  const prefix = `${projectId}/`; // 合法 QC 图路径形如 `${projectId}/<epochMs>.jpg`
   return Promise.all((rows || []).map(async (row) => {
     const marker = markerParse(row.original_text);
-    if (!marker) return row; // 非 QC 图标记的普通消息原样返回
+    // 仅签发本项目命名空间下的对象：original_text 是当事方可控文本，
+    // 若不限定前缀，发一条 [qc-image:别项目/x.jpg] 就能骗取任意私有对象的签名 URL（越权）。
+    if (!marker || !marker.path.startsWith(prefix)) return row;
     try {
       const { data } = await supabase.storage.from('qc-images').createSignedUrl(marker.path, 600);
       return data?.signedUrl ? { ...row, image_url: data.signedUrl } : row;
@@ -260,8 +263,8 @@ function attachSocket(server) {
           .eq('demand_id', projectId)
           .order('created_at', { ascending: true })
           .limit(100);
-        // QC 图标记行逐个签发临时可读 URL 后再下发，前端据 image_url 渲染图片
-        const withUrls = await signQcImageRows(supabase, rows || []);
+        // QC 图标记行逐个签发临时可读 URL 后再下发，前端据 image_url 渲染图片（只签本项目命名空间）
+        const withUrls = await signQcImageRows(supabase, rows || [], projectId);
         socket.emit('history', withUrls);
       } catch (err) {
         console.error('[Socket] loadHistory error:', err);

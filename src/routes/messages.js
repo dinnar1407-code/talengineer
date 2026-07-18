@@ -5,8 +5,6 @@ const { requireAuth } = require('../middleware/auth');
 const { assertDemandParticipant } = require('../middleware/ownership');
 const { createNotification } = require('../services/notificationService');
 const { emailNewMessage } = require('../services/email');
-// markerParse 复用离线契约里的 QC 图标记正则，历史回看时用它识别 [qc-image:<path>] 标记行。
-const { markerParse } = require('../../lib/offline/replayCore');
 
 // ── Get thread for a demand ───────────────────────────────────────────────────
 router.get('/thread/:demandId', requireAuth, async (req, res) => {
@@ -48,19 +46,7 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
         .eq('read', false);
     }
 
-    // QC 图历史回看：若某行是 [qc-image:<path>] 标记，签发 10 分钟临时可读 URL 附加为 image_url，
-    // 前端据此渲染图片（签名失败则不附加，显示占位）。逐行并发签名；整段失败降级为原始行，不阻断线程。
-    let msgsWithUrls = msgs || [];
-    try {
-      msgsWithUrls = await Promise.all((msgs || []).map(async (m) => {
-        const marker = markerParse(m.original_text);
-        if (!marker) return m;
-        const { data: signed } = await supabase.storage.from('qc-images').createSignedUrl(marker.path, 600);
-        return signed?.signedUrl ? { ...m, image_url: signed.signedUrl } : m;
-      }));
-    } catch { msgsWithUrls = msgs || []; }
-
-    res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgsWithUrls });
+    res.json({ status: 'ok', demand: { id: demandMeta?.id ?? demand.id, title: demandMeta?.title || '' }, data: msgs || [] });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[messages]', err);

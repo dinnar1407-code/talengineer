@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
@@ -236,23 +236,47 @@ export default function WarRoom() {
     });
   }, [history, role]);
 
-  // 回网后重发离线拍的 QC 图：图走 socket（QC 分析管线挂在 socket 事件上），重发成功即 markDone
-  useEffect(() => {
-    if (!joined) return;
+  // ── 离线队列重发（文字走 chatMessage / QC 图走 uploadQualityImage）───────────────
+  // 两类 pending 都靠 socket 重发（QC 分析与翻译管线都挂在 socket 事件上），成功即 markDone。
+  // useRef 防重入：三个触发源（加入房间 / 回网 / socket 重连）可能同时触发，避免并发重复重发。
+  const replayingRef = useRef(false);
+  const replayPending = useCallback(async () => {
+    if (replayingRef.current) return;
+    const socket = socketRef.current;
+    if (!joined || !socket) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-    (async () => {
-      try {
-        const pending = await listPending();
-        for (const it of (pending || []).filter((x) => x.type === 'qc-image')) {
-          const body = it.request?.body || {};
-          if (socketRef.current && body.imageData) {
-            socketRef.current.emit('uploadQualityImage', { projectId: body.projectId || projectId, imageData: body.imageData, context: 'Verify this equipment panel/wiring.' });
-            await markDone(it.id);
-          }
+    replayingRef.current = true;
+    try {
+      const pending = await listPending();
+      for (const it of (pending || [])) {
+        const url = it.request?.url || '';
+        const body = it.request?.body || {};
+        if (url === '/socket/chatMessage') {
+          socket.emit('chatMessage', body);
+          await markDone(it.id);
+        } else if (it.type === 'qc-image' && body.imageData) {
+          socket.emit('uploadQualityImage', { projectId: body.projectId || projectId, imageData: body.imageData, context: 'Verify this equipment panel/wiring.' });
+          await markDone(it.id);
         }
-      } catch { /* 重发失败下次再试 */ }
-    })();
-  }, [joined]); // eslint-disable-line react-hooks/exhaustive-deps
+      }
+    } catch { /* 重发失败下次再试 */ } finally {
+      replayingRef.current = false;
+    }
+  }, [joined, projectId]);
+
+  // 三个触发源都尝试重发：①加入房间 ②window 'online'（回网）③socket 'connect'（重连）
+  useEffect(() => {
+    if (!joined) return undefined;
+    replayPending();
+    const onOnline = () => replayPending();
+    window.addEventListener('online', onOnline);
+    const socket = socketRef.current;
+    if (socket) socket.on('connect', replayPending);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      if (socket) socket.off('connect', replayPending);
+    };
+  }, [joined, replayPending]);
 
   function joinRoom(e) {
     e.preventDefault();
@@ -309,17 +333,17 @@ export default function WarRoom() {
     e.preventDefault();
     const text = inputText.trim();
     if (!text || sending) return;
-    // 离线：入队 POST /api/messages（outbox 回网后重放并自动注入 client_msg_id 去重），本地乐观显示带「待同步」
+    // 离线：以 socket 事件形态入队（url=/socket/chatMessage，非 HTTP）；warroom 回网后走 socket.emit('chatMessage')
+    // 重发，与 QC 图同一条重发路径。offline-core 的 replayAll 会跳过 /socket/ 前缀的 op，不做 HTTP 重放。
+    // 本地乐观插入消息行 + 「待同步」徽标。
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      let token = null;
-      try { token = JSON.parse(localStorage.getItem('tal_user') || 'null')?.token || null; } catch { /* 未登录 */ }
       enqueue({
         type: 'message',
         request: {
-          url: '/api/messages',
+          url: '/socket/chatMessage',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: { demand_id: projectId, content: text },
+          headers: {},
+          body: { projectId, senderRole: role, senderName: myName, text }, // 与 chatMessage 事件同格式 payload
         },
       });
       addMessage({ type: 'sent', senderName: myName, originalText: text, translatedText: '', pending: true });
@@ -336,18 +360,20 @@ export default function WarRoom() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const base64Data = evt.target.result;
-      // 离线：把 base64 以 qc-image 入队，回网后由 warroom 走 socket 重发分析；本地提示"离线，回网后上传"
+      // 离线：先降采样再入队（限宽 1600 / JPEG 0.8，与服务端 sharp 参数对齐），
+      // 避免多张全分辨率 base64 撑爆 IndexedDB；回网后由 warroom 走 socket 重发分析（QC 管线挂在 socket 上）。
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const compact = await downscaleDataUrl(base64Data);
         enqueue({
           type: 'qc-image',
           request: {
-            // 占位 url：qc-image 实际由 warroom 回网后走 socket 重发（QC 分析管线挂在 socket 事件上），非 HTTP 重放
+            // 占位 url：qc-image 实际由 warroom 回网后走 socket 重发，非 HTTP 重放
             url: '/socket/uploadQualityImage',
             method: 'POST',
             headers: {},
-            body: { imageData: base64Data, projectId },
+            body: { imageData: compact, projectId },
           },
         });
         addMessage({ type: 'system', text: d.offlinePhotoQueued });
@@ -511,7 +537,10 @@ function MessageBubble({ msg, myRole, myName, labels }) {
           {/* 离线乐观消息：显示「待同步」徽标，回网后 outbox 重放到服务端 */}
           {msg.pending && <span style={{ marginLeft: 8, fontSize: 11, color: '#d97706', background: 'rgba(217,119,6,.12)', padding: '1px 8px', borderRadius: 10 }}>⏳ {labels.pending}</span>}
         </div>
-        <div dangerouslySetInnerHTML={{ __html: msg.originalText }} />
+        {/* 转义渲染而非 dangerouslySetInnerHTML：历史消息按角色也会走 sent 分支，
+            若注入 HTML，他人存进 original_text 的 <img onerror> 等载荷会被执行（存储型 XSS）。
+            QC 图已有独立 <img> 分支，普通文本一律当纯文本渲染。 */}
+        <div>{msg.originalText}</div>
         {msg.translatedText ? <div className={styles.translation}>{labels.trans}: {msg.translatedText}</div> : null}
       </div>
     );
@@ -523,6 +552,30 @@ function MessageBubble({ msg, myRole, myName, labels }) {
       <div className={styles.translationReceived}>{msg.translatedText}</div>
     </div>
   );
+}
+
+// 离线拍照降采样：限宽 1600、JPEG 0.8（与服务端 sharp 参数对齐），把全分辨率快拍压小再入队，
+// 避免多张离线照片把 IndexedDB 撑爆。任何环节失败都回退原图（宁可大也不丢图）。
+function downscaleDataUrl(dataUrl, maxWidth = 1600, quality = 0.8) {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl); // 解码失败：回退原图
+      img.src = dataUrl;
+    } catch { resolve(dataUrl); }
+  });
 }
 
 // 把一行历史消息（project_messages）映射成聊天气泡。

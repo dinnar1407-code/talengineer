@@ -114,12 +114,24 @@ async function runAutoInvite(demand, config) {
  * @returns {{ok:boolean, error?:string, values?:{site_lat:number,site_lng:number,site_radius_m:number}}}
  */
 function validateSiteCoords({ site_lat, site_lng, site_radius_m }) {
-  const provided = site_lat != null || site_lng != null || site_radius_m != null;
-  if (!provided) return { ok: true, values: {} }; // 未提供站点，合法跳过
+  // 空串/null/undefined 一律视为"未提供"：关键点是 Number('')===0 会把空输入误存成 (0,0)，
+  // 之后所有真实签到都会误报几千 km。必须显式把空值挡在解析之前。
+  const isBlank = (v) => v === '' || v == null;
+  const latBlank = isBlank(site_lat);
+  const lngBlank = isBlank(site_lng);
+  const radBlank = isBlank(site_radius_m);
 
-  const lat = Number(site_lat);
-  const lng = Number(site_lng);
-  const radius = site_radius_m == null ? 500 : Number(site_radius_m); // 缺省半径 500m
+  // 三者全空 = 不设站点，合法跳过（发单时站点可选）。
+  if (latBlank && lngBlank && radBlank) return { ok: true, values: {} };
+
+  // 经纬度必须成对提供：半填（只有一个，或只填了半径）直接 400，杜绝 (0,0) 之类脏数据落库。
+  if (latBlank || lngBlank) {
+    return { ok: false, error: 'site_lat and site_lng must both be provided' };
+  }
+
+  const lat = parseFloat(site_lat);
+  const lng = parseFloat(site_lng);
+  const radius = radBlank ? 500 : parseFloat(site_radius_m); // 缺省半径 500m
   if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
     return { ok: false, error: 'Invalid site_lat (must be a number between -90 and 90)' };
   }

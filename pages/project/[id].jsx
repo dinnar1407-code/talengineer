@@ -158,8 +158,13 @@ export default function ProjectDetail({ initialProject = null }) {
       const res = await fetch('/api/demand/site', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
-        // 半径留空则不传，让服务端用缺省 500
-        body: JSON.stringify({ demand_id: id, site_lat: siteLat, site_lng: siteLng, site_radius_m: siteRadius || undefined }),
+        // 空输入框传 undefined（不是空串）：避免服务端把 Number('') 误当 0 存成 (0,0)。半径留空则用缺省 500。
+        body: JSON.stringify({
+          demand_id: id,
+          site_lat: siteLat === '' ? undefined : siteLat,
+          site_lng: siteLng === '' ? undefined : siteLng,
+          site_radius_m: siteRadius === '' ? undefined : siteRadius,
+        }),
       });
       const data = await res.json();
       if (res.ok) toast.success(lang === 'zh' ? '站点坐标已保存。' : 'Site coordinates saved.');
