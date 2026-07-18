@@ -247,17 +247,26 @@ export default function WarRoom() {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     replayingRef.current = true;
     try {
+      // 带 socket.io ack 回执重发：仅当服务端回执 ok:true（已落库）才 markDone。
+      // 被拒（没进房/鉴权失败）或落库失败 → 无 ok → 保留 pending，下个触发器再试。8s 无 ack 视为未送达。
+      // 这彻底关闭"拒收/落库失败后 markDone 静默丢队列"，也顺带兜住 join 竞态。
+      const emitAck = (evt, payload) => new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(false), 8000);
+        socket.emit(evt, payload, (resp) => { clearTimeout(timer); resolve(!!resp?.ok); });
+      });
       const pending = await listPending();
       for (const it of (pending || [])) {
         const url = it.request?.url || '';
         const body = it.request?.body || {};
+        let acked = false;
         if (url === '/socket/chatMessage') {
-          socket.emit('chatMessage', body);
-          await markDone(it.id);
+          acked = await emitAck('chatMessage', body);
         } else if (it.type === 'qc-image' && body.imageData) {
-          socket.emit('uploadQualityImage', { projectId: body.projectId || projectId, imageData: body.imageData, context: 'Verify this equipment panel/wiring.' });
-          await markDone(it.id);
+          acked = await emitAck('uploadQualityImage', { projectId: body.projectId || projectId, imageData: body.imageData, context: 'Verify this equipment panel/wiring.' });
+        } else {
+          continue; // 未知 op：跳过（既不重发也不删）
         }
+        if (acked) await markDone(it.id); // 未 ack 则保留，交给下个触发器重试
       }
     } catch { /* 重发失败下次再试 */ } finally {
       replayingRef.current = false;

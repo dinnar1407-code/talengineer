@@ -114,9 +114,15 @@ function attachSocket(server) {
       }
     });
 
-    socket.on('chatMessage', async (data) => {
+    socket.on('chatMessage', async (data, callback) => {
+      // socket.io 原生 ack：仅离线重发端会带回调（在线正常发送不带，callback=undefined）。
+      // 语义：落库成功 ok:true / 被拒或落库失败 ok:false。重发端据此决定是否 markDone，杜绝拒收后静默丢队列。
+      // ack 幂等守卫：只回执一次，避免正常路径与 catch 重复 callback。
+      let acked = false;
+      const ack = (ok) => { if (!acked && typeof callback === 'function') { acked = true; callback({ ok }); } };
       try {
         if (!inProjectRoom(socket, data.projectId)) {
+          ack(false);
           return socket.emit('messageError', { error: 'Join the project room first.' });
         }
         // 角色取自 JWT（不信客户端自报），翻译方向由真实角色决定
@@ -125,15 +131,19 @@ function attachSocket(server) {
         const targetLang = senderRole === 'employer' ? 'Spanish' : 'Chinese (Mandarin)';
         const translatedText = await translateTechnicalMessage(data.text, sourceLang, targetLang);
 
+        // persisted 标记落库结果供 ack 判定；无 DB 的 dev 路径无需落库，按成功处理。
+        // 广播行为保持原样（无论落库成败都广播），只用 insert 的 error 决定 ack。
+        let persisted = true;
         const supabase = getClient();
         if (supabase) {
-          await supabase.from('project_messages').insert([{
+          const { error: insErr } = await supabase.from('project_messages').insert([{
             demand_id: data.projectId,
             sender_role: senderRole,
             sender_name: data.senderName,
             original_text: data.text,
             translated_text: translatedText,
           }]);
+          persisted = !insErr;
         }
 
         io.to(`project_${data.projectId}`).emit('message', {
@@ -144,7 +154,9 @@ function attachSocket(server) {
           translatedText,
           timestamp: new Date().toISOString(),
         });
+        ack(persisted);
       } catch (err) {
+        ack(false);
         console.error('[Socket] Translation error:', err);
         socket.emit('messageError', { error: 'Failed to translate message.' });
       }
@@ -192,9 +204,15 @@ function attachSocket(server) {
       }
     });
 
-    socket.on('uploadQualityImage', async ({ projectId, imageData, context }) => {
+    socket.on('uploadQualityImage', async ({ projectId, imageData, context }, callback) => {
+      // socket.io 原生 ack：仅离线重发端带回调（在线上传不带，callback=undefined）。
+      // 语义：落库（上传+插标记行）成功 ok:true / 被拒或落库失败 ok:false。重发端据此 markDone，拒收不丢队列。
+      let acked = false;
+      const ack = (ok) => { if (!acked && typeof callback === 'function') { acked = true; callback({ ok }); } };
+      let persisted = false; // 落库结果供 ack 判定（上传+插标记行都成功才算落库）
       try {
         if (!inProjectRoom(socket, projectId)) {
+          ack(false);
           return socket.emit('messageError', { error: 'Join the project room first.' });
         }
 
@@ -216,18 +234,21 @@ function attachSocket(server) {
             if (!upErr) {
               // 消息行字段形状同上方 chatMessage 的 insert；original_text 用契约标记格式，供历史回看识别
               const uploaderName = socket.user.email ? socket.user.email.split('@')[0] : socket.user.role;
-              await supabase.from('project_messages').insert([{
+              const { error: insErr } = await supabase.from('project_messages').insert([{
                 demand_id: projectId,
                 sender_role: socket.user.role,
                 sender_name: uploaderName,
                 original_text: `[qc-image:${storagePath}]`,
                 translated_text: `[qc-image:${storagePath}]`,
               }]);
+              persisted = !insErr;
             }
           }
         } catch (persistErr) {
           console.error('[Socket] QC image persist error:', persistErr);
         }
+        // 落库成功即回执（图已存，回看无忧）；离线重发端据此 markDone。分析失败不影响"图已存"这一事实。
+        ack(persisted);
 
         // analyzeQualityImage 签名为 (base64Data, mimeType, projectContext)：需先把前端传来的 dataURL 拆成 mimeType 与纯 base64
         const parts = imageData.split(';');
@@ -244,6 +265,7 @@ function attachSocket(server) {
           translatedText: qcMessageZh,
         });
       } catch (err) {
+        ack(false); // 若已在落库后 ack(persisted)，此处为幂等 no-op；仅覆盖 ack 之前就抛错的情况
         socket.emit('messageError', { error: 'Failed to analyse image.' });
       }
     });
