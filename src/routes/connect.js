@@ -73,4 +73,65 @@ router.get('/status', requireAuth, async (req, res) => {
   }
 });
 
+// ── Balance（工程师查看自己 Connect 账户余额）─────────────────────────────────
+// 只操作本人 talent 的账户；金额从分转美元返回。instant_available 为 Stripe
+// 判定的"可即时提现"额度（不具资格时为 0 或缺省）。
+router.get('/balance', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data: talent } = await supabase
+      .from('talents')
+      .select('stripe_account_id')
+      .eq('user_id', req.user.userId)
+      .single();
+    if (!talent?.stripe_account_id) return res.status(400).json({ error: 'No Stripe account connected.' });
+
+    const balance = await stripe.balance.retrieve({ stripeAccount: talent.stripe_account_id });
+    const sumUsd = (arr) => (arr || []).filter(b => b.currency === 'usd').reduce((s, b) => s + b.amount, 0) / 100;
+    res.json({
+      status: 'ok',
+      available: sumUsd(balance.available),
+      pending: sumUsd(balance.pending),
+      instant_available: sumUsd(balance.instant_available),
+    });
+  } catch (err) {
+    console.error('[Connect] Balance error:', err);
+    res.status(500).json({ error: 'Failed to fetch balance.' });
+  }
+});
+
+// ── Instant Payout（即时提现，Stripe 收 1% 手续费）───────────────────────────
+// 资格由 Stripe 判定（借记卡绑定等）；不合格时返回明确降级文案（标准周期自动到账），
+// 绝不影响正常的标准 payout 计划。
+router.post('/instant-payout', requireAuth, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data: talent } = await supabase
+      .from('talents')
+      .select('stripe_account_id')
+      .eq('user_id', req.user.userId)
+      .single();
+    if (!talent?.stripe_account_id) return res.status(400).json({ error: 'No Stripe account connected.' });
+
+    const amt = parseFloat(req.body?.amount);
+    if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: 'Invalid amount.' });
+
+    try {
+      const payout = await stripe.payouts.create({
+        amount: Math.round(amt * 100),
+        currency: 'usd',
+        method: 'instant',
+      }, { stripeAccount: talent.stripe_account_id });
+      res.json({ status: 'ok', payout_id: payout.id, amount: amt });
+    } catch (stripeErr) {
+      // 资格/额度不足等 Stripe 拒绝：友好降级提示，不当成服务器错误
+      console.warn('[Connect] Instant payout declined:', stripeErr.message);
+      return res.status(400).json({ error: 'Instant payout unavailable for your account — funds will arrive on the standard schedule (1–2 business days).' });
+    }
+  } catch (err) {
+    console.error('[Connect] Instant payout error:', err);
+    res.status(500).json({ error: 'Failed to create payout.' });
+  }
+});
+
 module.exports = router;

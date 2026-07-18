@@ -50,6 +50,8 @@ export default function Finance() {
   // Stripe Connect (engineers)
   const [connectStatus, setConnectStatus] = useState(null); // null | 'not_connected' | 'pending' | 'active'
   const [connecting, setConnecting]       = useState(false);
+  const [payoutBalance, setPayoutBalance] = useState(null); // { available, pending, instant_available }
+  const [instantBusy, setInstantBusy]     = useState(false);
 
   // Applicants modal (employers)
   const [applicantsDemandId, setApplicantsDemandId] = useState(null);
@@ -256,7 +258,32 @@ export default function Finance() {
       const res  = await fetch('/api/payment/connect/status', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setConnectStatus(data.status || 'not_connected');
+      // 账户已激活 → 顺带拉余额（提现卡用），失败静默（卡片显示占位）
+      if (data.status === 'active') {
+        fetch('/api/payment/connect/balance', { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(b => { if (b.status === 'ok') setPayoutBalance(b); })
+          .catch(() => {});
+      }
     } catch { setConnectStatus('not_connected'); }
+  }
+
+  // 即时提现：Stripe 收 1% 手续费；资格不足后端返回降级文案（标准周期自动到账）
+  async function doInstantPayout() {
+    const amt = payoutBalance?.instant_available || 0;
+    if (!amt || instantBusy) return;
+    setInstantBusy(true);
+    try {
+      const res  = await fetch('/api/payment/connect/instant-payout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ amount: amt }),
+      });
+      const data = await res.json();
+      if (res.ok) { toast.success(`Instant payout of $${amt.toFixed(2)} initiated!`); loadConnectStatus(currentUser.token); }
+      else toast.info(data.error || 'Instant payout unavailable.');
+    } catch { toast.error('Network error.'); }
+    setInstantBusy(false);
   }
 
   async function startConnect() {
@@ -556,6 +583,27 @@ export default function Finance() {
               <button onClick={startConnect} disabled={connecting} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 {connecting ? 'Redirecting…' : connectStatus === 'pending' ? 'Complete Setup' : 'Connect Stripe'}
               </button>
+            </div>
+          )}
+
+          {/* ── Payout card（工程师 · Connect 已激活）：余额 + 即时提现（1% 手续费，资格由 Stripe 判定）── */}
+          {currentUser.role === 'engineer' && connectStatus === 'active' && (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>💰 Payout Balance</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  {payoutBalance
+                    ? <>Available: <b style={{ color: 'var(--text)' }}>${(payoutBalance.available || 0).toFixed(2)}</b> · Pending: ${(payoutBalance.pending || 0).toFixed(2)} · Instant-eligible: ${(payoutBalance.instant_available || 0).toFixed(2)}</>
+                    : 'Loading balance…'}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <button onClick={doInstantPayout} disabled={instantBusy || !(payoutBalance?.instant_available > 0)}
+                  style={{ background: payoutBalance?.instant_available > 0 ? 'var(--success)' : 'var(--surface-2)', color: payoutBalance?.instant_available > 0 ? '#fff' : 'var(--muted)', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: payoutBalance?.instant_available > 0 ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
+                  {instantBusy ? 'Processing…' : '⚡ Instant Payout'}
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>1% Stripe fee · otherwise standard 1–2 business days</div>
+              </div>
             </div>
           )}
 
