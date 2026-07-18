@@ -22,7 +22,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com'], // Next pages-router 内联运行时所需
+      // 'unsafe-inline' 供 Next pages-router 内联运行时；'unsafe-eval' 仅开发环境注入——
+      // Next dev（React Refresh/HMR）需要 eval，生产构建的 pages-router 运行时不用 eval，故 prod 不放开，收窄 XSS 面。
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com', ...(process.env.NODE_ENV !== 'production' ? ["'unsafe-eval'"] : [])],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://*.supabase.co'],
       connectSrc: ["'self'", 'https://*.supabase.co', 'https://api.stripe.com', 'wss:', 'https://*.ingest.sentry.io'],

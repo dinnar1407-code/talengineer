@@ -15,7 +15,8 @@ function adminAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   if (authHeader.startsWith('Bearer ')) {
     try {
-      const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+      // 显式锁定 HS256（与 jwt.sign 默认算法一致）：纵深防御，堵住 alg=none / 非对称混淆等攻击
+      const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET, { algorithms: ['HS256'] });
       // 必须同时满足 admin 角色与 adm2fa 声明：普通登录 JWT（无 adm2fa）不得放行，堵住"拿普通 token 冒充 admin"
       if (payload.role === 'admin' && payload.adm2fa === true) {
         req.adminEmail = payload.email;
