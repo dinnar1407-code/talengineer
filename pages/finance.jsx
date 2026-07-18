@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
 import Navbar from '../components/Navbar';
 import ConsoleShell from '../components/ConsoleShell';
+import OfflineBanner from '../components/OfflineBanner';
+import { useOfflineData } from '../lib/offline/useOfflineData';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabaseClient';
 import { useLang } from '../hooks/useLang';
@@ -80,6 +82,28 @@ export default function Finance() {
   // Employer analytics
   const [analytics, setAnalytics] = useState(null);
 
+  // ── 主数据（资金账本）离线镜像：先渲染 IndexedDB 镜像，后台刷新，回网自动重拉。
+  //    fetcher 断网/非2xx 会 throw → offline=true 保镜像。本页为「只读镜像」，
+  //    离线时资金操作按钮全部禁用（钱路径必须在线的铁律）。
+  const ledgerFetch = useCallback(async () => {
+    if (!currentUser?.token) return undefined; // 未登录：不拉取，保持 null 骨架屏
+    const r = await fetch('/api/finance/ledger', { headers: { Authorization: `Bearer ${currentUser.token}` } });
+    if (!r.ok) throw new Error('ledger');
+    return (await r.json()).data || [];
+  }, [currentUser]);
+  const { data: ledgerData, offline: financeOffline, syncedAt: financeSyncedAt, refresh: refreshLedger } = useOfflineData('transactions-fin', ledgerFetch, [currentUser]);
+  // 镜像/最新数据到手 → 落 ledger + 重算指标；离线且无镜像 → 空表（收起骨架屏）
+  useEffect(() => {
+    if (ledgerData != null) {
+      setLedger(ledgerData);
+      const escrow   = ledgerData.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
+      const released = ledgerData.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
+      setMetrics({ escrow, released, active: ledgerData.length });
+    } else if (financeOffline) {
+      setLedger([]);
+    }
+  }, [ledgerData, financeOffline]);
+
   useEffect(() => {
     // ── Restore session from localStorage (email/password login) ─────────────
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -89,7 +113,7 @@ export default function Finance() {
         const user = JSON.parse(stored);
         restoredUser = user;
         setCurrentUser(user);
-        loadLedger(user);
+        // 账本由 useOfflineData('transactions-fin') 随 currentUser 变化自动拉取（含离线镜像）
         loadMyDemands(user);
         if (user.token) loadKyc(user.token);
         if (user.role === 'employer' && user.token) loadAnalytics(user.token);
@@ -186,7 +210,7 @@ export default function Finance() {
   function persistAndSet(userData) {
     localStorage.setItem(LS_USER_KEY, JSON.stringify(userData));
     setCurrentUser(userData);
-    loadLedger(userData);
+    // 账本由 useOfflineData('transactions-fin') 随 currentUser 变化自动拉取（含离线镜像）
     loadMyDemands(userData);
     if (userData.role === 'engineer' && userData.token) loadConnectStatus(userData.token);
     if (userData.token) { loadKyc(userData.token); }
@@ -332,22 +356,6 @@ export default function Finance() {
     } catch { toast.error('Network error.'); }
   }
 
-  async function loadLedger(user) {
-    setLedger(null); // show skeleton
-    if (!user?.token) { setLedger([]); return; }
-    try {
-      const res  = await fetch('/api/finance/ledger', {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      const data = await res.json();
-      const rows = data.data || [];
-      setLedger(rows);
-      const escrow   = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
-      const released = rows.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
-      setMetrics({ escrow, released, active: rows.length });
-    } catch { setLedger([]); toast.error('Failed to load ledger.'); }
-  }
-
   async function loadMyDemands(user) {
     if (!user?.token || user.role !== 'employer') return;
     try {
@@ -422,7 +430,7 @@ export default function Finance() {
       if (res.ok) {
         toast.success(`Funds released! Payout: $${result.payout_details.engineer_payout} | Fee: $${result.payout_details.platform_fee}`);
         openMilestones(demandId);
-        loadLedger(currentUser);
+        refreshLedger();
       } else toast.error(result.error);
     } catch { toast.error('Network error.'); }
   }
@@ -448,6 +456,8 @@ export default function Finance() {
     <>
       <Head><title>Dashboard & Finance | Talengineer</title></Head>
       <ChatBot lang={lang} />
+      {/* 页面级离线横幅（断网/有待同步时顶部条） */}
+      <OfflineBanner />
 
       {/* ── Role selection modal for first-time Google OAuth users ── */}
       {showRoleModal && (
@@ -581,6 +591,12 @@ export default function Finance() {
           <div className={styles.headerBlock}>
             <h1>{d.dashTitle}</h1>
             <p>{d.dashSub}</p>
+            {/* 离线时页头显著提示：数据来自镜像、截至某时刻，且资金操作已暂停 */}
+            {financeOffline && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(180,83,9,0.1)', border: '1px solid rgba(180,83,9,0.4)', color: '#b45309', fontWeight: 700, fontSize: 13 }}>
+                📴 离线 · 数据截至 {financeSyncedAt ? new Date(financeSyncedAt).toLocaleString() : '—'} · 资金操作已暂停
+              </div>
+            )}
           </div>
 
           {/* ── Stripe Connect Banner (engineers only) ── */}
@@ -594,7 +610,7 @@ export default function Finance() {
                   {connectStatus === 'pending' ? 'Please complete your Stripe account setup to receive milestone payments.' : 'Connect Stripe to receive escrow payouts when milestones are released.'}
                 </div>
               </div>
-              <button onClick={startConnect} disabled={connecting} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <button onClick={startConnect} disabled={connecting || financeOffline} title={financeOffline ? '离线状态不可操作资金' : undefined} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: financeOffline ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
                 {connecting ? 'Redirecting…' : connectStatus === 'pending' ? 'Complete Setup' : 'Connect Stripe'}
               </button>
             </div>
@@ -612,8 +628,8 @@ export default function Finance() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <button onClick={doInstantPayout} disabled={instantBusy || !(payoutBalance?.instant_available > 0)}
-                  style={{ background: payoutBalance?.instant_available > 0 ? 'var(--success)' : 'var(--surface-2)', color: payoutBalance?.instant_available > 0 ? '#fff' : 'var(--muted)', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: payoutBalance?.instant_available > 0 ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
+                <button onClick={doInstantPayout} disabled={instantBusy || financeOffline || !(payoutBalance?.instant_available > 0)} title={financeOffline ? '离线状态不可操作资金' : undefined}
+                  style={{ background: (payoutBalance?.instant_available > 0 && !financeOffline) ? 'var(--success)' : 'var(--surface-2)', color: (payoutBalance?.instant_available > 0 && !financeOffline) ? '#fff' : 'var(--muted)', border: 'none', padding: '8px 20px', borderRadius: 6, fontWeight: 700, cursor: (payoutBalance?.instant_available > 0 && !financeOffline) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
                   {instantBusy ? 'Processing…' : '⚡ Instant Payout'}
                 </button>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>1% Stripe fee · otherwise standard 1–2 business days</div>
@@ -882,7 +898,7 @@ export default function Finance() {
               <label style={{ display: 'block', fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>Reason for Dispute</label>
               <textarea value={disputeReason} onChange={e => setDisputeReason(e.target.value)} rows={4} required placeholder="Describe the issue clearly — e.g. work not completed, deliverables not met..." style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)' }} />
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <button type="submit" disabled={filingDispute} style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', padding: '11px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>{filingDispute ? 'Filing…' : 'File Dispute'}</button>
+                <button type="submit" disabled={filingDispute || financeOffline} title={financeOffline ? '离线状态不可操作资金' : undefined} style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', padding: '11px', borderRadius: 6, fontWeight: 700, cursor: financeOffline ? 'not-allowed' : 'pointer', fontSize: 14 }}>{filingDispute ? 'Filing…' : 'File Dispute'}</button>
                 <button type="button" onClick={() => setOpeningDispute(null)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', padding: '11px', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
               </div>
             </form>
@@ -912,10 +928,10 @@ export default function Finance() {
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontWeight: 600 }}>${(m.amount || 0).toLocaleString()}</div>
                         <span className={`${styles.statusBadge} ${styles['status_' + (m.status || 'locked')]}`}>{(m.status || 'locked').toUpperCase()}</span>
-                        {currentUser?.role === 'employer' && m.status === 'locked' && <button className={styles.btnFund} onClick={() => fundMilestone(m.id, modalDemandId, m.amount, m.phase_name)}>Fund via Stripe</button>}
-                        {currentUser?.role === 'employer' && m.status === 'funded' && <button className={styles.btnRelease} onClick={() => releaseMilestone(m.id, modalDemandId)}>🛡️ Release Funds</button>}
+                        {currentUser?.role === 'employer' && m.status === 'locked' && <button className={styles.btnFund} disabled={financeOffline} title={financeOffline ? '离线状态不可操作资金' : undefined} onClick={() => fundMilestone(m.id, modalDemandId, m.amount, m.phase_name)}>Fund via Stripe</button>}
+                        {currentUser?.role === 'employer' && m.status === 'funded' && <button className={styles.btnRelease} disabled={financeOffline} title={financeOffline ? '离线状态不可操作资金' : undefined} onClick={() => releaseMilestone(m.id, modalDemandId)}>🛡️ Release Funds</button>}
                         {currentUser?.role === 'engineer' && m.status === 'funded' && <a href={`/workorder/${m.id}`} className={styles.btnAction} style={{ display: 'block', marginTop: 8, textAlign: 'center', textDecoration: 'none', fontSize: 12 }}>📍 Work Order</a>}
-                        {['funded', 'completed'].includes(m.status) && <button className={styles.btnAction} style={{ background: '#ef4444', marginTop: 6, fontSize: 11 }} onClick={() => setOpeningDispute(m.id)}>⚠️ Dispute</button>}
+                        {['funded', 'completed'].includes(m.status) && <button className={styles.btnAction} disabled={financeOffline} title={financeOffline ? '离线状态不可操作资金' : undefined} style={{ background: '#ef4444', marginTop: 6, fontSize: 11 }} onClick={() => setOpeningDispute(m.id)}>⚠️ Dispute</button>}
                         {m.status === 'released' && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Platform Fee Deducted</div>}
                       </div>
                     </li>

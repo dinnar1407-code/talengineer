@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -6,6 +6,8 @@ import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
 import { useToast } from '../components/Toast';
 import ConsoleShell from '../components/ConsoleShell';
+import OfflineBanner from '../components/OfflineBanner';
+import { useOfflineData } from '../lib/offline/useOfflineData';
 import styles from './console.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -348,83 +350,146 @@ export default function Console() {
     if (typeof s === 'string' && SCREEN_KEYS.includes(s)) setScreen(s);
   }, [router.query.screen]);
 
-  // Find Engineers 复用公开 /api/talent/list；失败静默回退占位（现状不动）
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/talent/list?limit=6')
-      .then(r => (r.ok ? r.json() : null))
-      .then(j => {
-        if (!alive || !j) return;
-        const rows = j.data || j.talents || [];
-        if (Array.isArray(rows) && rows.length) setEngineers(rows.slice(0, 6).map(mapEngineer));
-      })
-      .catch(() => {});
-    return () => { alive = false; };
+  // ── 离线镜像数据层（useOfflineData）────────────────────────────────────────────
+  // 每个域先渲染 IndexedDB 镜像（断网也有），后台 fetcher() 刷新，回网自动重拉；
+  // fetcher 失败(断网/非2xx)会 throw → offline=true 保镜像。数据到手后喂回下方现有
+  // state，各屏渲染与「真实为空 → 演示兜底」判断逻辑保持原样不动（演示铁律完好保留）。
+  // 约定：fetcher 里 !user / 角色不符 → return undefined（hook 忽略，不动 state）；
+  //      离线且无镜像时由 sync effect 把 state 置空以触发演示兜底。
+
+  // 找工程师首屏推荐（缓存上次结果；真实为空/失败 → engineers 保持 null → 占位兜底）
+  const talentListFetch = useCallback(async () => {
+    const r = await fetch('/api/talent/list?limit=6');
+    if (!r.ok) throw new Error('talent-list');
+    const j = await r.json();
+    const rows = j.data || j.talents || [];
+    return Array.isArray(rows) ? rows.slice(0, 6).map(mapEngineer) : [];
   }, []);
-
-  // ── 主数据加载：随登录态与当前角色视图重新拉取 ────────────────────────────────
-  // 通用（任意登录）：通知活动流 + 未读数 + 消息收件箱。
-  // 雇主/管理员：demand/my（项目）+ analytics（申请数）→ 各项目里程碑。
-  // 工程师：finance/ledger（参与方项目）+ training/my（认证）+ talent/me（档案）→ 各项目里程碑。
+  const talentListOffline = useOfflineData('talent-last', talentListFetch, []);
   useEffect(() => {
-    if (!user) return;
-    const h = { Authorization: `Bearer ${user.token}` };
-    let alive = true;
-    setErrors({});
+    // 只在拿到非空推荐时落 state；空或离线无镜像 → 保持 null，findIsDemo 走占位
+    if (talentListOffline.data && talentListOffline.data.length) setEngineers(talentListOffline.data);
+  }, [talentListOffline.data]);
 
-    fetch('/api/notifications', { headers: h })
-      .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(j => { if (alive) setNotifications(j.data || []); })
-      .catch(() => { if (alive) { setNotifications([]); setErrors(e => ({ ...e, notif: true })); } });
+  // 通知活动流（任意登录）
+  const notifFetch = useCallback(async () => {
+    if (!user) return undefined;
+    const r = await fetch('/api/notifications', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('notifications');
+    return (await r.json()).data || [];
+  }, [user]);
+  const notifOffline = useOfflineData('notifications', notifFetch, [user]);
+  useEffect(() => {
+    if (notifOffline.data != null) setNotifications(notifOffline.data);
+    else if (notifOffline.offline) setNotifications([]); // 离线无镜像 → 空 → 演示兜底
+  }, [notifOffline.data, notifOffline.offline]);
 
-    fetch('/api/messages/inbox', { headers: h })
-      .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(j => { if (alive) setThreads(j.data || []); })
-      .catch(() => { if (alive) { setThreads([]); setErrors(e => ({ ...e, inbox: true })); } });
+  // 消息收件箱（任意登录）
+  const inboxFetch = useCallback(async () => {
+    if (!user) return undefined;
+    const r = await fetch('/api/messages/inbox', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('inbox');
+    return (await r.json()).data || [];
+  }, [user]);
+  const inboxOffline = useOfflineData('messages', inboxFetch, [user]);
+  useEffect(() => {
+    if (inboxOffline.data != null) setThreads(inboxOffline.data);
+    else if (inboxOffline.offline) setThreads([]);
+  }, [inboxOffline.data, inboxOffline.offline]);
 
-    // 逐个 demand 拉里程碑明细（当事方接口，雇主/被指派工程师/admin 都放行）。
-    // beta 规模项目数量少，并行拉取即可；覆盖项目详情时间线 + 托管交易 + 待办推导。
-    async function loadMilestones(ids) {
-      const uniq = [...new Set(ids.filter(Boolean))];
-      if (!uniq.length) { if (alive) setMilestonesByDemand({}); return; }
-      const entries = await Promise.all(uniq.map(async id => {
-        try {
-          const res = await fetch(`/api/finance/milestones?demand_id=${id}`, { headers: h });
-          const data = await res.json();
-          return [id, res.ok ? (data.data || []) : []];
-        } catch { return [id, []]; }
-      }));
-      if (alive) setMilestonesByDemand(Object.fromEntries(entries));
-    }
-
-    if (role === 'employer' || role === 'admin') {
-      fetch('/api/demand/my', { headers: h })
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then(j => { if (!alive) return; const rows = j.data || []; setMyDemands(rows); loadMilestones(rows.map(dm => dm.id)); })
-        .catch(() => { if (alive) { setMyDemands([]); setErrors(e => ({ ...e, demands: true })); } });
-      fetch('/api/demand/analytics', { headers: h })
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then(j => { if (alive) setAnalytics(j); })
-        .catch(() => {});
-    }
-
-    if (role === 'engineer') {
-      fetch('/api/finance/ledger', { headers: h })
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then(j => { if (!alive) return; const rows = j.data || []; setLedger(rows); loadMilestones(rows.map(l => l.demand_id)); })
-        .catch(() => { if (alive) { setLedger([]); setErrors(e => ({ ...e, ledger: true })); } });
-      fetch('/api/training/my', { headers: h })
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then(j => { if (alive) setTraining({ certifications: j.certifications || [], attempts: j.attempts || [] }); })
-        .catch(() => { if (alive) { setTraining({ certifications: [], attempts: [] }); setErrors(e => ({ ...e, training: true })); } });
-      fetch('/api/talent/me', { headers: h })
-        .then(r => (r.ok ? r.json() : Promise.reject()))
-        .then(j => { if (alive) { setTalentProfile(j.data || null); setTalentLoaded(true); } })
-        .catch(() => { if (alive) { setTalentProfile(null); setTalentLoaded(true); setErrors(e => ({ ...e, talent: true })); } });
-    }
-
-    return () => { alive = false; };
+  // 雇主/管理员项目来源（/api/demand/my）
+  const demandsFetch = useCallback(async () => {
+    if (!user || !(role === 'employer' || role === 'admin')) return undefined;
+    const r = await fetch('/api/demand/my', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('demands');
+    return (await r.json()).data || [];
   }, [user, role]);
+  const demandsOffline = useOfflineData('projects', demandsFetch, [user, role]);
+  useEffect(() => {
+    if (demandsOffline.data != null) setMyDemands(demandsOffline.data);
+    else if (demandsOffline.offline && (role === 'employer' || role === 'admin')) setMyDemands([]);
+  }, [demandsOffline.data, demandsOffline.offline, role]);
+
+  // 雇主申请统计（无演示兜底：失败静默保持 null 不渲染）
+  const analyticsFetch = useCallback(async () => {
+    if (!user || !(role === 'employer' || role === 'admin')) return undefined;
+    const r = await fetch('/api/demand/analytics', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('analytics');
+    return r.json();
+  }, [user, role]);
+  const analyticsOffline = useOfflineData('demand-analytics', analyticsFetch, [user, role]);
+  useEffect(() => {
+    if (analyticsOffline.data != null) setAnalytics(analyticsOffline.data);
+  }, [analyticsOffline.data]);
+
+  // 工程师项目来源（/api/finance/ledger）
+  const ledgerFetch = useCallback(async () => {
+    if (!user || role !== 'engineer') return undefined;
+    const r = await fetch('/api/finance/ledger', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('ledger');
+    return (await r.json()).data || [];
+  }, [user, role]);
+  const ledgerOffline = useOfflineData('transactions', ledgerFetch, [user, role]);
+  useEffect(() => {
+    if (ledgerOffline.data != null) setLedger(ledgerOffline.data);
+    else if (ledgerOffline.offline && role === 'engineer') setLedger([]);
+  }, [ledgerOffline.data, ledgerOffline.offline, role]);
+
+  // 工程师认证与考核（/api/training/my，返回整包 envelope）
+  const trainingFetch = useCallback(async () => {
+    if (!user || role !== 'engineer') return undefined;
+    const r = await fetch('/api/training/my', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('training');
+    return r.json();
+  }, [user, role]);
+  const trainingOffline = useOfflineData('training', trainingFetch, [user, role]);
+  useEffect(() => {
+    if (trainingOffline.data != null) {
+      const j = trainingOffline.data;
+      setTraining({ certifications: j.certifications || [], attempts: j.attempts || [] });
+    } else if (trainingOffline.offline && role === 'engineer') {
+      setTraining({ certifications: [], attempts: [] }); // 离线无镜像 → 空 → 演示兜底
+    }
+  }, [trainingOffline.data, trainingOffline.offline, role]);
+
+  // 工程师档案（/api/talent/me，整包 envelope，data 可能为 null=未建档）
+  const profileFetch = useCallback(async () => {
+    if (!user || role !== 'engineer') return undefined;
+    const r = await fetch('/api/talent/me', { headers: { Authorization: `Bearer ${user.token}` } });
+    if (!r.ok) throw new Error('profile');
+    return (await r.json()) || {};
+  }, [user, role]);
+  const profileOffline = useOfflineData('profile', profileFetch, [user, role]);
+  useEffect(() => {
+    if (profileOffline.data != null) { setTalentProfile(profileOffline.data.data || null); setTalentLoaded(true); }
+    else if (profileOffline.offline && role === 'engineer') { setTalentProfile(null); setTalentLoaded(true); }
+  }, [profileOffline.data, profileOffline.offline, role]);
+
+  // 里程碑明细：逐 demand 循环拉取合成的结果整体交给一个聚合 fetcher 镜像。
+  // ids 来自当前角色的项目来源(ledger/myDemands)；断网直接 throw 保镜像，
+  // 避免所有子请求失败合成出全空对象覆盖掉好镜像。
+  const milestonesFetch = useCallback(async () => {
+    if (!user) return undefined;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('offline');
+    const ids = role === 'engineer'
+      ? (ledger || []).map(l => l.demand_id)
+      : (myDemands || []).map(dm => dm.id);
+    const uniq = [...new Set(ids.filter(Boolean))];
+    if (!uniq.length) return {};
+    const h = { Authorization: `Bearer ${user.token}` };
+    const entries = await Promise.all(uniq.map(async id => {
+      try {
+        const res = await fetch(`/api/finance/milestones?demand_id=${id}`, { headers: h });
+        const data = await res.json();
+        return [id, res.ok ? (data.data || []) : []];
+      } catch { return [id, []]; }
+    }));
+    return Object.fromEntries(entries);
+  }, [user, role, myDemands, ledger]);
+  const milestonesOffline = useOfflineData('milestones', milestonesFetch, [user, role, myDemands, ledger]);
+  useEffect(() => {
+    if (milestonesOffline.data != null) setMilestonesByDemand(milestonesOffline.data);
+  }, [milestonesOffline.data]);
 
   // 进入消息屏时自动选中第一个会话
   useEffect(() => {
@@ -661,6 +726,9 @@ export default function Console() {
   return (
     <>
       <Head><title>Console | Talengineer</title></Head>
+
+      {/* 页面级离线横幅（断网/有待同步时顶部条；无 props，不侵入 ConsoleShell） */}
+      <OfflineBanner />
 
       {/* 统一外壳：左侧栏 + 顶栏 + 铃铛均由 ConsoleShell 提供；本页只负责七屏内容。
           role/onRoleChange 传入让超管切换视角，onNavigate 让七屏在页内切换（不跳转）。 */}
