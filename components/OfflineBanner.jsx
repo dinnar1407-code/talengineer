@@ -1,6 +1,7 @@
 // 离线状态横幅：无 props，各工作面页面顶部挂一个 <OfflineBanner />。
 // 两件事：
-//   1) 断网时显示「📴 离线中 · 数据截至 HH:MM」（HH:MM = 最后一次在线的时刻，约等于数据的新鲜度）
+//   1) 断网时显示「📴 离线中 · 最后在线 HH:MM」（HH:MM = 最后一次在线的时刻；文案如实说是"最后在线"，
+//      不写"数据截至"以免暗示这是某份数据的同步时间——组件无 domain 上下文，拿不到具体 syncedAt）
 //   2) 发件箱有排队时显示「N 条待同步」（监听 outbox-change 事件实时更新）
 // 在线且队列为空 → 返回 null（不占地方）。
 import { useEffect, useState } from 'react';
@@ -46,7 +47,7 @@ export default function OfflineBanner() {
   // 文案：断网优先显示离线状态，再补待同步条数；仅有排队（已回网同步中）则只显示条数。
   let text;
   if (!online) {
-    text = `📴 离线中 · 数据截至 ${hhmm}`;
+    text = `📴 离线中 · 最后在线 ${hhmm}`;
     if (pending > 0) text += ` · ${pending} 条待同步`;
   } else {
     text = `🔄 ${pending} 条待同步`;
