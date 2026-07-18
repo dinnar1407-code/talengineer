@@ -9,7 +9,8 @@ const { createNotification } = require('../services/notificationService');
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
 const stripe = require('../config/stripe').getStripe();
 
-const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
+const { PLATFORM_FEE, feeFor } = require('../config/fees'); // 全局费率 + 单需求覆盖（founding 让利经 demands.fee_pct）
+const { sendPayout } = require('../services/payout'); // 放款 provider 抽象（stripe/manual/payoneer）
 
 // ── Get platform fee rate (public) ────────────────────────────────────────────
 // 返回当前平台抽佣比例，供前端透明展示"抽佣后到手金额"。
@@ -145,19 +146,20 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Cannot release milestone with status: ${milestone.status}. Must be 'funded' first.` });
     }
 
-    // ── Calculate payout ────────────────────────────────────────────────────
-    const totalAmount = parseFloat(milestone.amount) || 0;
-    const platformFee = totalAmount * PLATFORM_FEE;
-    const engineerPayout = totalAmount - platformFee;
-
     // ── Verify requester is the employer for this demand ────────────────────
+    // fee_pct 一并取出：费率必须在 demand 就位后才能确定（单需求覆盖 → 全局回退）
     const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .select('employer_id, assigned_engineer_id')
+      .select('employer_id, assigned_engineer_id, fee_pct')
       .eq('id', demand_id)
       .single();
     if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
     if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    // ── Calculate payout（费率经 feeFor：founding 客户可为单需求设 fee_pct）──────
+    const totalAmount = parseFloat(milestone.amount) || 0;
+    const platformFee = totalAmount * feeFor(demand);
+    const engineerPayout = totalAmount - platformFee;
 
     // ── Atomically claim the release (race condition guard) ─────────────────
     // 条件更新抢占放款资格：并发请求中只有一个能把 funded 改成 releasing，防止重复转账
@@ -173,31 +175,32 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
     }
 
     let stripeTransferId = null;
+    let manualPayoutId   = null;
 
     try {
       if (demand?.assigned_engineer_id && process.env.STRIPE_SECRET_KEY) {
         const { data: talent } = await supabase
           .from('talents')
-          .select('stripe_account_id')
+          .select('id, stripe_account_id, payout_provider')
           .eq('id', demand.assigned_engineer_id)
           .single();
 
-        if (talent?.stripe_account_id) {
-          const transfer = await stripe.transfers.create({
-            amount: Math.round(engineerPayout * 100), // cents
-            currency: 'usd',
-            destination: talent.stripe_account_id,
-            description: `TalEngineer payout: ${milestone.phase_name}`,
-            metadata: { milestone_id, demand_id },
-            // 幂等键对每次逻辑尝试唯一：并发防重已由上方 funded→releasing 的 DB 原子抢占保证，
-            // Stripe 幂等键只负责 SDK 网络层自动重试的去重；若用固定键，转账失败回滚后重试会命中
-            // Stripe 缓存的旧失败结果而永远无法真正重发，所以每次抢占成功后生成新键才是正确语义
-          }, { idempotencyKey: `release-${milestone_id}-${crypto.randomUUID()}` });
-          stripeTransferId = transfer.id;
-          console.log(`[Payment] Stripe transfer ${stripeTransferId}: $${engineerPayout} → ${talent.stripe_account_id}`);
-        }
+        // 放款经 provider 抽象分发（stripe 转账 / manual 登记线下打款 / payoneer 未配置抛错）。
+        // 幂等键语义不变：并发防重靠 funded→releasing 原子抢占，随机后缀避免失败重试被旧幂等记录卡住。
+        const payoutResult = await sendPayout({
+          supabase, stripe, talent,
+          milestone: { id: milestone_id },
+          amount: engineerPayout,
+          description: `TalEngineer payout: ${milestone.phase_name}`,
+          metadata: { milestone_id, demand_id },
+          idempotencyKey: `release-${milestone_id}-${crypto.randomUUID()}`,
+        });
+        stripeTransferId = payoutResult.transferId;
+        manualPayoutId   = payoutResult.manualPayoutId;
+        if (stripeTransferId) console.log(`[Payment] Stripe transfer ${stripeTransferId}: $${engineerPayout}`);
+        if (manualPayoutId)   console.log(`[Payment] Manual payout #${manualPayoutId} registered: $${engineerPayout} (offline processing)`);
       } else {
-        console.log(`[Payment] Skipping Stripe transfer — no engineer assigned or Stripe key missing. Payout: $${engineerPayout}`);
+        console.log(`[Payment] Skipping payout — no engineer assigned or Stripe key missing. Payout: $${engineerPayout}`);
       }
     } catch (transferErr) {
       // 转账失败回滚为 funded，释放守卫以便后续重试
@@ -230,7 +233,7 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
 
     console.log(`[Payment] Milestone ${milestone_id} released. Total: $${totalAmount}, Fee: $${platformFee}, Payout: $${engineerPayout}`);
 
-    // Notify engineer (email + in-app)
+    // Notify engineer (email + in-app)；manual provider 文案注明线下打款处理中
     if (demand?.assigned_engineer_id) {
       const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', demand.assigned_engineer_id).single();
       if (talent?.contact) {
@@ -239,12 +242,24 @@ router.post('/release-milestone', requireAuth, async (req, res) => {
           user_email: talent.contact,
           type: 'milestone_released',
           title: `Funds released: ${milestone.phase_name}`,
-          body: `$${engineerPayout.toFixed(2)} has been sent to your Stripe account.`,
+          body: manualPayoutId
+            ? `$${engineerPayout.toFixed(2)} approved — offline payout is being processed by the platform.`
+            : `$${engineerPayout.toFixed(2)} has been sent to your Stripe account.`,
           link: `/workorder/${milestone_id}`,
           demand_id: parseInt(demand_id),
         });
       }
     }
+
+    // fire-and-forget 触发：企业 webhook + TalScore 重算（模块由并行任务落盘，惰性 require 全捕获，绝不影响放款主流程）
+    try {
+      const { dispatchWebhook } = require('../services/webhookService');
+      dispatchWebhook(supabase, { userId: demand.employer_id, event: 'milestone.released', payload: { milestone_id, demand_id, payout: engineerPayout } }).catch(() => {});
+    } catch { /* webhookService 尚未就绪 */ }
+    try {
+      const { recomputeTalScore } = require('../services/talScore');
+      if (demand?.assigned_engineer_id) recomputeTalScore(supabase, demand.assigned_engineer_id).catch(() => {});
+    } catch { /* talScore 尚未就绪 */ }
 
     res.json({
       status: 'ok',
@@ -319,6 +334,15 @@ router.post('/webhook', async (req, res) => {
         }
 
         console.log(`[Webhook] Milestone ${milestoneId} funded via Stripe webhook.`);
+
+        // fire-and-forget 企业 webhook（惰性 require，绝不影响入账主流程）
+        try {
+          const { data: dOwner } = await supabase.from('demands').select('employer_id').eq('id', realDemandId).single();
+          if (dOwner?.employer_id) {
+            const { dispatchWebhook } = require('../services/webhookService');
+            dispatchWebhook(supabase, { userId: dOwner.employer_id, event: 'milestone.funded', payload: { milestone_id: milestoneId, demand_id: realDemandId } }).catch(() => {});
+          }
+        } catch { /* webhookService 尚未就绪 */ }
 
         // Notify assigned engineer
         if (realDemandId) {

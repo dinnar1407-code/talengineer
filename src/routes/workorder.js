@@ -10,7 +10,8 @@ const { checkAssignEligibility } = require('../services/certService'); // 认证
 
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
 const stripe = require('../config/stripe').getStripe();
-const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
+const { feeFor } = require('../config/fees'); // 费率：demands.fee_pct 覆盖（founding 让利）→ 回退全局 PLATFORM_FEE
+const { sendPayout } = require('../services/payout'); // 放款 provider 抽象（stripe/manual/payoneer）
 
 // ── Get work order status for a milestone ─────────────────────────────────────
 router.get('/:milestoneId', requireAuth, async (req, res) => {
@@ -130,7 +131,7 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
 
     // ── Verify requester is the employer for this demand ────────────────────
     // 放款是雇主专属操作：校验调用者就是该需求的雇主，防止任意登录用户越权放款
-    const { data: demand, error: demandErr } = await supabase.from('demands').select('employer_id, assigned_engineer_id').eq('id', ms.demand_id).single();
+    const { data: demand, error: demandErr } = await supabase.from('demands').select('employer_id, assigned_engineer_id, fee_pct').eq('id', ms.demand_id).single();
     if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
     if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
@@ -138,7 +139,7 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
     if (!checkin) return res.status(400).json({ error: 'Engineer has not submitted work for review yet.' });
 
     const totalAmount   = parseFloat(ms.amount) || 0;
-    const engineerPayout = totalAmount * (1 - PLATFORM_FEE);
+    const engineerPayout = totalAmount * (1 - feeFor(demand)); // 费率支持单需求覆盖（founding 让利）
 
     // ── Idempotency guard: atomically claim the milestone before transferring ──
     // 原子抢占：仅当仍为 funded 时置为中间态 releasing（而非直接 released），并发重复请求抢不到行直接退出；
@@ -158,38 +159,43 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
     const idempotencyKey = `release-${ms.id}-${crypto.randomUUID()}`;
 
     let stripeTransferId = null;
+    let manualPayoutId   = null;
 
     if (demand?.assigned_engineer_id && process.env.STRIPE_SECRET_KEY) {
-      const { data: talent } = await supabase.from('talents').select('stripe_account_id, name, contact').eq('id', demand.assigned_engineer_id).single();
-      if (talent?.stripe_account_id) {
-        let transfer;
-        try {
-          transfer = await stripe.transfers.create({
-            amount: Math.round(engineerPayout * 100),
-            currency: 'usd',
-            destination: talent.stripe_account_id,
-            description: `TalEngineer payout: ${ms.phase_name}`,
-            metadata: { milestone_id: String(ms.id), demand_id: String(ms.demand_id) },
-          }, { idempotencyKey });
-        } catch (transferErr) {
-          // 转账失败回滚 releasing→funded，释放守卫以便后续重试，避免标记放款却没有真实打款
-          const { error: rollbackErr } = await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', ms.id).eq('status', 'releasing');
-          // 回滚失败会让里程碑卡死在 releasing（无人能重试放款），必须高优先级告警人工修库
-          if (rollbackErr) {
-            console.error(`[WorkOrder] CRITICAL: failed to roll back milestone ${ms.id} from releasing to funded:`, rollbackErr.message);
-          }
-          throw transferErr;
+      const { data: talent } = await supabase.from('talents').select('id, stripe_account_id, payout_provider, name, contact').eq('id', demand.assigned_engineer_id).single();
+      try {
+        // 放款经 provider 抽象分发（stripe 转账 / manual 登记线下打款 / payoneer 未配置抛错）
+        const payoutResult = await sendPayout({
+          supabase, stripe, talent,
+          milestone: { id: ms.id },
+          amount: engineerPayout,
+          description: `TalEngineer payout: ${ms.phase_name}`,
+          metadata: { milestone_id: String(ms.id), demand_id: String(ms.demand_id) },
+          idempotencyKey,
+        });
+        stripeTransferId = payoutResult.transferId;
+        manualPayoutId   = payoutResult.manualPayoutId;
+      } catch (transferErr) {
+        // 放款失败回滚 releasing→funded，释放守卫以便后续重试，避免标记放款却没有真实打款
+        const { error: rollbackErr } = await supabase.from('project_milestones').update({ status: 'funded' }).eq('id', ms.id).eq('status', 'releasing');
+        // 回滚失败会让里程碑卡死在 releasing（无人能重试放款），必须高优先级告警人工修库
+        if (rollbackErr) {
+          console.error(`[WorkOrder] CRITICAL: failed to roll back milestone ${ms.id} from releasing to funded:`, rollbackErr.message);
         }
-        stripeTransferId = transfer.id;
+        throw transferErr;
+      }
+      if (stripeTransferId || manualPayoutId) {
         emailMilestoneReleased({ engineerEmail: talent.contact, engineerName: talent.name, phaseName: ms.phase_name, payout: engineerPayout }).catch(console.error);
       }
-      // In-app: notify engineer of payout
+      // In-app: notify engineer of payout；manual provider 文案注明线下打款处理中
       if (talent?.contact) {
         createNotification({
           user_email: talent.contact,
           type: 'milestone_released',
           title: `Funds released: ${ms.phase_name}`,
-          body: `$${engineerPayout.toFixed(2)} has been sent to your Stripe account.`,
+          body: manualPayoutId
+            ? `$${engineerPayout.toFixed(2)} approved — offline payout is being processed by the platform.`
+            : `$${engineerPayout.toFixed(2)} has been sent to your Stripe account.`,
           link: `/workorder/${ms.id}`,
           demand_id: ms.demand_id,
         });
@@ -216,6 +222,16 @@ router.post('/:milestoneId/approve', requireAuth, async (req, res) => {
       console.error(`[WorkOrder] CRITICAL: milestone ${ms.id} transfer ${stripeTransferId || 'n/a'} succeeded but finalize to released failed:`, finalizeErr?.message || 'no rows updated');
     }
     await supabase.from('work_order_checkins').update({ status: 'approved' }).eq('milestone_id', ms.id);
+
+    // fire-and-forget 触发：企业 webhook + TalScore 重算（模块由并行任务落盘，惰性 require 全捕获，绝不影响放款主流程）
+    try {
+      const { dispatchWebhook } = require('../services/webhookService');
+      dispatchWebhook(supabase, { userId: demand.employer_id, event: 'milestone.released', payload: { milestone_id: ms.id, demand_id: ms.demand_id, payout: engineerPayout } }).catch(() => {});
+    } catch { /* webhookService 尚未就绪 */ }
+    try {
+      const { recomputeTalScore } = require('../services/talScore');
+      if (demand?.assigned_engineer_id) recomputeTalScore(supabase, demand.assigned_engineer_id).catch(() => {});
+    } catch { /* talScore 尚未就绪 */ }
 
     // Send review request email to employer
     const DOMAIN = process.env.DOMAIN || 'https://talengineer.us';
@@ -280,8 +296,10 @@ router.get('/:milestoneId/pdf', requireAuth, async (req, res) => {
       if (talent) { engineerName = talent.name; engineerContact = talent.contact; }
     }
 
+    // 单据费率与实际放款一致：取 demand.fee_pct（founding 覆盖）→ 回退全局
+    const { data: pdfDemand } = await supabase.from('demands').select('fee_pct').eq('id', ms.demand_id).single();
     const totalAmount    = parseFloat(ms.amount) || 0;
-    const platformFee    = totalAmount * PLATFORM_FEE; // 复用统一抽佣比例（原局部硬编码 0.15 已移除）
+    const platformFee    = totalAmount * feeFor(pdfDemand);
     const engineerPayout = totalAmount - platformFee;
 
     const fmt = (d) => d ? new Date(d).toLocaleString() : 'N/A';

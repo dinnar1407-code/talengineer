@@ -7,4 +7,12 @@
 const parsed = parseFloat(process.env.PLATFORM_FEE_PCT);
 const PLATFORM_FEE = Number.isFinite(parsed) && parsed >= 0 && parsed < 1 ? parsed : 0.15;
 
-module.exports = { PLATFORM_FEE };
+// 单需求费率覆盖（founding 客户让利）：demands.fee_pct 合法（0<=x<1）时优先，
+// 空/非法一律回退全局 PLATFORM_FEE。三条放款/裁决路径统一经此函数取费率，
+// 保证"改一处漏三处"的老问题不在覆盖逻辑上重演。
+function feeFor(demand) {
+  const v = demand ? parseFloat(demand.fee_pct) : NaN;
+  return Number.isFinite(v) && v >= 0 && v < 1 ? v : PLATFORM_FEE;
+}
+
+module.exports = { PLATFORM_FEE, feeFor };

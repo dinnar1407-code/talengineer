@@ -10,8 +10,9 @@ const stripe = require('../config/stripe').getStripe();
 // 共享管理员口令中间件：替换原先本地的明文 !== 比较（恒时比较 + fail-closed）
 const { requireAdmin } = require('../middleware/adminAuth');
 
-const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例集中配置，默认 15%，可经 PLATFORM_FEE_PCT 调整
+const { feeFor } = require('../config/fees'); // 费率：demands.fee_pct 覆盖（founding 让利）→ 回退全局
 const { computeResolutionSplit } = require('../utils/disputeMath'); // 裁决资金分配纯函数（毛额语义，含雇主退款）
+const { sendPayout } = require('../services/payout'); // 放款 provider 抽象（stripe/manual/payoneer）
 
 // 开纠纷后的站内通知与邮件通知（fire-and-forget，见 POST /）
 const { createNotification } = require('../services/notificationService');
@@ -267,11 +268,18 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
       }
     }
 
+    // 费率与指派信息一次取回：fee_pct 支持单需求覆盖（founding 让利），费率必须与放款路径一致
+    const { data: resolveDemand } = await supabase
+      .from('demands')
+      .select('assigned_engineer_id, fee_pct')
+      .eq('id', ms.demand_id)
+      .single();
+
     // 资金分配（纯函数，见 src/utils/disputeMath.js）：
     // engineerGross = 判给工程师侧的毛额，engineerPayout = 毛额扣平台费后净到手，
     // employerRefund = 托管总额 - 毛额（resolved_employer 时为全额，平台不抽费）。
     const { engineerGross, engineerPayout, employerRefund } = computeResolutionSplit({
-      resolution, totalAmount, resolutionAmount: resolution_amount, platformFee: PLATFORM_FEE,
+      resolution, totalAmount, resolutionAmount: resolution_amount, platformFee: feeFor(resolveDemand),
     });
 
     // 条件更新原子守卫：并发请求中只有一个能把 disputed 改成 releasing，防管理员双击重复转账
@@ -289,23 +297,23 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
     // 抢占成功后才生成幂等键：并发安全由 disputed→releasing 原子抢占保证，随机后缀避免失败重试被 Stripe 旧幂等记录卡住
     const idempotencyKey = `dispute-${req.params.id}-${crypto.randomUUID()}`;
 
-    // Transfer to engineer if payout > 0
+    // Transfer to engineer if payout > 0（经 provider 抽象：stripe/manual/payoneer）
     let stripeTransferId = null;
+    let manualPayoutId   = null;
     try {
       if (engineerPayout > 0 && process.env.STRIPE_SECRET_KEY) {
-        const { data: demand } = await supabase.from('demands').select('assigned_engineer_id').eq('id', ms.demand_id).single();
-        if (demand?.assigned_engineer_id) {
-          const { data: talent } = await supabase.from('talents').select('stripe_account_id').eq('id', demand.assigned_engineer_id).single();
-          if (talent?.stripe_account_id) {
-            const transfer = await stripe.transfers.create({
-              amount: Math.round(engineerPayout * 100),
-              currency: 'usd',
-              destination: talent.stripe_account_id,
-              description: `TalEngineer dispute resolution: ${ms.phase_name}`,
-              metadata: { dispute_id: String(req.params.id) },
-            }, { idempotencyKey });
-            stripeTransferId = transfer.id;
-          }
+        if (resolveDemand?.assigned_engineer_id) {
+          const { data: talent } = await supabase.from('talents').select('id, stripe_account_id, payout_provider').eq('id', resolveDemand.assigned_engineer_id).single();
+          const payoutResult = await sendPayout({
+            supabase, stripe, talent,
+            milestone: { id: ms.id },
+            amount: engineerPayout,
+            description: `TalEngineer dispute resolution: ${ms.phase_name}`,
+            metadata: { dispute_id: String(req.params.id) },
+            idempotencyKey,
+          });
+          stripeTransferId = payoutResult.transferId;
+          manualPayoutId   = payoutResult.manualPayoutId;
         }
       }
     } catch (transferErr) {
@@ -343,7 +351,10 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
         console.log(`[Dispute] Stripe refund ${stripeRefundId}: $${employerRefund} → employer (milestone ${ms.id})`);
       } catch (refundErr) {
         if (!stripeTransferId) {
-          // 工程师侧尚未动钱：整体回滚为 disputed，裁决可安全重试
+          // 工程师侧尚未真实动钱（Stripe 未转账；manual 只是登记行，可作废）：整体回滚为 disputed，裁决可安全重试
+          if (manualPayoutId) {
+            await supabase.from('manual_payouts').update({ status: 'void', note: 'voided: employer refund failed, dispute rolled back' }).eq('id', manualPayoutId);
+          }
           const { error: rollbackErr } = await supabase.from('project_milestones').update({ status: 'disputed' }).eq('id', ms.id).eq('status', 'releasing');
           if (rollbackErr) {
             console.error(`[Disputes] CRITICAL: failed to roll back milestone ${ms.id} from releasing to disputed after refund failure:`, rollbackErr.message);
