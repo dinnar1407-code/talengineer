@@ -27,9 +27,15 @@ CREATE INDEX IF NOT EXISTS idx_audit_created ON admin_audit_logs (created_at DES
 ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;  -- 服务端 service key 访问，deny-all 与全库一致
 
 -- ── 离线消息去重 ─────────────────────────────────────────────
+-- 两套消息表都要去重列：warroom 走 project_messages（socket），console 收件箱走 messages（REST）。
+-- 离线重放打的是 POST /api/messages（messages 表），缺列会让带 client_msg_id 的插入直接失败。
 ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS client_msg_id text;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pm_client_msg
   ON project_messages (demand_id, client_msg_id) WHERE client_msg_id IS NOT NULL;
+
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS client_msg_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_msg_client_msg
+  ON messages (demand_id, client_msg_id) WHERE client_msg_id IS NOT NULL;
 
 -- ── QC 图私有 bucket ─────────────────────────────────────────
 INSERT INTO storage.buckets (id, name, public) VALUES ('qc-images', 'qc-images', false)
