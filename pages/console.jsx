@@ -588,7 +588,6 @@ export default function Console() {
   });
 
   const sourceLoading = isEngineer ? ledger === null : myDemands === null;
-  const sourceError = isEngineer ? errors.ledger : errors.demands;
   const milestonesPending = projects.length > 0 && Object.keys(milestonesByDemand).length === 0;
   // 真实项目为空或请求失败（已加载完但零条）→ 用演示项目兜底。demo 会一并驱动 Projects 时间线、
   // Escrow 交易表与 Dashboard 指标卡，保证三屏数据一致，且各处顶部都会打「🧪」徽标。
@@ -610,12 +609,12 @@ export default function Console() {
     ? allMs.filter(m => m.status === 'completed').length
     : allMs.filter(m => m.status === 'funded').length;
   // 会话：真实收件箱为空或失败 → 演示会话兜底（同时驱动未读数与会话数）
-  const convsDemo = threads !== null && (errors.inbox || threads.length === 0);
+  const convsDemo = threads !== null && threads.length === 0;
   const convsToShow = convsDemo ? DEMO_CONVERSATIONS : (threads || []);
   const demoConv = convsToShow.find(c => c.demand_id === activeThread) || convsToShow[0] || null;
   const unreadTotal = convsToShow.reduce((s, t) => s + (t.unread_count || 0), 0);
   // 活动流：真实通知为空或失败 → 演示通知兜底
-  const feedIsDemo = notifications !== null && (errors.notif || notifications.length === 0);
+  const feedIsDemo = notifications !== null && notifications.length === 0;
   const feedToShow = feedIsDemo ? DEMO_NOTIFICATIONS : (notifications || []);
 
   // ── 待办推导（雇主/工程师视角不同；逻辑就近注释）──────────────────────────────
