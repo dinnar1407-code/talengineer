@@ -24,6 +24,9 @@ const DICT = {
     // 审计日志面板
     navAudit: 'Audit Log', subAudit: 'Admin action audit trail',
     thTime: 'Time', thMethod: 'Method', thTarget: 'Target', thIp: 'IP', emptyAudit: 'No audit entries.',
+    // 签到记录面板
+    navCheckins: 'Check-ins', subCheckins: 'On-site GPS check-in log',
+    thFence: 'Geofence', emptyCheckins: 'No check-ins yet.',
     navUsers: 'Users', navProjects: 'Projects', navEngineers: 'Engineers', navLedger: 'Ledger',
     navCerts: 'Certifications', navExamReview: 'Cert Exams', navDisputes: 'Disputes',
     navNotifs: 'Notifications', navKyc: 'KYC', navAnalytics: 'Analytics',
@@ -95,6 +98,9 @@ const DICT = {
     // 审计日志面板
     navAudit: '审计日志', subAudit: '管理员操作审计',
     thTime: '时间', thMethod: '方式', thTarget: '目标', thIp: 'IP', emptyAudit: '暂无审计记录。',
+    // 签到记录面板
+    navCheckins: '签到记录', subCheckins: '现场 GPS 签到记录',
+    thFence: '围栏', emptyCheckins: '暂无签到记录。',
     navUsers: '用户', navProjects: '项目', navEngineers: '工程师', navLedger: '账本',
     navCerts: '资质认证', navExamReview: '考证复核', navDisputes: '纠纷',
     navNotifs: '通知', navKyc: 'KYC 审核', navAnalytics: '数据分析',
@@ -208,6 +214,7 @@ export default function Admin() {
   const [totpCode, setTotpCode]     = useState('');
   const [auditLogs, setAuditLogs]   = useState(null);
   const [rates, setRates]           = useState(null);    // 费率分布（admin_rates_summary）
+  const [checkins, setCheckins]     = useState(null);    // 现场签到（含 GPS 围栏结果）
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
@@ -664,7 +671,7 @@ export default function Admin() {
     } catch { toast.error('Network error.'); }
   }
 
-  // analytics + rates 均改为读 SQL 聚合 RPC 的 summary（键见后端 admin_analytics_summary/admin_rates_summary）
+  // analytics（漏斗 + PMF 信号 + 经营总量，SQL 聚合直接铺进响应根）+ rates（费率分布 summary）
   async function loadFunnel() {
     if (funnel !== null) return;
     try {
@@ -674,7 +681,7 @@ export default function Admin() {
       ]);
       const aData = await aRes.json();
       const rData = await rRes.json();
-      if (aRes.ok) setFunnel(aData.summary || {});
+      if (aRes.ok) setFunnel(aData); // 含 funnel / pmf / kyc_pending / totals
       if (rRes.ok) setRates(rData.summary || {});
     } catch {}
   }
@@ -687,6 +694,16 @@ export default function Admin() {
       const data = await res.json();
       setAuditLogs(data.data || []);
     } catch { setAuditLogs([]); }
+  }
+
+  // 现场签到：最近 100 条（含 GPS 围栏结果）
+  async function loadCheckins() {
+    if (checkins !== null) return;
+    try {
+      const res  = await fetch('/api/admin/checkins', { headers: authHeaders() });
+      const data = await res.json();
+      setCheckins(data.data || []);
+    } catch { setCheckins([]); }
   }
 
   // ── 培训认证：待复核考卷（AI 出分后由人工把最后一关再发证）──────────────────
@@ -743,6 +760,7 @@ export default function Admin() {
     { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
     { id: 'pipeline',   icon: '🤝', label: d.navPipeline },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
+    { id: 'checkins',   icon: '📍', label: d.navCheckins },
     { id: 'audit',      icon: '🗂️', label: d.navAudit },
   ];
 
@@ -759,6 +777,7 @@ export default function Admin() {
     taxDocs: [d.navTaxDocs, d.subTaxDocs],
     pipeline: [d.navPipeline, d.subPipeline],
     analytics: [d.navAnalytics, d.subAnalytics],
+    checkins: [d.navCheckins, d.subCheckins],
     audit: [d.navAudit, d.subAudit],
   };
   const [pageTitle, pageSub] = titles[activeTab] || titles.users;
@@ -773,6 +792,7 @@ export default function Admin() {
     if (id === 'taxDocs') loadTaxDocs();
     if (id === 'pipeline') loadPipeline();
     if (id === 'analytics') loadFunnel();
+    if (id === 'checkins') loadCheckins();
     if (id === 'audit') loadAuditLogs();
     setSbOpen(false);
   }
@@ -1280,7 +1300,7 @@ export default function Admin() {
                 </div>
               )}
 
-              {/* Analytics（SQL 聚合汇总 admin_analytics_summary + 费率分布 admin_rates_summary）*/}
+              {/* Analytics（admin_analytics_summary：漏斗 + PMF 信号 + 经营总量；admin_rates_summary：费率分布）*/}
               {activeTab === 'analytics' && (
                 <div>
                   {funnel === null ? (
@@ -1289,24 +1309,65 @@ export default function Admin() {
                     <>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
                         {[
-                          { label: 'Total Users', value: funnel.users_total ?? 0 },
-                          { label: 'Engineers', value: funnel.users_engineers ?? 0 },
-                          { label: 'Employers', value: funnel.users_employers ?? 0 },
-                          { label: 'Total Demands', value: funnel.demands_total ?? 0 },
-                          { label: 'Assigned Demands', value: funnel.demands_assigned ?? 0 },
-                          { label: 'Milestones', value: funnel.milestones_total ?? 0 },
-                          { label: 'GMV Released', value: `$${Number(funnel.gmv_released || 0).toLocaleString()}` },
-                          { label: 'Escrow Funded', value: `$${Number(funnel.escrow_funded || 0).toLocaleString()}` },
+                          { label: 'Total Posted', value: funnel.funnel?.posted ?? 0 },
+                          { label: 'Open', value: funnel.funnel?.open ?? 0 },
+                          { label: 'Assigned', value: funnel.funnel?.assigned ?? 0 },
+                          { label: 'Completed', value: funnel.funnel?.completed ?? 0 },
+                          { label: 'Total Applications', value: funnel.funnel?.total_applies ?? 0 },
+                          { label: 'Conversion %', value: `${funnel.funnel?.conversion_pct ?? 0}%` },
+                          { label: 'KYC Pending', value: funnel.kyc_pending ?? 0 },
                         ].map(stat => (
                           <div key={stat.label} style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 24, fontWeight: 800 }}>{stat.value}</div>
+                            <div style={{ fontSize: 26, fontWeight: 800 }}>{stat.value}</div>
                             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
                           </div>
                         ))}
                       </div>
+                      {/* PMF 验证指标（复购/纠纷率/口碑/筛选分覆盖 —— 撮合实验的判定仪表） */}
+                      {funnel.pmf && (
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 24 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>PMF Signals（路径 A 判定指标）</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>核心判据：雇主复购 + 低纠纷 + 高口碑 → 精英策展成立，可进阶段二</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                            {[
+                              { label: 'Repeat Employers（复购雇主）', value: `${funnel.pmf.repeat_employers} / ${funnel.pmf.unique_employers}` },
+                              { label: 'Repeat Rate（复购率）', value: `${funnel.pmf.repeat_rate_pct}%` },
+                              { label: 'Dispute Rate（纠纷率）', value: `${funnel.pmf.dispute_rate_pct}%（${funnel.pmf.disputes_total} 起）` },
+                              { label: 'Avg Rating（平均评分）', value: funnel.pmf.avg_rating != null ? `⭐ ${funnel.pmf.avg_rating}（${funnel.pmf.reviews_total} 条）` : '暂无评价' },
+                              { label: 'Scored Talents（筛选分覆盖）', value: `${funnel.pmf.talents_scored} / ${funnel.pmf.talents_total}` },
+                            ].map(stat => (
+                              <div key={stat.label} style={{ background: 'var(--primary-bg, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 800 }}>{stat.value}</div>
+                                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* 经营总量（totals 块，SQL 聚合新增）*/}
+                      {funnel.totals && (
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 24 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 12 }}>Business Totals（经营总量）</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                            {[
+                              { label: 'Total Users', value: funnel.totals.users_total ?? 0 },
+                              { label: 'Engineers', value: funnel.totals.users_engineers ?? 0 },
+                              { label: 'Employers', value: funnel.totals.users_employers ?? 0 },
+                              { label: 'Milestones', value: funnel.totals.milestones_total ?? 0 },
+                              { label: 'GMV Released', value: `$${Number(funnel.totals.gmv_released || 0).toLocaleString()}` },
+                              { label: 'Escrow Funded', value: `$${Number(funnel.totals.escrow_funded || 0).toLocaleString()}` },
+                            ].map(stat => (
+                              <div key={stat.label} style={{ background: 'var(--primary-bg, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 800 }}>{stat.value}</div>
+                                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* 工程师费率分布（admin_rates_summary）*/}
                       {rates && (
-                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
+                        <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 24 }}>
                           <div style={{ fontWeight: 700, marginBottom: 10 }}>Engineer Rate Benchmarks</div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
                             {[
@@ -1323,9 +1384,59 @@ export default function Admin() {
                           </div>
                         </div>
                       )}
+                      {/* Conversion Funnel 条形图 */}
+                      <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 10 }}>Conversion Funnel</div>
+                        {[
+                          { label: 'Projects Posted', value: funnel.funnel?.posted, color: '#6366f1' },
+                          { label: 'Open (Accepting Applications)', value: funnel.funnel?.open, color: '#f59e0b' },
+                          { label: 'Assigned / In Progress', value: funnel.funnel?.assigned, color: '#10b981' },
+                          { label: 'Completed', value: funnel.funnel?.completed, color: '#059669' },
+                        ].map(row => {
+                          const pct = funnel.funnel?.posted ? Math.round((row.value / funnel.funnel.posted) * 100) : 0;
+                          return (
+                            <div key={row.label} style={{ marginBottom: 10 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                                <span>{row.label}</span><span style={{ fontWeight: 700 }}>{row.value} ({pct}%)</span>
+                              </div>
+                              <div style={{ background: 'var(--border)', borderRadius: 4, height: 6 }}>
+                                <div style={{ width: `${pct}%`, background: row.color, height: 6, borderRadius: 4, transition: 'width 0.4s' }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </>
                   )}
                 </div>
+              )}
+
+              {/* 签到记录：现场 GPS 签到 + 围栏结果（只读）*/}
+              {activeTab === 'checkins' && (
+                <table className={styles.table}>
+                  <thead><tr><th>{d.thTime}</th><th>{d.thEngineer}</th><th>{d.thTitle}</th><th>{d.thStatus}</th><th>{d.thFence}</th></tr></thead>
+                  <tbody>
+                    {checkins === null
+                      ? <tr><td colSpan={5} className={styles.empty}>{d.loading}</td></tr>
+                      : checkins.length === 0
+                        ? <tr><td colSpan={5} className={styles.empty}>{d.emptyCheckins}</td></tr>
+                        : checkins.map(c => (
+                          <tr key={c.id}>
+                            <td className={styles.muted}>{c.checkin_time ? new Date(c.checkin_time).toLocaleString() : '—'}</td>
+                            <td style={{ fontSize: 12 }}>{c.engineer_name || `#${c.engineer_id}`}</td>
+                            <td style={{ fontSize: 12 }}>{c.demand_title || `#${c.demand_id}`}</td>
+                            <td><span className={`${styles.badge} ${styles.badgeGray}`}>{c.status}</span></td>
+                            <td>
+                              {/* 围栏：仅 geofence_ok===false 才警示越界距离；null（未开围栏）/true 显示 — */}
+                              {c.geofence_ok === false
+                                ? <span style={{ color: '#ef4444', fontWeight: 700 }}>⚠️ {(Number(c.distance_m || 0) / 1000).toFixed(1)}km</span>
+                                : <span className={styles.muted}>—</span>}
+                            </td>
+                          </tr>
+                        ))
+                    }
+                  </tbody>
+                </table>
               )}
 
               {/* 审计日志：管理员写操作审计（只读）*/}

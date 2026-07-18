@@ -136,16 +136,16 @@ router.put('/kyc/:userId', requireAdmin, auditLog, async (req, res) => {
 });
 
 // ── Analytics: 平台汇总（SQL 聚合）───────────────────────────────────────────
-// 改用 admin_analytics_summary() SQL 函数下推聚合，取代此前 Node 端 limit(1000) 拉全表内存聚合
-// （量级上来后内存聚合会漏数且慢）。RPC 返回 jsonb：
-//   users_total / users_engineers / users_employers / demands_total / demands_assigned /
-//   milestones_total / gmv_released / escrow_funded
+// admin_analytics_summary() 下推聚合，取代此前 Node 端 limit(1000) 拉全表内存聚合。
+// RPC 返回与旧端点同形状的 jsonb：funnel{...} + pmf{...}（复购/纠纷率/口碑/筛选分覆盖——
+// 撮合实验的判定仪表，必须完整保留）+ kyc_pending + 新增 totals{经营总量}。
+// 直接铺进响应根（{status:'ok', ...data}）与旧 /analytics 响应兼容，前端漏斗/PMF 面板即可复用。
 router.get('/analytics', requireAdmin, async (req, res) => {
   try {
     const supabase = getClient();
     const { data, error } = await supabase.rpc('admin_analytics_summary');
     if (error) throw error;
-    res.json({ status: 'ok', summary: data || {} });
+    res.json({ status: 'ok', ...(data || {}) });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[admin]', err);
@@ -178,6 +178,41 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
       .limit(200);
     if (error) throw error;
     res.json({ status: 'ok', data: data || [] });
+  } catch (err) {
+    console.error('[admin]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /api/admin/checkins — 最近 100 条现场签到（含 GPS 围栏结果，只读）────────
+// 需求标题与工程师名各用一次 in() 批量查回填，避免逐行 N+1。
+router.get('/checkins', requireAdmin, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { data: checkins, error } = await supabase
+      .from('work_order_checkins')
+      .select('*')
+      .order('checkin_time', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    const rows = checkins || [];
+
+    // 批量取需求标题 + 工程师名（各一次 in() 查询）
+    const demandIds   = [...new Set(rows.map(r => r.demand_id).filter(v => v != null))];
+    const engineerIds = [...new Set(rows.map(r => r.engineer_id).filter(v => v != null))];
+    const [demandsRes, talentsRes] = await Promise.all([
+      demandIds.length   ? supabase.from('demands').select('id, title').in('id', demandIds)   : Promise.resolve({ data: [] }),
+      engineerIds.length ? supabase.from('talents').select('id, name').in('id', engineerIds)  : Promise.resolve({ data: [] }),
+    ]);
+    const demandTitle  = Object.fromEntries((demandsRes.data || []).map(x => [x.id, x.title]));
+    const engineerName = Object.fromEntries((talentsRes.data || []).map(x => [x.id, x.name]));
+
+    const data = rows.map(r => ({
+      ...r,
+      demand_title:  demandTitle[r.demand_id]   || null,
+      engineer_name: engineerName[r.engineer_id] || null,
+    }));
+    res.json({ status: 'ok', data });
   } catch (err) {
     console.error('[admin]', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
