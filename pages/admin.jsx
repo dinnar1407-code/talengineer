@@ -56,6 +56,19 @@ const DICT = {
     taxThType: 'Type', taxView: 'View file', taxReceived: 'Mark received', taxReject: 'Return',
     taxRejectPh: 'Reason for returning…', taxConfirmReject: 'Confirm return', taxCancel: 'Cancel',
     emptyTax: 'No tax documents with this status.',
+    // Pipeline board (matchmaking PMF)
+    navPipeline: 'Pipeline', subPipeline: 'Matchmaking lead board (PMF experiment)',
+    pipeCompany: 'Company', pipeLine: 'Line', pipeLineCn: '🇨🇳 CN employers', pipeLineUs: '🇺🇸 US domestic',
+    pipeContact: 'Contact', pipeNote: 'Note', pipeNextAction: 'Next action', pipeNextAt: 'Next action at',
+    pipeDemandId: 'Demand ID', pipeAdd: '+ Add lead', pipeAll: 'All', pipeSave: 'Save', pipeDelete: 'Delete',
+    pipeFee: 'Founding fee', pipeSetFee: 'Set fee', demoData: 'Demo data',
+    stages: { lead: 'Lead', contacted: 'Contacted', interested: 'Interested', scoped: 'Scoped', matched: 'Matched', quoted: 'Quoted', signed: 'Signed', delivered: 'Delivered', lost: 'Lost' },
+    // 1099 tip card (Tax Docs panel header)
+    taxTipTitle: '1099 tax forms — issue to US engineers',
+    taxTip1: 'W-9 is collected here; 1099-NEC is the year-end filing for engineers paid ≥ $600 via Stripe.',
+    taxTip2: 'Enable in Stripe Dashboard → Connect → Tax reporting (1099-NEC); Stripe auto-aggregates transfers per Connect account.',
+    taxTip3: 'manual / payoneer payouts are outside Stripe 1099 — handle separately.',
+    taxTipDoc: 'Full setup checklist: docs/1099-setup.md',
   },
   zh: {
     backConsole: '← 控制台', adminPanel: '管理面板', superAdmin: '超级管理员',
@@ -104,8 +117,36 @@ const DICT = {
     taxThType: '类型', taxView: '查看文件', taxReceived: '确认收讫', taxReject: '退回',
     taxRejectPh: '退回原因……', taxConfirmReject: '确认退回', taxCancel: '取消',
     emptyTax: '该状态下暂无税务文件。',
+    // 撮合 Pipeline 看板（PMF 实验）
+    navPipeline: '撮合看板', subPipeline: '人工撮合线索看板（PMF 实验）',
+    pipeCompany: '公司', pipeLine: '线', pipeLineCn: '🇨🇳 中国雇主线', pipeLineUs: '🇺🇸 美国本土线',
+    pipeContact: '联系方式', pipeNote: '备注', pipeNextAction: '下一步', pipeNextAt: '下一步时间',
+    pipeDemandId: '需求编号', pipeAdd: '+ 新增线索', pipeAll: '全部', pipeSave: '保存', pipeDelete: '删除',
+    pipeFee: 'founding 费率', pipeSetFee: '设置费率', demoData: '演示数据',
+    stages: { lead: '线索', contacted: '已接触', interested: '有意向', scoped: '已了解需求', matched: '已匹配', quoted: '已报价', signed: '已签约', delivered: '已交付', lost: '已流失' },
+    // 1099 提示卡（Tax Docs 面板顶部）
+    taxTipTitle: '1099 税表 —— 给美国工程师出表',
+    taxTip1: '平台已在此采集 W-9；1099-NEC 是"年付 ≥ $600 者次年出表"这一步（走 Stripe 收款的工程师）。',
+    taxTip2: '开通路径：Stripe Dashboard → Connect → Tax reporting（选 1099-NEC）；Stripe 会按 Connect 账户自动汇总放款额。',
+    taxTip3: 'manual / payoneer 收款不在 Stripe 1099 覆盖内，需单独处理。',
+    taxTipDoc: '完整开通清单见 docs/1099-setup.md',
   },
 };
+
+// stage 顺序（看板分组与阶段选择器共用；与后端 pipeline.js 的白名单一致）
+const PIPELINE_STAGES = ['lead', 'contacted', 'interested', 'scoped', 'matched', 'quoted', 'signed', 'delivered', 'lost'];
+
+// 演示兜底：真实看板为空时展示 3 条示例线索，帮助理解看板用法（🧪 徽标标明非真实数据）
+const DEMO_PIPELINE = [
+  { id: 'demo-1', line: 'cn', company: 'Shenzhen Hongtai Automation', contact: 'Ms. Chen · WeChat', stage: 'contacted', demand_id: null, note: '墨西哥新厂产线自动化，考虑 PLC + 视觉', next_action: '发案例 + 报价单', next_action_at: null },
+  { id: 'demo-2', line: 'us', company: 'Midwest Controls LLC', contact: 'John · john@example.com', stage: 'scoped', demand_id: null, note: 'AB PLC 改造，2 名驻场工程师', next_action: '安排技术通话', next_action_at: null },
+  { id: 'demo-3', line: 'cn', company: '越南某电子代工厂', contact: '采购总监（引荐）', stage: 'quoted', demand_id: null, note: '产线迁移，SCADA 集成', next_action: '等签约回执', next_action_at: null },
+];
+
+// 看板行内样式常量（静态值，模块级定义避免每次渲染重建）
+const pipeCardStyle = { border: '1px solid var(--border)', borderRadius: 8, padding: 14, marginBottom: 10, background: 'var(--surface)' };
+const pipeInputStyle = { width: '100%', padding: '7px 9px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' };
+const pipeLabelStyle = { display: 'block', fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 };
 
 export default function Admin() {
   const toast = useToast();
@@ -132,6 +173,10 @@ export default function Admin() {
   const [taxDocs, setTaxDocs]     = useState(null);
   const [taxRejectId, setTaxRejectId] = useState(null);
   const [taxRejectNote, setTaxRejectNote] = useState('');
+  // 撮合 Pipeline 看板：列表 + 新增表单 + 行内编辑草稿（键为行 id）
+  const [pipeline, setPipeline]   = useState(null);
+  const [pipelineForm, setPipelineForm] = useState({ company: '', line: 'cn', contact: '', note: '' });
+  const [pipelineDrafts, setPipelineDrafts] = useState({});
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
@@ -269,6 +314,175 @@ export default function Admin() {
     } catch { toast.error('Network error.'); }
   }
 
+  // ── 🤝 Pipeline 看板（人工撮合 PMF 实验）契约见 /api/pipeline/* 与 /api/admin/demands/:id/fee ──
+  async function loadPipeline(stage = 'all') {
+    setPipeline(null);
+    setPipelineDrafts({});
+    try {
+      const qs   = stage && stage !== 'all' ? `?stage=${stage}` : '';
+      const res  = await fetch(`/api/pipeline${qs}`, { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      setPipeline(data.data || []);
+    } catch { setPipeline([]); }
+  }
+
+  async function createLead(e) {
+    e.preventDefault();
+    if (!pipelineForm.company.trim()) { toast.error('Company is required.'); return; }
+    try {
+      const res  = await fetch('/api/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify(pipelineForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Lead added.');
+        setPipeline(prev => [data.data, ...(prev || [])]);
+        setPipelineForm({ company: '', line: 'cn', contact: '', note: '' });
+      } else { toast.error(data.error || 'Failed.'); }
+    } catch { toast.error('Network error.'); }
+  }
+
+  // 部分更新：把返回行合并回列表；成功返回 true 供调用方决定后续提示/清理
+  async function patchLead(id, patch) {
+    try {
+      const res  = await fetch(`/api/pipeline/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPipeline(prev => (prev || []).map(r => (r.id === id ? data.data : r)));
+        return true;
+      }
+      toast.error(data.error || 'Failed.');
+    } catch { toast.error('Network error.'); }
+    return false;
+  }
+
+  async function advanceStage(id, stage) {
+    const ok = await patchLead(id, { stage });
+    if (ok) toast.success(`→ ${d.stages[stage] || stage}`);
+  }
+
+  async function saveLead(id) {
+    const draft = pipelineDrafts[id];
+    if (!draft) return;
+    const ok = await patchLead(id, {
+      note: draft.note,
+      next_action: draft.next_action,
+      next_action_at: draft.next_action_at || null,
+      demand_id: draft.demand_id === '' ? null : draft.demand_id,
+    });
+    if (ok) {
+      toast.success('Saved.');
+      setPipelineDrafts(prev => { const next = { ...prev }; delete next[id]; return next; });
+    }
+  }
+
+  async function deleteLead(id) {
+    if (!window.confirm('Delete this lead?')) return;
+    try {
+      const res = await fetch(`/api/pipeline/${id}`, { method: 'DELETE', headers: { 'x-admin-password': password } });
+      if (res.ok) { toast.success('Deleted.'); setPipeline(prev => (prev || []).filter(r => r.id !== id)); }
+      else { const dd = await res.json(); toast.error(dd.error || 'Failed.'); }
+    } catch { toast.error('Network error.'); }
+  }
+
+  // founding 费率：写到关联的 demand 上（契约见 /api/admin/demands/:id/fee，空串=清除覆盖）
+  async function setDemandFee(demandId, feePct) {
+    try {
+      const res  = await fetch(`/api/admin/demands/${demandId}/fee`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ fee_pct: feePct === '' ? null : feePct }),
+      });
+      const data = await res.json();
+      if (res.ok) toast.success(feePct === '' ? 'Fee cleared.' : `Fee set to ${(parseFloat(feePct) * 100).toFixed(1)}%.`);
+      else toast.error(data.error || 'Failed.');
+    } catch { toast.error('Network error.'); }
+  }
+
+  // 行内编辑草稿：无草稿时以当前行数据初始化（next_action_at 截成 datetime-local 需要的 16 位）
+  function draftFor(row) {
+    return pipelineDrafts[row.id] || {
+      note: row.note || '',
+      next_action: row.next_action || '',
+      next_action_at: row.next_action_at ? String(row.next_action_at).slice(0, 16) : '',
+      demand_id: row.demand_id != null ? String(row.demand_id) : '',
+      fee_pct: '',
+    };
+  }
+  function setDraft(row, field, value) {
+    setPipelineDrafts(prev => ({ ...prev, [row.id]: { ...draftFor(row), [field]: value } }));
+  }
+
+  // 单行渲染：演示数据只读展示；真实数据可行内推进阶段 / 编辑备注与下一步 / 关联需求后设费率
+  function renderPipelineRow(row, isDemo) {
+    const lineBadge = <span className={`${styles.badge} ${styles.badgeGray}`}>{row.line === 'us' ? d.pipeLineUs : d.pipeLineCn}</span>;
+    if (isDemo) {
+      return (
+        <div key={row.id} style={pipeCardStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ fontWeight: 600 }}>{row.company} {lineBadge}</div>
+            <span className={`${styles.badge} ${styles.badgeGray}`}>{d.stages[row.stage] || row.stage}</span>
+          </div>
+          <div className={styles.muted} style={{ fontSize: 12, marginTop: 4 }}>{row.contact}</div>
+          {row.note && <div style={{ fontSize: 13, marginTop: 6 }}>{row.note}</div>}
+          {row.next_action && <div style={{ fontSize: 12, marginTop: 4, color: 'var(--muted)' }}>▶ {row.next_action}</div>}
+        </div>
+      );
+    }
+    const draft = draftFor(row);
+    const dirty = !!pipelineDrafts[row.id];
+    return (
+      <div key={row.id} style={pipeCardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+          <div style={{ fontWeight: 600 }}>{row.company} {lineBadge} {row.contact && <span className={styles.muted} style={{ fontSize: 12, fontWeight: 400 }}>· {row.contact}</span>}</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select value={row.stage} onChange={e => advanceStage(row.id, e.target.value)} style={{ ...pipeInputStyle, width: 'auto' }}>
+              {PIPELINE_STAGES.map(s => <option key={s} value={s}>{d.stages[s] || s}</option>)}
+            </select>
+            <button onClick={() => deleteLead(row.id)} title={d.pipeDelete} style={{ background: 'transparent', border: '1px solid var(--border)', color: '#ef4444', padding: '5px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}>🗑</button>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+          <div>
+            <label style={pipeLabelStyle}>{d.pipeNote}</label>
+            <input value={draft.note} onChange={e => setDraft(row, 'note', e.target.value)} style={pipeInputStyle} />
+          </div>
+          <div>
+            <label style={pipeLabelStyle}>{d.pipeNextAction}</label>
+            <input value={draft.next_action} onChange={e => setDraft(row, 'next_action', e.target.value)} style={pipeInputStyle} />
+          </div>
+          <div>
+            <label style={pipeLabelStyle}>{d.pipeNextAt}</label>
+            <input type="datetime-local" value={draft.next_action_at} onChange={e => setDraft(row, 'next_action_at', e.target.value)} style={pipeInputStyle} />
+          </div>
+          <div>
+            <label style={pipeLabelStyle}>{d.pipeDemandId}</label>
+            <input type="number" min="1" value={draft.demand_id} onChange={e => setDraft(row, 'demand_id', e.target.value)} placeholder="—" style={pipeInputStyle} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <button onClick={() => saveLead(row.id)} disabled={!dirty} style={{ background: dirty ? 'var(--primary)' : 'var(--border)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, cursor: dirty ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700 }}>{d.pipeSave}</button>
+          {/* 关联 demand 后才能设 founding 费率 */}
+          {row.demand_id != null && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginLeft: 'auto' }}>
+              <div>
+                <label style={pipeLabelStyle}>{d.pipeFee}（demand #{row.demand_id}）</label>
+                <input type="number" min="0" max="0.99" step="0.01" value={draft.fee_pct} onChange={e => setDraft(row, 'fee_pct', e.target.value)} placeholder="0.05" style={{ ...pipeInputStyle, width: 100 }} />
+              </div>
+              <button onClick={() => setDemandFee(row.demand_id, draft.fee_pct)} style={{ background: 'var(--success)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.pipeSetFee}</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   async function loadNotifs() {
     if (notifs !== null) return;
     try {
@@ -367,6 +581,7 @@ export default function Admin() {
     { id: 'notifs',     icon: '🔔', label: d.navNotifs, badge: counts.notifications != null ? String(counts.notifications) : undefined },
     { id: 'kyc',        icon: '🪪', label: d.navKyc },
     { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
+    { id: 'pipeline',   icon: '🤝', label: d.navPipeline },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
   ];
 
@@ -381,6 +596,7 @@ export default function Admin() {
     notifs: [d.navNotifs, d.subNotifs],
     kyc: [d.navKyc, d.subKyc],
     taxDocs: [d.navTaxDocs, d.subTaxDocs],
+    pipeline: [d.navPipeline, d.subPipeline],
     analytics: [d.navAnalytics, d.subAnalytics],
   };
   const [pageTitle, pageSub] = titles[activeTab] || titles.users;
@@ -393,6 +609,7 @@ export default function Admin() {
     if (id === 'notifs') loadNotifs();
     if (id === 'kyc') loadKycList();
     if (id === 'taxDocs') loadTaxDocs();
+    if (id === 'pipeline') loadPipeline();
     if (id === 'analytics') loadFunnel();
     setSbOpen(false);
   }
@@ -784,6 +1001,16 @@ export default function Admin() {
               {/* Tax Docs：W-9 等税务文件审核（查看签名 URL / 确认收讫 / 退回带备注）*/}
               {activeTab === 'taxDocs' && (
                 <div>
+                  {/* 1099 提示卡：出表流程要点 + 指引文档 */}
+                  <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderLeft: '3px solid var(--primary)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>🧾 {d.taxTipTitle}</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--muted)', lineHeight: 1.7 }}>
+                      <li>{d.taxTip1}</li>
+                      <li>{d.taxTip2}</li>
+                      <li>{d.taxTip3}</li>
+                    </ul>
+                    <div style={{ fontSize: 12, marginTop: 8 }}>📄 <code style={{ fontSize: 11, background: 'var(--surface)', padding: '2px 6px', borderRadius: 4 }}>{d.taxTipDoc}</code></div>
+                  </div>
                   <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                     {['submitted', 'received', 'rejected'].map(s => (
                       <button key={s} onClick={() => loadTaxDocs(s)} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 12 }}>{s}</button>
@@ -828,6 +1055,60 @@ export default function Admin() {
                       }
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* 🤝 Pipeline 看板（人工撮合 PMF 实验）*/}
+              {activeTab === 'pipeline' && (
+                <div>
+                  {/* 新增线索 */}
+                  <form onSubmit={createLead} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
+                    <div style={{ minWidth: 180 }}>
+                      <label style={pipeLabelStyle}>{d.pipeCompany}</label>
+                      <input value={pipelineForm.company} onChange={e => setPipelineForm(f => ({ ...f, company: e.target.value }))} placeholder={d.pipeCompany} style={pipeInputStyle} />
+                    </div>
+                    <div>
+                      <label style={pipeLabelStyle}>{d.pipeLine}</label>
+                      <select value={pipelineForm.line} onChange={e => setPipelineForm(f => ({ ...f, line: e.target.value }))} style={pipeInputStyle}>
+                        <option value="cn">{d.pipeLineCn}</option>
+                        <option value="us">{d.pipeLineUs}</option>
+                      </select>
+                    </div>
+                    <div style={{ minWidth: 160 }}>
+                      <label style={pipeLabelStyle}>{d.pipeContact}</label>
+                      <input value={pipelineForm.contact} onChange={e => setPipelineForm(f => ({ ...f, contact: e.target.value }))} placeholder={d.pipeContact} style={pipeInputStyle} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <label style={pipeLabelStyle}>{d.pipeNote}</label>
+                      <input value={pipelineForm.note} onChange={e => setPipelineForm(f => ({ ...f, note: e.target.value }))} placeholder={d.pipeNote} style={pipeInputStyle} />
+                    </div>
+                    <button type="submit" style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>{d.pipeAdd}</button>
+                  </form>
+
+                  {/* 阶段筛选 */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {['all', ...PIPELINE_STAGES].map(s => (
+                      <button key={s} onClick={() => loadPipeline(s)} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 12 }}>{s === 'all' ? d.pipeAll : (d.stages[s] || s)}</button>
+                    ))}
+                  </div>
+
+                  {pipeline === null ? (
+                    <p className={styles.empty}>{d.loading}</p>
+                  ) : (() => {
+                    const isDemo = pipeline.length === 0; // 真实为空 → 演示兜底 3 条
+                    const rows = isDemo ? DEMO_PIPELINE : pipeline;
+                    return (
+                      <div>
+                        {isDemo && <div style={{ marginBottom: 12 }}><span className={consoleStyles.demoBadge}>🧪 {d.demoData} · Demo</span></div>}
+                        {PIPELINE_STAGES.filter(s => rows.some(r => r.stage === s)).map(s => (
+                          <div key={s} style={{ marginBottom: 18 }}>
+                            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{d.stages[s] || s} <span className={styles.muted}>({rows.filter(r => r.stage === s).length})</span></div>
+                            {rows.filter(r => r.stage === s).map(row => renderPipelineRow(row, isDemo))}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { recomputeTalScore } = require('../services/talScore');
 
 // ── Submit review ─────────────────────────────────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
@@ -67,6 +68,10 @@ router.post('/', requireAuth, async (req, res) => {
       const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
       await supabase.from('talents').update({ avg_rating: Math.round(avg * 10) / 10, review_count: reviews.length }).eq('id', engineer_id);
     }
+
+    // 评分是 TalScore 的 30% 维度：新评价落库后重算该工程师的综合质量分。
+    // fire-and-forget——评价已成功保存，打分失败不该回滚评价，故不 await、错误内部吞掉。
+    recomputeTalScore(supabase, engineer_id).catch((e) => console.error('[reviews] talScore recompute:', e));
 
     res.json({ status: 'ok', data });
   } catch (err) {

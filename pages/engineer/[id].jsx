@@ -11,6 +11,21 @@ const CERT_TYPES = ['OSHA-10', 'OSHA-30', 'Electrical License', 'Siemens Certifi
 
 const AVAIL_LABEL = { available: { label: '🟢 Available Now', color: '#10b981' }, busy: { label: '🟡 Available Soon', color: '#f59e0b' }, unavailable: { label: '🔴 Not Available', color: '#ef4444' } };
 
+// TalScore 四档徽章配色（与后端 talScore.js 的 tier 阈值一致）：金属色系，半透明底 + 实色字，
+// 明暗主题下都清晰。阈值 >=85 platinum / >=70 gold / >=55 silver / 其余 bronze。
+const TAL_TIERS = [
+  { min: 85, label: 'Platinum', fg: '#38bdf8', bg: 'rgba(56,189,248,0.15)' },
+  { min: 70, label: 'Gold',     fg: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+  { min: 55, label: 'Silver',   fg: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
+  { min: 0,  label: 'Bronze',   fg: '#c2703d', bg: 'rgba(194,112,61,0.16)' },
+];
+// 未打分（null/undefined）返回 null → 不渲染徽章。
+function talTier(score) {
+  const s = Number(score);
+  if (score === null || score === undefined || !Number.isFinite(s)) return null;
+  return TAL_TIERS.find(t => s >= t.min) || TAL_TIERS[TAL_TIERS.length - 1];
+}
+
 function StarRating({ value, onChange, size = 24 }) {
   const [hover, setHover] = useState(0);
   return (
@@ -239,6 +254,15 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
                     <span style={{ color: '#f59e0b' }}>★</span> {avgRating} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({reviews.length} review{reviews.length !== 1 ? 's' : ''})</span>
                   </span>
                 )}
+                {/* TalScore 四档徽章：综合质量分（能力+认证+口碑+可靠性）*/}
+                {(() => {
+                  const tier = talTier(engineer.tal_score);
+                  return tier ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: tier.fg, background: tier.bg, padding: '2px 10px', borderRadius: 999 }}>
+                      🏅 TalScore {engineer.tal_score} · {tier.label}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>

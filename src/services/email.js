@@ -161,6 +161,24 @@ function emailDisputeOpened({ recipientEmail, projectTitle, phaseName, deadline,
   });
 }
 
+// 自动邀请（邀请制路由 B2）：雇主发单时开启"自动邀请"，平台按 TalScore/认证/区域挑选
+// 合格工程师，主动邀请其**申请**。语气必须是"邀请申请"而非"已指派"——决定权仍在工程师手里，
+// 也在雇主手里（工程师申请后雇主再决定指派）。切勿用"assigned/selected"等确定性措辞。
+function emailAutoInvite({ engineerEmail, engineerName, projectTitle, demandId }) {
+  const link = demandId ? `${DOMAIN}/demand/${demandId}` : `${DOMAIN}/talent`;
+  return sendEmail({
+    to: engineerEmail,
+    subject: `🎯 You're invited to apply: ${projectTitle}`,
+    html: wrap(`
+      <h2 style="color:#0056b3;margin-top:0">Invitation to Apply</h2>
+      <p>Hi ${engineerName || 'there'},</p>
+      <p>Based on your platform certifications and TalScore, an employer would like to invite you to apply for <strong>${projectTitle}</strong>.</p>
+      <p style="background:#eff6ff;border-radius:6px;padding:12px 16px;color:#1e40af;font-size:14px">This is an <strong>invitation to apply</strong>, not an assignment. Review the project and submit your proposal if it's a good fit — the employer will then choose from applicants.</p>
+      <p><a href="${link}" style="background:#0056b3;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">View Project &amp; Apply</a></p>
+    `),
+  });
+}
+
 module.exports = {
   emailMilestoneFunded,
   emailMilestoneReleased,
@@ -172,4 +190,5 @@ module.exports = {
   emailNewMessage,
   emailVerifyEmail,
   emailDisputeOpened,
+  emailAutoInvite,
 };

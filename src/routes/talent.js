@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { getClient } = require('../config/db');
 const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
 const { clampPagination } = require('../utils/pagination'); // 分页钳制逻辑抽成可测的纯函数
+const { recomputeTalScore } = require('../services/talScore'); // TalScore 综合质量分（读档案时按需补算）
 
 // 签名分数 token 用的密钥：与登录 JWT 同一密钥（部署上已存在，无需新增配置）。
 // 用途见下方 /screen_verify：把 AI 筛选分签名后发给前端，注册时凭 token 落库，
@@ -20,7 +21,7 @@ const SCORE_TOKEN_TTL = '30m';
 const PUBLIC_TALENT_FIELDS =
   'id, name, skills, region, rate, pricing_model, level, verified_score, ' +
   'bio, availability, available_from, avatar_url, avg_rating, review_count, ' +
-  'portfolio_images, created_at';
+  'portfolio_images, created_at, tal_score';
 
 // ── List open demands ─────────────────────────────────────────────────────────
 router.get('/demands', async (req, res) => {
@@ -100,11 +101,15 @@ router.get('/list', async (req, res) => {
     let orderCol = 'verified_score', orderAsc = false;
     if (sort === 'newest')    { orderCol = 'created_at'; orderAsc = false; }
     else if (sort === 'rate') { orderCol = 'created_at'; orderAsc = false; } // rate is text, fallback
+    else if (sort === 'talscore') { orderCol = 'tal_score'; orderAsc = false; } // TalScore 综合质量分优先
 
     let query = supabase
       .from('talents')
-      .select(PUBLIC_TALENT_FIELDS, { count: 'exact' }) // 公开接口只查白名单字段，排除 contact/stripe_account_id/user_id 等 PII
-      .order(orderCol, { ascending: orderAsc })
+      // 公开接口只查白名单字段，排除 contact/stripe_account_id/user_id 等 PII
+      // nullsFirst:false —— 降序时把未打分（tal_score/verified_score 为 NULL）的工程师排到最后，
+      // 而非 Postgres 默认的 NULLS FIRST（否则未打分的人会莫名霸榜首页）。
+      .select(PUBLIC_TALENT_FIELDS, { count: 'exact' })
+      .order(orderCol, { ascending: orderAsc, nullsFirst: false })
       .range(from, to);
 
     if (region && region !== 'all')   query = query.ilike('region', `%${region}%`);
@@ -238,16 +243,27 @@ router.put('/portfolio', requireAuth, async (req, res) => {
 });
 
 // ── Get single engineer profile ───────────────────────────────────────────────
+const TALSCORE_STALE_MS = 24 * 60 * 60 * 1000; // 档案页读到超过 24h 的 TalScore 即触发异步补算
+
 router.get('/profile/:id', async (req, res) => {
   try {
     const supabase = getClient();
+    // 额外取 tal_score_updated_at 判断是否过期（时间戳非 PII，随档案一并返回无碍）
     const { data, error } = await supabase
       .from('talents')
-      .select(PUBLIC_TALENT_FIELDS) // 公开档案只查白名单字段，排除 contact/stripe_account_id/user_id 等 PII
+      .select(PUBLIC_TALENT_FIELDS + ', tal_score_updated_at')
       .eq('id', req.params.id)
       .single();
 
     if (error || !data) return res.status(404).json({ error: 'Engineer not found' });
+
+    // TalScore 惰性补算：从未算过或已超 24h 时，fire-and-forget 重算一次（不阻塞本次响应，
+    // 也不 await——本次仍返回旧分，下次访问即最新）。失败仅记录，绝不影响档案读取。
+    const updatedAt = data.tal_score_updated_at ? new Date(data.tal_score_updated_at).getTime() : 0;
+    if (Date.now() - updatedAt > TALSCORE_STALE_MS) {
+      recomputeTalScore(supabase, data.id).catch((e) => console.error('[talent] talScore recompute:', e));
+    }
+
     res.json({ status: 'ok', data });
   } catch (err) {
     // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节

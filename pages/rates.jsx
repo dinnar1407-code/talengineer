@@ -46,6 +46,16 @@ export default function Rates() {
       <Head>
         <title>Automation Engineer Rate Benchmarks | Talengineer</title>
         <meta name="description" content="Live market rates for automation and industrial engineers by region. Compare $USD/hr rates for PLC, SCADA, robotics, and electrical engineering." />
+        <link rel="canonical" href="https://talengineer.us/rates" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Automation Engineer Rate Benchmarks | Talengineer" />
+        <meta property="og:description" content="Live market rates for automation and industrial engineers by region — PLC, SCADA, robotics, and electrical, in $USD/hr." />
+        <meta property="og:url" content="https://talengineer.us/rates" />
+        <meta property="og:image" content="https://talengineer.us/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Automation Engineer Rate Benchmarks | Talengineer" />
+        <meta name="twitter:description" content="Live market rates for automation and industrial engineers by region — PLC, SCADA, robotics, and electrical." />
+        <meta name="twitter:image" content="https://talengineer.us/og.png" />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

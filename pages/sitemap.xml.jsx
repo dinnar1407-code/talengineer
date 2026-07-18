@@ -1,7 +1,11 @@
 // Dynamic sitemap for SEO
 // Generates XML sitemap including engineer profile pages and project pages
+import { getAllPlaybookMeta } from '../lib/playbook';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
+
+// 内容引擎的行业落地页方向（与 pages/hire/[track].jsx 保持一致）。
+const HIRE_TRACKS = ['plc', 'robotics', 'vision', 'electrical'];
 
 function SitemapXML() { return null; }
 
@@ -27,9 +31,21 @@ export async function getServerSideProps({ res }) {
     { url: '',          priority: '1.0', changefreq: 'weekly' },
     { url: '/talent',   priority: '0.9', changefreq: 'daily' },
     { url: '/rates',    priority: '0.8', changefreq: 'daily' },
+    { url: '/playbook', priority: '0.8', changefreq: 'weekly' },
     { url: '/enterprise', priority: '0.7', changefreq: 'monthly' },
     { url: '/finance',  priority: '0.6', changefreq: 'weekly' },
+    ...HIRE_TRACKS.map(track => ({
+      url: `/hire/${track}`, priority: '0.7', changefreq: 'monthly',
+    })),
   ];
+
+  // 内容引擎文章页：以 frontmatter 的 date 作为 lastmod。
+  const playbookUrls = getAllPlaybookMeta().map(a => ({
+    url: `/playbook/${a.slug}`,
+    priority: '0.6',
+    changefreq: 'monthly',
+    lastmod: a.date || undefined,
+  }));
 
   const engineerUrls = engineers.map(e => ({
     url: `/engineer/${e.id}`,
@@ -45,7 +61,7 @@ export async function getServerSideProps({ res }) {
     lastmod: d.created_at?.split('T')[0],
   }));
 
-  const allUrls = [...staticPages, ...engineerUrls, ...demandUrls];
+  const allUrls = [...staticPages, ...playbookUrls, ...engineerUrls, ...demandUrls];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

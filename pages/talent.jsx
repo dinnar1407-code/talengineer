@@ -20,6 +20,7 @@ const DICT = {
     formTitleTalent: 'Create Engineer Profile',
     submitJobBtn: 'Confirm & Post Project', submitProfileBtn: 'Publish Profile',
     feeLabel: 'Platform service fee', feeTakeHome: 'You receive',
+    aInvTitle: 'Auto-Invite (optional)', aInvHint: 'Let the platform invite qualified certified engineers to apply.', aInvEnable: 'Enable auto-invite', aInvMinScore: 'Min TalScore', aInvTopN: 'Invite count (≤5)', aInvMaxRate: 'Max rate ($/hr)', aInvTracks: 'Required certifications',
   },
   zh: {
     hubTitle: '全球工业自动化服务大厅',
@@ -31,8 +32,10 @@ const DICT = {
     formTitleTalent: '创建工程师档案',
     submitJobBtn: '确认发布项目', submitProfileBtn: '发布档案 (接受 AI 审核)',
     feeLabel: '平台服务费', feeTakeHome: '你到手',
+    aInvTitle: '自动邀请（可选）', aInvHint: '让平台自动邀请符合条件的持证工程师前来申请。', aInvEnable: '开启自动邀请', aInvMinScore: '最低 TalScore', aInvTopN: '邀请人数（≤5）', aInvMaxRate: '费率上限（$/时）', aInvTracks: '要求的认证方向',
   },
   es: {
+    feeLabel: 'Tarifa de la plataforma', feeTakeHome: 'Recibes',
     hubTitle: 'Centro Global de Automatización Industrial',
     hubSub: 'Mercado impulsado por IA que conecta fabricantes de equipos con ingenieros locales verificados en todo el mundo.',
     tabProjects: 'Ver Proyectos (Para Ingenieros)', tabTalent: 'Ver Ingenieros (Para Empleadores)',
@@ -41,8 +44,10 @@ const DICT = {
     parseBtn: '✨ IA: Analizar y Estandarizar',
     formTitleTalent: 'Crear Perfil de Ingeniero',
     submitJobBtn: 'Confirmar y Publicar', submitProfileBtn: 'Publicar Perfil',
+    aInvTitle: 'Auto-invitación (opcional)', aInvHint: 'Deja que la plataforma invite a ingenieros certificados calificados a postularse.', aInvEnable: 'Activar auto-invitación', aInvMinScore: 'TalScore mínimo', aInvTopN: 'N.º de invitaciones (≤5)', aInvMaxRate: 'Tarifa máx. ($/h)', aInvTracks: 'Certificaciones requeridas',
   },
   vi: {
+    feeLabel: 'Phí nền tảng', feeTakeHome: 'Bạn nhận được',
     hubTitle: 'Trung tâm Tự động hóa Công nghiệp Toàn cầu',
     hubSub: 'Thị trường AI kết nối nhà sản xuất thiết bị với kỹ sư địa phương được xác minh tại Việt Nam, Ấn Độ, Bắc Mỹ và toàn cầu.',
     tabProjects: 'Xem Dự Án (Cho Kỹ Sư)', tabTalent: 'Tìm Kỹ Sư (Cho Nhà Tuyển Dụng)',
@@ -51,8 +56,10 @@ const DICT = {
     parseBtn: '✨ AI: Phân tích & Chuẩn hóa',
     formTitleTalent: 'Tạo Hồ Sơ Kỹ Sư',
     submitJobBtn: 'Xác nhận & Đăng', submitProfileBtn: 'Xuất bản Hồ Sơ',
+    aInvTitle: 'Tự động mời (tùy chọn)', aInvHint: 'Để nền tảng mời các kỹ sư có chứng chỉ phù hợp ứng tuyển.', aInvEnable: 'Bật tự động mời', aInvMinScore: 'TalScore tối thiểu', aInvTopN: 'Số lời mời (≤5)', aInvMaxRate: 'Mức phí tối đa ($/giờ)', aInvTracks: 'Chứng chỉ yêu cầu',
   },
   hi: {
+    feeLabel: 'प्लेटफ़ॉर्म शुल्क', feeTakeHome: 'आपको मिलेगा',
     hubTitle: 'वैश्विक औद्योगिक स्वचालन केंद्र',
     hubSub: 'AI-संचालित बाज़ार जो उपकरण निर्माताओं को भारत, वियतनाम, उत्तरी अमेरिका और दुनिया भर के AI-सत्यापित इंजीनियरों से जोड़ता है।',
     tabProjects: 'प्रोजेक्ट देखें (इंजीनियरों के लिए)', tabTalent: 'इंजीनियर खोजें (नियोक्ताओं के लिए)',
@@ -61,8 +68,10 @@ const DICT = {
     parseBtn: '✨ AI: विश्लेषण और मानकीकरण',
     formTitleTalent: 'इंजीनियर प्रोफ़ाइल बनाएं',
     submitJobBtn: 'पुष्टि करें और पोस्ट करें', submitProfileBtn: 'प्रोफ़ाइल प्रकाशित करें',
+    aInvTitle: 'स्वतः-आमंत्रण (वैकल्पिक)', aInvHint: 'प्लेटफ़ॉर्म को योग्य प्रमाणित इंजीनियरों को आवेदन के लिए आमंत्रित करने दें।', aInvEnable: 'स्वतः-आमंत्रण चालू करें', aInvMinScore: 'न्यूनतम TalScore', aInvTopN: 'आमंत्रण संख्या (≤5)', aInvMaxRate: 'अधिकतम दर ($/घंटा)', aInvTracks: 'आवश्यक प्रमाणपत्र',
   },
   fr: {
+    feeLabel: 'Frais de plateforme', feeTakeHome: 'Vous recevez',
     hubTitle: 'Hub Mondial d\'Automatisation Industrielle',
     hubSub: 'Marketplace IA reliant fabricants d\'équipements et ingénieurs locaux vérifiés partout dans le monde — Amérique du Nord, Vietnam, Inde, Europe.',
     tabProjects: 'Voir les Projets (Ingénieurs)', tabTalent: 'Trouver des Ingénieurs (Employeurs)',
@@ -71,8 +80,10 @@ const DICT = {
     parseBtn: '✨ IA : Analyser & Standardiser',
     formTitleTalent: 'Créer un Profil Ingénieur',
     submitJobBtn: 'Confirmer et Publier', submitProfileBtn: 'Publier le Profil',
+    aInvTitle: 'Invitation automatique (facultatif)', aInvHint: 'Laissez la plateforme inviter des ingénieurs certifiés qualifiés à postuler.', aInvEnable: 'Activer l\'invitation automatique', aInvMinScore: 'TalScore minimum', aInvTopN: 'Nombre d\'invitations (≤5)', aInvMaxRate: 'Taux max ($/h)', aInvTracks: 'Certifications requises',
   },
   de: {
+    feeLabel: 'Plattformgebühr', feeTakeHome: 'Sie erhalten',
     hubTitle: 'Globaler Marktplatz für Industrieautomation',
     hubSub: 'KI-gestützter Marktplatz verbindet Anlagenhersteller weltweit mit verifizierten lokalen Ingenieuren in Nordamerika, Vietnam, Indien und Europa.',
     tabProjects: 'Projekte ansehen (Ingenieure)', tabTalent: 'Ingenieure finden (Arbeitgeber)',
@@ -81,8 +92,10 @@ const DICT = {
     parseBtn: '✨ KI: Analysieren & Standardisieren',
     formTitleTalent: 'Ingenieurprofil erstellen',
     submitJobBtn: 'Bestätigen & Veröffentlichen', submitProfileBtn: 'Profil veröffentlichen',
+    aInvTitle: 'Auto-Einladung (optional)', aInvHint: 'Lassen Sie die Plattform qualifizierte zertifizierte Ingenieure zur Bewerbung einladen.', aInvEnable: 'Auto-Einladung aktivieren', aInvMinScore: 'Min. TalScore', aInvTopN: 'Anzahl Einladungen (≤5)', aInvMaxRate: 'Max. Satz ($/Std.)', aInvTracks: 'Erforderliche Zertifizierungen',
   },
   ja: {
+    feeLabel: 'プラットフォーム手数料', feeTakeHome: '受取額',
     hubTitle: 'グローバル産業オートメーション・プラットフォーム',
     hubSub: 'AIが世界中の設備メーカーと、北米・ベトナム・インド・欧州のAI検証済みエンジニアをつなぐマーケットプレイス。',
     tabProjects: 'プロジェクト一覧（エンジニア向け）', tabTalent: 'エンジニアを探す（発注者向け）',
@@ -91,8 +104,10 @@ const DICT = {
     parseBtn: '✨ AI：解析・標準化',
     formTitleTalent: 'エンジニアプロフィール作成',
     submitJobBtn: '確認して投稿', submitProfileBtn: 'プロフィールを公開',
+    aInvTitle: '自動招待（任意）', aInvHint: '資格を満たす認定エンジニアにプラットフォームが応募を招待します。', aInvEnable: '自動招待を有効化', aInvMinScore: '最低 TalScore', aInvTopN: '招待人数（≤5）', aInvMaxRate: '上限単価（$/時）', aInvTracks: '必要な認定',
   },
   ko: {
+    feeLabel: '플랫폼 수수료', feeTakeHome: '수령액',
     hubTitle: '글로벌 산업 자동화 허브',
     hubSub: 'AI 기반 마켓플레이스로 전 세계 설비 제조사와 북미, 베트남, 인도, 유럽의 AI 인증 엔지니어를 연결합니다.',
     tabProjects: '프로젝트 탐색 (엔지니어용)', tabTalent: '엔지니어 찾기 (고용주용)',
@@ -101,8 +116,18 @@ const DICT = {
     parseBtn: '✨ AI: 분석 및 표준화',
     formTitleTalent: '엔지니어 프로필 생성',
     submitJobBtn: '확인 및 게시', submitProfileBtn: '프로필 공개',
+    aInvTitle: '자동 초대 (선택)', aInvHint: '자격을 갖춘 인증 엔지니어를 플랫폼이 지원하도록 초대합니다.', aInvEnable: '자동 초대 켜기', aInvMinScore: '최소 TalScore', aInvTopN: '초대 인원 (≤5)', aInvMaxRate: '최대 요율 ($/시간)', aInvTracks: '필수 인증',
   },
 };
+
+// 认证方向（与后端 cert_tracks 种子一致）：自动邀请配置里勾选"要求的认证方向"用。
+// 标签用行业通用英文缩写，无需逐语翻译。
+const CERT_TRACKS = [
+  { key: 'plc', label: 'PLC' },
+  { key: 'robotics', label: 'Robotics' },
+  { key: 'vision', label: 'Vision' },
+  { key: 'electrical', label: 'Electrical' },
+];
 
 export default function Talent() {
   const toast = useToast();
@@ -145,6 +170,9 @@ export default function Talent() {
   const [projectForm, setProjectForm] = useState({ title: '', type: 'Cross-Border Equipment Deployment', role: '', region: 'United States (US)', pref: 'No Preference', location: '', budget: '', contact: '', description: '' });
   const [postingJob, setPostingJob] = useState(false);
   const [parsing, setParsing]   = useState(false);
+
+  // 自动邀请配置（邀请制路由 B2）：默认关闭；开启后随发单一起提交 auto_dispatch。
+  const [autoInvite, setAutoInvite] = useState({ enabled: false, min_score: '', top_n: 3, max_rate: '', tracks: [] });
 
   // Engineer profile form
   const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '' });
@@ -275,12 +303,21 @@ export default function Talent() {
           location: projectForm.location, budget: projectForm.budget,
           contact: projectForm.contact, description: projectForm.description,
           milestones: parsedMilestones,
+          // 自动邀请（可选）：仅在勾选启用时提交；空值字段省略，交后端 zod 兜底。
+          auto_dispatch: autoInvite.enabled ? {
+            enabled: true,
+            top_n: Number(autoInvite.top_n) || 3,
+            ...(autoInvite.min_score !== '' ? { min_score: Number(autoInvite.min_score) } : {}),
+            ...(autoInvite.max_rate !== '' ? { max_rate: Number(autoInvite.max_rate) } : {}),
+            ...(autoInvite.tracks.length ? { tracks: autoInvite.tracks } : {}),
+          } : undefined,
         }),
       });
       if (res.ok) {
         toast.success('Project posted! The AI Matchmaker is scanning for engineers.');
         setParsed(null); setRawText('');
         setProjectForm({ title: '', type: 'Cross-Border Equipment Deployment', role: '', region: 'United States (US)', pref: 'No Preference', location: '', budget: '', contact: '', description: '' });
+        setAutoInvite({ enabled: false, min_score: '', top_n: 3, max_rate: '', tracks: [] });
         loadDemands();
       } else {
         const err = await res.json();
@@ -338,7 +375,20 @@ export default function Talent() {
 
   return (
     <>
-      <Head><title>Talent & Projects | Talengineer</title></Head>
+      <Head>
+        <title>Talent & Projects | Talengineer</title>
+        <meta name="description" content="Browse and hire AI-verified industrial automation engineers — PLC, robotics, machine vision, and electrical. Post a project and match with certified talent under milestone escrow." />
+        <link rel="canonical" href="https://talengineer.us/talent" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Find Automation Engineers | Talengineer" />
+        <meta property="og:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers. Milestone escrow protects both sides." />
+        <meta property="og:url" content="https://talengineer.us/talent" />
+        <meta property="og:image" content="https://talengineer.us/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Find Automation Engineers | Talengineer" />
+        <meta name="twitter:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers." />
+        <meta name="twitter:image" content="https://talengineer.us/og.png" />
+      </Head>
       <ChatBot lang={lang} />
 
       <Navbar lang={lang} onLangChange={setLang} />
@@ -439,6 +489,47 @@ export default function Talent() {
                         <ul>{parsedMilestones.map((m, i) => <li key={i}>{m.phase_name}: {(m.percentage * 100).toFixed(0)}%</li>)}</ul>
                       </div>
                     )}
+
+                    {/* 自动邀请配置（折叠）：默认收起，勾选启用后展开填门槛 */}
+                    <details style={{ margin: '8px 0 16px', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 600 }}>🎯 {d.aInvTitle}</summary>
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 0' }}>{d.aInvHint}</p>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
+                        <input type="checkbox" checked={autoInvite.enabled} onChange={e => setAutoInvite(a => ({ ...a, enabled: e.target.checked }))} />
+                        {d.aInvEnable}
+                      </label>
+                      {autoInvite.enabled && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 8 }}>
+                          <label style={{ fontSize: 13 }}>{d.aInvMinScore}
+                            <input type="number" min={0} max={100} value={autoInvite.min_score} onChange={e => setAutoInvite(a => ({ ...a, min_score: e.target.value }))} style={{ width: '100%' }} />
+                          </label>
+                          <label style={{ fontSize: 13 }}>{d.aInvTopN}
+                            <input type="number" min={1} max={5} value={autoInvite.top_n} onChange={e => setAutoInvite(a => ({ ...a, top_n: e.target.value }))} style={{ width: '100%' }} />
+                          </label>
+                          <label style={{ fontSize: 13 }}>{d.aInvMaxRate}
+                            <input type="number" min={0} value={autoInvite.max_rate} onChange={e => setAutoInvite(a => ({ ...a, max_rate: e.target.value }))} style={{ width: '100%' }} />
+                          </label>
+                          <div style={{ fontSize: 13, gridColumn: '1 / -1' }}>{d.aInvTracks}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+                              {CERT_TRACKS.map(t => (
+                                <label key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={autoInvite.tracks.includes(t.key)}
+                                    onChange={e => setAutoInvite(a => ({
+                                      ...a,
+                                      tracks: e.target.checked ? [...a.tracks, t.key] : a.tracks.filter(k => k !== t.key),
+                                    }))}
+                                  />
+                                  {t.label}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </details>
+
                     <button type="submit" className={styles.btnSuccess} disabled={postingJob}>{postingJob ? 'Posting...' : d.submitJobBtn}</button>
                   </div>
                 )}

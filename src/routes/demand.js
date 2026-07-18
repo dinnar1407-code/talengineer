@@ -1,12 +1,109 @@
 const express = require('express');
 const router  = express.Router();
+const { z } = require('zod');
 const { getClient } = require('../config/db');
 const { parseDemand } = require('../services/aiService');
-const { runMatchmaker } = require('../services/matchmakerService');
+const { runMatchmaker, scoreEngineer, extractKeywords } = require('../services/matchmakerService');
 const { requireAuth } = require('../middleware/auth');
-const { emailNewApplication, emailEngineerAssigned } = require('../services/email');
+const { emailNewApplication, emailEngineerAssigned, emailAutoInvite } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 const { checkAssignEligibility, getValidCertifications } = require('../services/certService'); // 认证门禁（现场正式工作授权）
+
+// ── 自动邀请配置校验（邀请制路由 B2）─────────────────────────────────────────────
+// 雇主发单时可选开启"自动邀请"：平台按 TalScore/认证方向/区域/费率挑选合格工程师，
+// 主动邀请其**申请**（非指派）。这里用 zod 校验前端传入的配置，非法字段安全兜底。
+const autoDispatchSchema = z.object({
+  enabled:   z.boolean().optional().default(false),
+  min_score: z.number().min(0).max(100).optional(),          // TalScore 门槛
+  tracks:    z.array(z.string()).max(4).optional(),           // 要求的认证方向（任一命中即可）
+  regions:   z.array(z.string()).max(10).optional(),          // 区域关键词（任一命中即可）
+  max_rate:  z.number().positive().optional(),                // 费率上限（数字，缺费率信息不排除）
+  top_n:     z.number().int().min(1).max(5).optional().default(3), // 邀请人数，硬上限 5
+}).strip(); // 丢弃未知字段而非报错，兼容旧客户端
+
+/**
+ * 自动邀请（邀请制路由 B2）：按 auto_dispatch 规则挑选合格工程师并邀请其申请。
+ * 复用 matchmakerService 的关键词打分思路（不改动它），叠加 TalScore/认证/区域/费率四道过滤。
+ * fire-and-forget 调用——发单已成功，邀请失败只记录，不回滚发单。
+ * @param {object} demand 刚落库的 demand 行（需含 id/title/role_required/description）
+ * @param {object} config autoDispatchSchema 解析后的配置
+ */
+async function runAutoInvite(demand, config) {
+  try {
+    const supabase = getClient();
+    if (!supabase) return;
+
+    // 1) 候选池：先按区域关键词粗筛（任一命中）；无区域限制则全量取前 100。
+    let query = supabase
+      .from('talents')
+      .select('id, name, contact, skills, region, rate, verified_score, tal_score, avg_rating, review_count, availability');
+    if (config.regions?.length) {
+      const orExpr = config.regions.map((r) => `region.ilike.%${r}%`).join(',');
+      query = query.or(orExpr);
+    }
+    const { data: candidates } = await query.limit(100);
+    let pool = candidates || [];
+
+    // 2) TalScore 门槛：低于 min_score 的剔除（未打分视为 0，达不到门槛）。
+    if (typeof config.min_score === 'number') {
+      pool = pool.filter((t) => (t.tal_score || 0) >= config.min_score);
+    }
+
+    // 3) 费率上限：能解析出数字且超上限的剔除；无费率信息的保留（不因缺字段误杀）。
+    if (typeof config.max_rate === 'number') {
+      pool = pool.filter((t) => {
+        const num = parseFloat(String(t.rate || '').replace(/[^0-9.]/g, ''));
+        return !Number.isFinite(num) || num <= config.max_rate;
+      });
+    }
+
+    // 4) 认证方向门槛：必须持指定 track 之一的有效证（复用门禁服务的过滤）。
+    if (config.tracks?.length) {
+      const filtered = [];
+      for (const t of pool) {
+        try {
+          const certs = await getValidCertifications(supabase, t.id);
+          if (certs.some((c) => config.tracks.includes(c.track_key))) filtered.push(t);
+        } catch (e) { /* 认证查询失败按不满足处理，宁缺毋滥 */ }
+      }
+      pool = filtered;
+    }
+
+    // 5) 关键词打分排序，取 top_n。
+    const keywords = extractKeywords((demand.role_required || '') + ' ' + (demand.description || ''));
+    const ranked = pool
+      .map((t) => ({ ...t, _score: scoreEngineer(t, keywords) }))
+      .sort((a, b) => b._score - a._score)
+      .slice(0, config.top_n || 3);
+
+    // 6) 邀请：站内通知 + 邮件（语气=邀请申请，非指派）。
+    const invited = [];
+    for (const eng of ranked) {
+      if (eng.contact) {
+        emailAutoInvite({ engineerEmail: eng.contact, engineerName: eng.name, projectTitle: demand.title, demandId: demand.id }).catch(console.error);
+        createNotification({
+          user_email: eng.contact,
+          type: 'auto_invite',
+          title: `You're invited to apply: "${demand.title}"`,
+          body: 'An employer is inviting qualified certified engineers to apply for this project.',
+          link: `/demand/${demand.id}`,
+          demand_id: demand.id,
+        });
+      }
+      invited.push({ engineer_id: eng.id, name: eng.name, tal_score: eng.tal_score || 0 });
+    }
+
+    // 7) 邀请名单写回 demand.auto_dispatch.invited，便于雇主端追踪。
+    await supabase
+      .from('demands')
+      .update({ auto_dispatch: { ...config, invited, invited_at: new Date().toISOString() } })
+      .eq('id', demand.id);
+
+    console.log(`🎯 [Demand] Auto-invited ${invited.length} engineer(s) for Demand #${demand.id}`);
+  } catch (err) {
+    console.error('[Demand] Auto-invite error:', err);
+  }
+}
 
 // ── Parse demand (AI) ─────────────────────────────────────────────────────────
 router.post('/parse', async (req, res) => {
@@ -78,9 +175,16 @@ router.post('/quick_launch', async (req, res) => {
 router.post('/submit', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { title, role_required, region, project_type, location, budget, description, contact, milestones, required_cert_track } = req.body;
+    const { title, role_required, region, project_type, location, budget, description, contact, milestones, required_cert_track, auto_dispatch } = req.body;
 
     if (!title) return res.status(400).json({ error: 'Missing title' });
+
+    // 自动邀请配置（可选）：zod 校验；非法则安全忽略（不阻断发单）。仅在 enabled 时落库并触发邀请。
+    let autoDispatch = null;
+    if (auto_dispatch) {
+      const parsed = autoDispatchSchema.safeParse(auto_dispatch);
+      if (parsed.success && parsed.data.enabled) autoDispatch = parsed.data;
+    }
 
     // 可选：雇主指定本单要求的认证方向（培训认证模块）。
     // 只接受字典里存在且启用的 track_key，非法值静默忽略（不阻断发单）。
@@ -98,7 +202,7 @@ router.post('/submit', requireAuth, async (req, res) => {
 
     const { data: demand, error: demandErr } = await supabase
       .from('demands')
-      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open', required_cert_track: certTrack }])
+      .insert([{ employer_id: employerId, title, role_required, region, project_type, location, budget, description, contact: contact || req.user.email, status: 'open', required_cert_track: certTrack, auto_dispatch: autoDispatch }])
       .select()
       .single();
 
@@ -117,6 +221,11 @@ router.post('/submit', requireAuth, async (req, res) => {
     }
 
     setTimeout(() => { runMatchmaker(demand.id).catch(console.error); }, 1000);
+
+    // 开启了自动邀请：稍后异步挑人邀请（与 matchmaker 并行，互不阻塞发单响应）。
+    if (autoDispatch) {
+      setTimeout(() => { runAutoInvite(demand, autoDispatch).catch(console.error); }, 1500);
+    }
 
     res.json({ status: 'ok', id: demand.id });
   } catch (err) {
@@ -389,6 +498,19 @@ router.post('/assign', requireAuth, async (req, res) => {
         link: '/engineer/profile',
         demand_id: parseInt(demand_id),
       });
+    }
+
+    // 企业 Webhook（B4）：指派成功后通知雇主配置的 webhook（fire-and-forget，绝不影响指派）。
+    // dispatchWebhook 由 webhookService（另一 agent）实现；require 放在 try 内，文件缺失也只 warn。
+    try {
+      const { dispatchWebhook } = require('../services/webhookService');
+      dispatchWebhook(supabase, {
+        userId: demand.employer_id,
+        event: 'demand.assigned',
+        payload: { demand_id: parseInt(demand_id), engineer_id: parseInt(engineer_id) },
+      }).catch((e) => console.warn('[Demand] webhook dispatch failed:', e.message));
+    } catch (e) {
+      console.warn('[Demand] webhook dispatch skipped:', e.message);
     }
 
     res.json({ status: 'ok', message: 'Engineer assigned successfully.' });

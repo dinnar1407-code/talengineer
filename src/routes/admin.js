@@ -199,4 +199,39 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   }
 });
 
+// ── PUT /api/admin/demands/:id/fee：单需求费率覆盖（founding 客户让利）─────────────
+// body {fee_pct}：null 清除（回退全局 PLATFORM_FEE）；否则须 0<=x<1（如 0.05=5%），越界即 400。
+// 费率生效逻辑在 config/fees.js 的 feeFor(demand) 里，此处仅负责写入 demands.fee_pct。
+router.put('/demands/:id/fee', requireAdmin, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { fee_pct } = req.body;
+
+    let value;
+    if (fee_pct === null || fee_pct === '' || fee_pct === undefined) {
+      value = null; // 清除覆盖，回退全局费率
+    } else {
+      const v = parseFloat(fee_pct);
+      // 只接受 [0,1) 区间：>=1 意味着抽走全部乃至倒贴，非法；负数同理
+      if (!Number.isFinite(v) || v < 0 || v >= 1) {
+        return res.status(400).json({ error: 'fee_pct must be a number in [0, 1), or null to clear.' });
+      }
+      value = v;
+    }
+
+    const { data, error } = await supabase
+      .from('demands')
+      .update({ fee_pct: value })
+      .eq('id', req.params.id)
+      .select('id, fee_pct')
+      .single();
+    if (error) throw error;
+    res.json({ status: 'ok', data });
+  } catch (err) {
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin:fee]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
 module.exports = router;

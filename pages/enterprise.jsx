@@ -7,8 +7,8 @@ import { useLang } from '../hooks/useLang';
 import styles from './enterprise.module.css';
 
 const DICT = {
-  en: { heroBadge: 'Enterprise', heroTitle: 'Talengineer API', heroSub: 'Integrate industrial automation talent sourcing directly into your ERP or procurement system. Bulk post projects, query rate benchmarks, and manage engineers programmatically.', keysTitle: 'API Keys', keysDesc: 'Keys allow your systems to authenticate to the Talengineer API. Maximum 5 active keys per account.', keyNamePlaceholder: 'Key name (e.g. ERP Integration)', createBtn: '+ Create Key', creating: 'Creating…', noKeys: 'No API keys yet. Create one above.', alertTitle: '⚠️ Save your API key — it will not be shown again', copyBtn: 'Copy Key', copied: '✓ Copied!', dismissBtn: "I've saved it, dismiss", signInTitle: 'Sign in to manage API keys', signInDesc: 'You need an employer account to access the Enterprise API.', signInBtn: 'Sign In to Dashboard', apiRefTitle: 'API Reference', planTitle: 'Plan Limits', useCaseTitle: 'Use Cases', helpTitle: 'Need help?', helpDesc: 'Contact our enterprise team for custom integrations, volume pricing, or SLA agreements.', contactBtn: 'Contact Enterprise Team' },
-  zh: { heroBadge: '企业版', heroTitle: 'Talengineer API', heroSub: '将工业自动化人才采购直接集成到您的 ERP 或采购系统中。批量发布项目、查询费率基准、以编程方式管理工程师。', keysTitle: 'API 密钥', keysDesc: '密钥允许您的系统向 Talengineer API 进行身份验证。每个账户最多 5 个有效密钥。', keyNamePlaceholder: '密钥名称（如：ERP 集成）', createBtn: '+ 创建密钥', creating: '创建中…', noKeys: '暂无 API 密钥，请在上方创建。', alertTitle: '⚠️ 保存您的 API 密钥 — 此后不再显示', copyBtn: '复制密钥', copied: '✓ 已复制！', dismissBtn: '已保存，关闭', signInTitle: '登录以管理 API 密钥', signInDesc: '您需要雇主账户才能访问企业 API。', signInBtn: '登录控制台', apiRefTitle: 'API 参考文档', planTitle: '套餐限制', useCaseTitle: '使用场景', helpTitle: '需要帮助？', helpDesc: '联系我们的企业团队，获取定制集成、批量定价或 SLA 协议支持。', contactBtn: '联系企业团队' },
+  en: { heroBadge: 'Enterprise', heroTitle: 'Talengineer API', heroSub: 'Integrate industrial automation talent sourcing directly into your ERP or procurement system. Bulk post projects, query rate benchmarks, and manage engineers programmatically.', keysTitle: 'API Keys', keysDesc: 'Keys allow your systems to authenticate to the Talengineer API. Maximum 5 active keys per account.', keyNamePlaceholder: 'Key name (e.g. ERP Integration)', createBtn: '+ Create Key', creating: 'Creating…', noKeys: 'No API keys yet. Create one above.', alertTitle: '⚠️ Save your API key — it will not be shown again', copyBtn: 'Copy Key', copied: '✓ Copied!', dismissBtn: "I've saved it, dismiss", signInTitle: 'Sign in to manage API keys', signInDesc: 'You need an employer account to access the Enterprise API.', signInBtn: 'Sign In to Dashboard', apiRefTitle: 'API Reference', planTitle: 'Plan Limits', useCaseTitle: 'Use Cases', helpTitle: 'Need help?', helpDesc: 'Contact our enterprise team for custom integrations, volume pricing, or SLA agreements.', contactBtn: 'Contact Enterprise Team', webhookLabel: 'Webhook', webhookDesc: 'Get real-time POST callbacks for milestone.funded, milestone.released, and demand.assigned events.', webhookPlaceholder: 'https://your-server.com/webhooks/talengineer', webhookSetBtn: 'Save Webhook', webhookSaving: 'Saving…', webhookConfigured: 'Configured', webhookNone: 'No webhook set', webhookSecretTitle: '⚠️ Save your webhook signing secret — it will not be shown again', webhookDocs: 'Developer docs & signature verification →' },
+  zh: { heroBadge: '企业版', heroTitle: 'Talengineer API', heroSub: '将工业自动化人才采购直接集成到您的 ERP 或采购系统中。批量发布项目、查询费率基准、以编程方式管理工程师。', keysTitle: 'API 密钥', keysDesc: '密钥允许您的系统向 Talengineer API 进行身份验证。每个账户最多 5 个有效密钥。', keyNamePlaceholder: '密钥名称（如：ERP 集成）', createBtn: '+ 创建密钥', creating: '创建中…', noKeys: '暂无 API 密钥，请在上方创建。', alertTitle: '⚠️ 保存您的 API 密钥 — 此后不再显示', copyBtn: '复制密钥', copied: '✓ 已复制！', dismissBtn: '已保存，关闭', signInTitle: '登录以管理 API 密钥', signInDesc: '您需要雇主账户才能访问企业 API。', signInBtn: '登录控制台', apiRefTitle: 'API 参考文档', planTitle: '套餐限制', useCaseTitle: '使用场景', helpTitle: '需要帮助？', helpDesc: '联系我们的企业团队，获取定制集成、批量定价或 SLA 协议支持。', contactBtn: '联系企业团队', webhookLabel: 'Webhook', webhookDesc: '在 milestone.funded、milestone.released、demand.assigned 事件发生时实时接收 POST 回调。', webhookPlaceholder: 'https://你的服务器.com/webhooks/talengineer', webhookSetBtn: '保存 Webhook', webhookSaving: '保存中…', webhookConfigured: '已配置', webhookNone: '未配置 webhook', webhookSecretTitle: '⚠️ 保存您的 webhook 签名密钥 — 此后不再显示', webhookDocs: '开发者文档与验签示例 →' },
   es: { heroBadge: 'Empresarial', heroTitle: 'API de Talengineer', heroSub: 'Integre la búsqueda de talento de automatización industrial directamente en su ERP o sistema de compras.', keysTitle: 'Claves API', keysDesc: 'Las claves permiten a sus sistemas autenticarse con la API de Talengineer. Máximo 5 claves activas.', keyNamePlaceholder: 'Nombre de clave (ej. Integración ERP)', createBtn: '+ Crear Clave', creating: 'Creando…', noKeys: 'Sin claves API. Cree una arriba.', alertTitle: '⚠️ Guarde su clave API — no se mostrará de nuevo', copyBtn: 'Copiar Clave', copied: '✓ ¡Copiado!', dismissBtn: 'Lo guardé, cerrar', signInTitle: 'Inicie sesión para gestionar claves API', signInDesc: 'Necesita una cuenta de empleador para acceder a la API Empresarial.', signInBtn: 'Iniciar sesión', apiRefTitle: 'Referencia de API', planTitle: 'Límites del Plan', useCaseTitle: 'Casos de Uso', helpTitle: '¿Necesita ayuda?', helpDesc: 'Contacte a nuestro equipo empresarial para integraciones personalizadas.', contactBtn: 'Contactar Equipo Empresarial' },
   vi: { heroBadge: 'Doanh nghiệp', heroTitle: 'Talengineer API', heroSub: 'Tích hợp tuyển dụng kỹ sư tự động hóa trực tiếp vào hệ thống ERP hoặc mua sắm của bạn.', keysTitle: 'Khóa API', keysDesc: 'Khóa cho phép hệ thống của bạn xác thực với Talengineer API. Tối đa 5 khóa hoạt động.', keyNamePlaceholder: 'Tên khóa (vd: Tích hợp ERP)', createBtn: '+ Tạo Khóa', creating: 'Đang tạo…', noKeys: 'Chưa có khóa API. Tạo một khóa ở trên.', alertTitle: '⚠️ Lưu khóa API của bạn — sẽ không hiển thị lại', copyBtn: 'Sao chép Khóa', copied: '✓ Đã sao chép!', dismissBtn: 'Đã lưu, đóng', signInTitle: 'Đăng nhập để quản lý khóa API', signInDesc: 'Bạn cần tài khoản nhà tuyển dụng để truy cập API Doanh nghiệp.', signInBtn: 'Đăng nhập', apiRefTitle: 'Tài liệu API', planTitle: 'Giới hạn Gói', useCaseTitle: 'Trường hợp Sử dụng', helpTitle: 'Cần hỗ trợ?', helpDesc: 'Liên hệ nhóm doanh nghiệp để tích hợp tùy chỉnh, báo giá số lượng lớn hoặc thỏa thuận SLA.', contactBtn: 'Liên hệ Nhóm Doanh nghiệp' },
   hi: { heroBadge: 'एंटरप्राइज़', heroTitle: 'Talengineer API', heroSub: 'औद्योगिक ऑटोमेशन प्रतिभा सोर्सिंग को सीधे अपने ERP या खरीद प्रणाली में एकीकृत करें।', keysTitle: 'API कुंजियाँ', keysDesc: 'कुंजियाँ आपके सिस्टम को Talengineer API से प्रमाणित करती हैं। अधिकतम 5 सक्रिय कुंजियाँ।', keyNamePlaceholder: 'कुंजी का नाम (जैसे: ERP एकीकरण)', createBtn: '+ कुंजी बनाएं', creating: 'बना रहे हैं…', noKeys: 'अभी कोई API कुंजी नहीं। ऊपर बनाएं।', alertTitle: '⚠️ अपनी API कुंजी सहेजें — यह दोबारा नहीं दिखेगी', copyBtn: 'कुंजी कॉपी करें', copied: '✓ कॉपी हो गई!', dismissBtn: 'मैंने सहेज लिया, बंद करें', signInTitle: 'API कुंजियाँ प्रबंधित करने के लिए साइन इन करें', signInDesc: 'एंटरप्राइज़ API तक पहुंचने के लिए आपको एक नियोक्ता खाते की आवश्यकता है।', signInBtn: 'डैशबोर्ड में साइन इन करें', apiRefTitle: 'API संदर्भ', planTitle: 'प्लान सीमाएं', useCaseTitle: 'उपयोग के मामले', helpTitle: 'सहायता चाहिए?', helpDesc: 'कस्टम एकीकरण, वॉल्यूम मूल्य निर्धारण या SLA समझौतों के लिए हमारी टीम से संपर्क करें।', contactBtn: 'एंटरप्राइज़ टीम से संपर्क करें' },
@@ -29,6 +29,10 @@ export default function Enterprise() {
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState(null); // shown once after generation
   const [copied, setCopied] = useState(false);
+  const [webhookInputs, setWebhookInputs] = useState({}); // { [keyId]: url草稿 }
+  const [webhookBusyId, setWebhookBusyId] = useState(null); // 正在保存的 key id
+  const [webhookSecret, setWebhookSecret] = useState(null); // 生成后仅展示一次的签名密钥
+  const [secretCopied, setSecretCopied] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(LS_USER_KEY);
@@ -82,7 +86,34 @@ export default function Enterprise() {
     navigator.clipboard.writeText(newKey).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
-  const d = DICT[lang] || DICT.en;
+  // 为某个 key 配置 webhook：PUT /api/apikeys/:id/webhook，成功后拿到明文签名密钥（仅一次）。
+  async function saveWebhook(id) {
+    const url = (webhookInputs[id] || '').trim();
+    if (!url) return;
+    setWebhookBusyId(id);
+    try {
+      const res  = await fetch(`/api/apikeys/${id}/webhook`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ webhook_url: url }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Failed to save webhook'); return; }
+      setWebhookSecret(data.webhook_secret); // 明文密钥仅本次返回，弹横幅让用户立即保存
+      setWebhookInputs(prev => ({ ...prev, [id]: '' }));
+      loadKeys(currentUser.token);
+      toast.success('Webhook saved. Copy the signing secret now — it will not be shown again.');
+    } catch { toast.error('Network error.'); }
+    setWebhookBusyId(null);
+  }
+
+  function copySecret() {
+    navigator.clipboard.writeText(webhookSecret).then(() => { setSecretCopied(true); setTimeout(() => setSecretCopied(false), 2000); });
+  }
+
+  // 以英文为兜底底座合并当前语言：新加的 webhook 文案只补了 en/zh，
+  // 其它语言缺失的键会自动回退英文，避免界面出现 undefined。
+  const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
   return (
     <>
@@ -111,6 +142,16 @@ export default function Enterprise() {
                 <div className={styles.keyCode}>{newKey}</div>
                 <button className={styles.btnCopy} onClick={copyKey}>{copied ? d.copied : d.copyBtn}</button>
                 <button className={styles.btnDismiss} onClick={() => setNewKey(null)}>{d.dismissBtn}</button>
+              </div>
+            )}
+
+            {/* Webhook signing-secret banner —— 明文仅一次，语义同 API key 生成 */}
+            {webhookSecret && (
+              <div className={styles.keyAlert}>
+                <div className={styles.keyAlertTitle}>{d.webhookSecretTitle}</div>
+                <div className={styles.keyCode}>{webhookSecret}</div>
+                <button className={styles.btnCopy} onClick={copySecret}>{secretCopied ? d.copied : d.copyBtn}</button>
+                <button className={styles.btnDismiss} onClick={() => setWebhookSecret(null)}>{d.dismissBtn}</button>
               </div>
             )}
 
@@ -144,17 +185,53 @@ export default function Enterprise() {
                 ) : (
                   <div className={styles.keysList}>
                     {keys.map(k => (
-                      <div key={k.id} className={`${styles.keyRow} ${!k.active ? styles.keyRevoked : ''}`}>
-                        <div className={styles.keyInfo}>
-                          <div className={styles.keyName}>{k.name}</div>
-                          <div className={styles.keyMeta}>{k.key_prefix} · Created {new Date(k.created_at).toLocaleDateString()} {k.last_used ? `· Last used ${new Date(k.last_used).toLocaleDateString()}` : '· Never used'}</div>
+                      <div key={k.id}>
+                        <div className={`${styles.keyRow} ${!k.active ? styles.keyRevoked : ''}`}>
+                          <div className={styles.keyInfo}>
+                            <div className={styles.keyName}>{k.name}</div>
+                            <div className={styles.keyMeta}>{k.key_prefix} · Created {new Date(k.created_at).toLocaleDateString()} {k.last_used ? `· Last used ${new Date(k.last_used).toLocaleDateString()}` : '· Never used'}</div>
+                          </div>
+                          <div className={styles.keyStatus}>
+                            {k.active
+                              ? <><span className={styles.badgeActive}>Active</span><button className={styles.btnRevoke} onClick={() => revokeKey(k.id)}>Revoke</button></>
+                              : <span className={styles.badgeRevoked}>Revoked</span>
+                            }
+                          </div>
                         </div>
-                        <div className={styles.keyStatus}>
-                          {k.active
-                            ? <><span className={styles.badgeActive}>Active</span><button className={styles.btnRevoke} onClick={() => revokeKey(k.id)}>Revoke</button></>
-                            : <span className={styles.badgeRevoked}>Revoked</span>
-                          }
-                        </div>
+
+                        {/* Webhook 配置（仅有效 key）：显示当前地址 + 设置/更新入口 */}
+                        {k.active && (
+                          <div style={{ padding: '8px 14px 14px', marginTop: -6, marginBottom: 10, fontSize: 13, color: 'var(--muted)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                              <span>
+                                <strong style={{ color: 'var(--text)' }}>{d.webhookLabel}</strong>{' · '}
+                                {k.webhook_url
+                                  ? <span style={{ color: 'var(--text)' }}>{d.webhookConfigured}: <code style={{ wordBreak: 'break-all' }}>{k.webhook_url}</code></span>
+                                  : d.webhookNone}
+                              </span>
+                              <Link href="/developers" style={{ color: 'var(--primary)', fontSize: 12 }}>{d.webhookDocs}</Link>
+                            </div>
+                            <div style={{ marginBottom: 6 }}>{d.webhookDesc}</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <input
+                                type="url"
+                                placeholder={d.webhookPlaceholder}
+                                value={webhookInputs[k.id] || ''}
+                                onChange={e => setWebhookInputs(prev => ({ ...prev, [k.id]: e.target.value }))}
+                                className={styles.input}
+                                style={{ flex: 1, minWidth: 220 }}
+                              />
+                              <button
+                                type="button"
+                                className={styles.btnCreate}
+                                disabled={webhookBusyId === k.id || !(webhookInputs[k.id] || '').trim()}
+                                onClick={() => saveWebhook(k.id)}
+                              >
+                                {webhookBusyId === k.id ? d.webhookSaving : d.webhookSetBtn}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

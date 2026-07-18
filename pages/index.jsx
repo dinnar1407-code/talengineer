@@ -124,9 +124,9 @@ const DICT = {
     // Resources
     resH2: 'From the resource center', resAll: 'All guides →',
     resources: [
-      { tag: 'Hiring guide', title: 'PLC Programmer Hourly Rates in 2026: A Regional Breakdown', teaser: 'What Siemens vs. Rockwell expertise costs across six regions, and when offshore makes sense.', href: '/rates' },
-      { tag: 'Playbook', title: 'Remote Commissioning: How OEMs Ship Machines Without Flying Engineers', teaser: 'A milestone-based playbook for FAT/SAT with local verified talent on the ground.', href: '/talent' },
-      { tag: 'For engineers', title: 'Passing the AI Technical Screener: What We Actually Test', teaser: 'Inside the practical assessment — ladder logic, HMI design, safety circuits, and more.', href: '/talent' },
+      { tag: 'Hiring guide', title: 'PLC Programmer Hourly Rates in 2026: A Regional Breakdown', teaser: 'What Siemens vs. Rockwell expertise costs across six regions, and when offshore makes sense.', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'Playbook', title: 'Remote Commissioning: How OEMs Ship Machines Without Flying Engineers', teaser: 'A milestone-based playbook for FAT/SAT with local verified talent on the ground.', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'For engineers', title: 'Passing the AI Technical Screener: What We Actually Test', teaser: 'Inside the practical assessment — ladder logic, HMI design, safety circuits, and more.', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: 'Your next automation project starts here',
@@ -254,9 +254,9 @@ const DICT = {
     // Resources
     resH2: '来自资源中心', resAll: '全部指南 →',
     resources: [
-      { tag: '招聘指南', title: '2026 年 PLC 程序员时薪：分地区详解', teaser: '西门子与罗克韦尔技能在六大地区的价格，以及何时值得离岸外包。', href: '/rates' },
-      { tag: '实操手册', title: '远程调试：设备厂商如何不派工程师就交付机器', teaser: '用本地认证人才完成 FAT/SAT 的里程碑式实操手册。', href: '/talent' },
-      { tag: '面向工程师', title: '通过 AI 技术筛选：我们究竟考什么', teaser: '深入这套实操测评——梯形图逻辑、HMI 设计、安全回路等等。', href: '/talent' },
+      { tag: '招聘指南', title: '2026 年 PLC 程序员时薪：分地区详解', teaser: '西门子与罗克韦尔技能在六大地区的价格，以及何时值得离岸外包。', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: '实操手册', title: '远程调试：设备厂商如何不派工程师就交付机器', teaser: '用本地认证人才完成 FAT/SAT 的里程碑式实操手册。', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: '面向工程师', title: '通过 AI 技术筛选：我们究竟考什么', teaser: '深入这套实操测评——梯形图逻辑、HMI 设计、安全回路等等。', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: '你的下一个自动化项目，从这里开始',
@@ -384,9 +384,9 @@ const DICT = {
     // Resources
     resH2: 'Del centro de recursos', resAll: 'Todas las guías →',
     resources: [
-      { tag: 'Guía de contratación', title: 'Tarifas por hora de programadores de PLC en 2026: desglose por región', teaser: 'Cuánto cuesta la experiencia en Siemens frente a Rockwell en seis regiones, y cuándo tiene sentido el offshore.', href: '/rates' },
-      { tag: 'Manual', title: 'Puesta en marcha remota: cómo los OEM entregan máquinas sin enviar ingenieros', teaser: 'Un manual basado en hitos para FAT/SAT con talento local verificado sobre el terreno.', href: '/talent' },
-      { tag: 'Para ingenieros', title: 'Superar el evaluador técnico de IA: qué evaluamos realmente', teaser: 'Por dentro de la prueba práctica: lógica de escalera, diseño de HMI, circuitos de seguridad y más.', href: '/talent' },
+      { tag: 'Guía de contratación', title: 'Tarifas por hora de programadores de PLC en 2026: desglose por región', teaser: 'Cuánto cuesta la experiencia en Siemens frente a Rockwell en seis regiones, y cuándo tiene sentido el offshore.', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'Manual', title: 'Puesta en marcha remota: cómo los OEM entregan máquinas sin enviar ingenieros', teaser: 'Un manual basado en hitos para FAT/SAT con talento local verificado sobre el terreno.', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'Para ingenieros', title: 'Superar el evaluador técnico de IA: qué evaluamos realmente', teaser: 'Por dentro de la prueba práctica: lógica de escalera, diseño de HMI, circuitos de seguridad y más.', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: 'Tu próximo proyecto de automatización empieza aquí',
@@ -514,9 +514,9 @@ const DICT = {
     // Resources
     resH2: 'Từ trung tâm tài nguyên', resAll: 'Tất cả hướng dẫn →',
     resources: [
-      { tag: 'Hướng dẫn tuyển dụng', title: 'Mức lương theo giờ của lập trình viên PLC năm 2026: phân tích theo khu vực', teaser: 'Chuyên môn Siemens so với Rockwell tốn bao nhiêu ở sáu khu vực, và khi nào thuê ngoài nước ngoài là hợp lý.', href: '/rates' },
-      { tag: 'Cẩm nang', title: 'Chạy thử từ xa: Cách các OEM giao máy mà không cần bay kỹ sư', teaser: 'Một cẩm nang theo cột mốc cho FAT/SAT với nhân tài bản địa đã xác minh tại hiện trường.', href: '/talent' },
-      { tag: 'Dành cho kỹ sư', title: 'Vượt qua Sàng lọc Kỹ thuật AI: Chúng tôi thực sự kiểm tra gì', teaser: 'Bên trong bài đánh giá thực hành — logic bậc thang, thiết kế HMI, mạch an toàn và hơn thế nữa.', href: '/talent' },
+      { tag: 'Hướng dẫn tuyển dụng', title: 'Mức lương theo giờ của lập trình viên PLC năm 2026: phân tích theo khu vực', teaser: 'Chuyên môn Siemens so với Rockwell tốn bao nhiêu ở sáu khu vực, và khi nào thuê ngoài nước ngoài là hợp lý.', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'Cẩm nang', title: 'Chạy thử từ xa: Cách các OEM giao máy mà không cần bay kỹ sư', teaser: 'Một cẩm nang theo cột mốc cho FAT/SAT với nhân tài bản địa đã xác minh tại hiện trường.', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'Dành cho kỹ sư', title: 'Vượt qua Sàng lọc Kỹ thuật AI: Chúng tôi thực sự kiểm tra gì', teaser: 'Bên trong bài đánh giá thực hành — logic bậc thang, thiết kế HMI, mạch an toàn và hơn thế nữa.', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: 'Dự án tự động hóa tiếp theo của bạn bắt đầu tại đây',
@@ -644,9 +644,9 @@ const DICT = {
     // Resources
     resH2: 'संसाधन केंद्र से', resAll: 'सभी गाइड →',
     resources: [
-      { tag: 'भर्ती गाइड', title: '2026 में PLC प्रोग्रामर की प्रति घंटा दरें: क्षेत्रवार विश्लेषण', teaser: 'छह क्षेत्रों में Siemens बनाम Rockwell विशेषज्ञता की लागत, और कब ऑफशोर समझदारी है।', href: '/rates' },
-      { tag: 'प्लेबुक', title: 'दूरस्थ कमीशनिंग: OEM बिना इंजीनियर भेजे मशीनें कैसे डिलीवर करते हैं', teaser: 'ज़मीन पर सत्यापित स्थानीय प्रतिभा के साथ FAT/SAT के लिए माइलस्टोन-आधारित प्लेबुक।', href: '/talent' },
-      { tag: 'इंजीनियरों के लिए', title: 'AI तकनीकी स्क्रीनर पास करना: हम वास्तव में क्या परखते हैं', teaser: 'व्यावहारिक मूल्यांकन के भीतर — लैडर लॉजिक, HMI डिज़ाइन, सुरक्षा सर्किट और अधिक।', href: '/talent' },
+      { tag: 'भर्ती गाइड', title: '2026 में PLC प्रोग्रामर की प्रति घंटा दरें: क्षेत्रवार विश्लेषण', teaser: 'छह क्षेत्रों में Siemens बनाम Rockwell विशेषज्ञता की लागत, और कब ऑफशोर समझदारी है।', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'प्लेबुक', title: 'दूरस्थ कमीशनिंग: OEM बिना इंजीनियर भेजे मशीनें कैसे डिलीवर करते हैं', teaser: 'ज़मीन पर सत्यापित स्थानीय प्रतिभा के साथ FAT/SAT के लिए माइलस्टोन-आधारित प्लेबुक।', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'इंजीनियरों के लिए', title: 'AI तकनीकी स्क्रीनर पास करना: हम वास्तव में क्या परखते हैं', teaser: 'व्यावहारिक मूल्यांकन के भीतर — लैडर लॉजिक, HMI डिज़ाइन, सुरक्षा सर्किट और अधिक।', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: 'आपका अगला स्वचालन प्रोजेक्ट यहीं से शुरू होता है',
@@ -774,9 +774,9 @@ const DICT = {
     // Resources
     resH2: 'Depuis le centre de ressources', resAll: 'Tous les guides →',
     resources: [
-      { tag: 'Guide de recrutement', title: 'Tarifs horaires des programmeurs PLC en 2026 : analyse par région', teaser: "Ce que coûte l'expertise Siemens vs Rockwell dans six régions, et quand l'offshore a du sens.", href: '/rates' },
-      { tag: 'Playbook', title: "Mise en service à distance : comment les OEM livrent des machines sans envoyer d'ingénieurs", teaser: "Un playbook par jalons pour les FAT/SAT avec des talents locaux vérifiés sur le terrain.", href: '/talent' },
-      { tag: 'Pour les ingénieurs', title: "Réussir l'évaluateur technique IA : ce que nous testons vraiment", teaser: "Au cœur de l'évaluation pratique — logique à contacts, conception HMI, circuits de sécurité et plus.", href: '/talent' },
+      { tag: 'Guide de recrutement', title: 'Tarifs horaires des programmeurs PLC en 2026 : analyse par région', teaser: "Ce que coûte l'expertise Siemens vs Rockwell dans six régions, et quand l'offshore a du sens.", href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'Playbook', title: "Mise en service à distance : comment les OEM livrent des machines sans envoyer d'ingénieurs", teaser: "Un playbook par jalons pour les FAT/SAT avec des talents locaux vérifiés sur le terrain.", href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'Pour les ingénieurs', title: "Réussir l'évaluateur technique IA : ce que nous testons vraiment", teaser: "Au cœur de l'évaluation pratique — logique à contacts, conception HMI, circuits de sécurité et plus.", href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: "Votre prochain projet d'automatisation commence ici",
@@ -904,9 +904,9 @@ const DICT = {
     // Resources
     resH2: 'Aus dem Ressourcenzentrum', resAll: 'Alle Leitfäden →',
     resources: [
-      { tag: 'Einstellungsleitfaden', title: 'PLC-Programmierer-Stundensätze 2026: Eine regionale Übersicht', teaser: 'Was Siemens- vs. Rockwell-Expertise in sechs Regionen kostet und wann Offshore sinnvoll ist.', href: '/rates' },
-      { tag: 'Playbook', title: 'Ferninbetriebnahme: Wie OEMs Maschinen ausliefern, ohne Ingenieure einzufliegen', teaser: 'Ein meilensteinbasiertes Playbook für FAT/SAT mit verifizierten lokalen Talenten vor Ort.', href: '/talent' },
-      { tag: 'Für Ingenieure', title: 'Den KI-Techniktest bestehen: Was wir wirklich prüfen', teaser: 'Ein Blick ins praxisnahe Assessment — Kontaktplanlogik, HMI-Design, Sicherheitsschaltungen und mehr.', href: '/talent' },
+      { tag: 'Einstellungsleitfaden', title: 'PLC-Programmierer-Stundensätze 2026: Eine regionale Übersicht', teaser: 'Was Siemens- vs. Rockwell-Expertise in sechs Regionen kostet und wann Offshore sinnvoll ist.', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'Playbook', title: 'Ferninbetriebnahme: Wie OEMs Maschinen ausliefern, ohne Ingenieure einzufliegen', teaser: 'Ein meilensteinbasiertes Playbook für FAT/SAT mit verifizierten lokalen Talenten vor Ort.', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'Für Ingenieure', title: 'Den KI-Techniktest bestehen: Was wir wirklich prüfen', teaser: 'Ein Blick ins praxisnahe Assessment — Kontaktplanlogik, HMI-Design, Sicherheitsschaltungen und mehr.', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: 'Ihr nächstes Automatisierungsprojekt beginnt hier',
@@ -1034,9 +1034,9 @@ const DICT = {
     // Resources
     resH2: 'リソースセンターより', resAll: 'すべてのガイド →',
     resources: [
-      { tag: '採用ガイド', title: '2026年のPLCプログラマー時間料金：地域別の内訳', teaser: 'SiemensとRockwellの専門知識が6地域でいくらかかるか、そしてオフショアが理にかなうのはいつか。', href: '/rates' },
-      { tag: 'プレイブック', title: 'リモート試運転：OEMがエンジニアを派遣せずに機械を出荷する方法', teaser: '現地の検証済み人材でFAT/SATを行うためのマイルストーンベースのプレイブック。', href: '/talent' },
-      { tag: 'エンジニア向け', title: 'AI技術スクリーナー合格：私たちが実際にテストすること', teaser: '実践的な評価の内側——ラダーロジック、HMI設計、安全回路など。', href: '/talent' },
+      { tag: '採用ガイド', title: '2026年のPLCプログラマー時間料金：地域別の内訳', teaser: 'SiemensとRockwellの専門知識が6地域でいくらかかるか、そしてオフショアが理にかなうのはいつか。', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: 'プレイブック', title: 'リモート試運転：OEMがエンジニアを派遣せずに機械を出荷する方法', teaser: '現地の検証済み人材でFAT/SATを行うためのマイルストーンベースのプレイブック。', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: 'エンジニア向け', title: 'AI技術スクリーナー合格：私たちが実際にテストすること', teaser: '実践的な評価の内側——ラダーロジック、HMI設計、安全回路など。', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: '次のオートメーションプロジェクトはここから始まる',
@@ -1164,9 +1164,9 @@ const DICT = {
     // Resources
     resH2: '리소스 센터에서', resAll: '전체 가이드 →',
     resources: [
-      { tag: '채용 가이드', title: '2026년 PLC 프로그래머 시급: 지역별 분석', teaser: '여섯 개 지역에서 Siemens와 Rockwell 전문성의 비용, 그리고 오프쇼어가 합리적인 시점.', href: '/rates' },
-      { tag: '플레이북', title: '원격 시운전: OEM이 엔지니어를 파견하지 않고 기계를 출하하는 방법', teaser: '현장의 검증된 현지 인재와 함께하는 FAT/SAT를 위한 마일스톤 기반 플레이북.', href: '/talent' },
-      { tag: '엔지니어용', title: 'AI 기술 스크리너 통과: 우리가 실제로 시험하는 것', teaser: '실무 평가 내부 — 래더 로직, HMI 설계, 안전 회로 등.', href: '/talent' },
+      { tag: '채용 가이드', title: '2026년 PLC 프로그래머 시급: 지역별 분석', teaser: '여섯 개 지역에서 Siemens와 Rockwell 전문성의 비용, 그리고 오프쇼어가 합리적인 시점.', href: '/playbook/plc-programmer-hourly-rates-2026' },
+      { tag: '플레이북', title: '원격 시운전: OEM이 엔지니어를 파견하지 않고 기계를 출하하는 방법', teaser: '현장의 검증된 현지 인재와 함께하는 FAT/SAT를 위한 마일스톤 기반 플레이북.', href: '/playbook/robot-cell-commissioning-guide' },
+      { tag: '엔지니어용', title: 'AI 기술 스크리너 통과: 우리가 실제로 시험하는 것', teaser: '실무 평가 내부 — 래더 로직, HMI 설계, 안전 회로 등.', href: '/playbook/platform-certification-explained' },
     ],
     // Final CTA
     ctaH2: '당신의 다음 자동화 프로젝트가 여기서 시작됩니다',
@@ -1294,6 +1294,17 @@ export default function Home() {
           name="description"
           content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers — screened with a practical AI assessment and certified through platform exams. Milestone escrow protects both sides; an AI project manager works in nine languages."
         />
+        {/* 规范链接 + Open Graph / Twitter 分享卡（og.png 由 scripts/gen-og.js 生成）*/}
+        <link rel="canonical" href="https://talengineer.us/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Talengineer | AI-Verified Industrial Automation Talent, Without Borders" />
+        <meta property="og:description" content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers. Milestone escrow protects both sides; an AI project manager works in nine languages." />
+        <meta property="og:url" content="https://talengineer.us/" />
+        <meta property="og:image" content="https://talengineer.us/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Talengineer | AI-Verified Industrial Automation Talent" />
+        <meta name="twitter:description" content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers. Milestone escrow protects both sides." />
+        <meta name="twitter:image" content="https://talengineer.us/og.png" />
         {/* 品牌字体：Archivo（标题/字标）、IBM Plex Sans（正文）、IBM Plex Mono（数字/kicker）*/}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -1614,7 +1625,7 @@ export default function Home() {
             <div className={styles.container}>
               <div className={styles.sectionHead}>
                 <h2 className={`${styles.h2} ${styles.h2Sm}`}>{d.resH2}</h2>
-                <Link href="/rates" className={styles.headLink}>{d.resAll}</Link>
+                <Link href="/playbook" className={styles.headLink}>{d.resAll}</Link>
               </div>
               <div className={styles.resGrid}>
                 {d.resources.map((r, i) => (
