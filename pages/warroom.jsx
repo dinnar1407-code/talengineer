@@ -267,16 +267,29 @@ export default function WarRoom() {
   // 三个触发源都尝试重发：①加入房间 ②window 'online'（回网）③socket 'connect'（重连）
   useEffect(() => {
     if (!joined) return undefined;
-    replayPending();
-    const onOnline = () => replayPending();
-    window.addEventListener('online', onOnline);
     const socket = socketRef.current;
-    if (socket) socket.on('connect', replayPending);
+
+    // 重连处理器：掉线重连后是新服务端 socket，不在 project_X 房间，直接 emit 会被 inProjectRoom
+    // 守卫拒收不落库，而紧跟的 markDone 会无条件清队列 → 静默丢数据。必须先重进房间再重发；
+    // socket.io 每 socket 保序，joinRoom 先于重发被服务端处理（与首次 join 路径一致）。
+    const onConnect = () => {
+      if (socketRef.current) socketRef.current.emit('joinRoom', { projectId });
+      replayPending();
+    };
+    // 回网处理器：online 可能早于 socket 重连触发。只有 socket 已连接（房间仍在）才直接重发，
+    // 否则不动，交给随后的 connect 处理器兜底（它会先重进房间），避免打到尚未入房的新 socket。
+    const onOnline = () => {
+      if (socketRef.current?.connected) replayPending();
+    };
+
+    replayPending(); // ① 加入房间即刻尝试（首次 join 路径：joinRoom 已在 joinRoom() 里 emit）
+    window.addEventListener('online', onOnline);
+    if (socket) socket.on('connect', onConnect);
     return () => {
       window.removeEventListener('online', onOnline);
-      if (socket) socket.off('connect', replayPending);
+      if (socket) socket.off('connect', onConnect);
     };
-  }, [joined, replayPending]);
+  }, [joined, replayPending, projectId]);
 
   function joinRoom(e) {
     e.preventDefault();
