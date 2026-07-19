@@ -3,6 +3,9 @@ title: 越南产线迁移的工程师配置指南
 description: 把产线从中国迁往越南时，如何配置自动化工程师团队——越南本地人才特点、Siemens 平台优势、费率区间、认证筛选与跨境付款保障。
 date: 2026-07-10
 lang: zh
+type: guide
+track: general
+audience: employer
 slug: vietnam-production-line-migration
 ---
 

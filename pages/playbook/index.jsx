@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
@@ -18,18 +19,39 @@ const DICT = {
     title: 'Guides for hiring and managing automation talent',
     sub: 'Practical, no-fluff guides on rates, hiring, certification, and cross-border delivery for industrial automation projects.',
     read: 'Read guide →',
+    typeAll: 'All',
+    typeLabels: { guide: 'Guide', 'market-data': 'Market Data', certification: 'Certification', case: 'Case Study' },
   },
   zh: {
     kicker: 'Talengineer 实战指南',
     title: '自动化人才招聘与管理指南',
     sub: '关于费率、招聘、认证与跨境交付的实操型指南，专为工业自动化项目而写。',
     read: '阅读指南 →',
+    typeAll: '全部',
+    typeLabels: { guide: '指南', 'market-data': '市场数据', certification: '认证解读', case: '案例' },
   },
 };
 
+// 类型筛选的展示顺序（内容 taxonomy，竞对改善 W1-2）。
+const TYPE_ORDER = ['guide', 'market-data', 'certification', 'case'];
+
 export default function PlaybookIndex({ groups }) {
   const [lang, setLang] = useLang();
+  const [typeFilter, setTypeFilter] = useState('');
   const d = DICT[lang] || DICT.en;
+
+  // 按类型客户端过滤；只展示筛选后仍有文章的语言组。
+  const visibleGroups = groups
+    .map((g) => ({
+      ...g,
+      articles: typeFilter ? g.articles.filter((a) => a.type === typeFilter) : g.articles,
+    }))
+    .filter((g) => g.articles.length > 0);
+
+  // 只给实际存在的类型出筛选 chip，避免空筛选项。
+  const presentTypes = TYPE_ORDER.filter((t) =>
+    groups.some((g) => g.articles.some((a) => a.type === t))
+  );
 
   const pageTitle = 'Automation Hiring Playbook | Talengineer';
   const pageDesc =
@@ -64,7 +86,27 @@ export default function PlaybookIndex({ groups }) {
       </div>
 
       <div className={styles.container}>
-        {groups.map((group) => (
+        {presentTypes.length > 1 && (
+          <div className={styles.typeChips}>
+            <button
+              className={`${styles.chip} ${typeFilter === '' ? styles.chipActive : ''}`}
+              onClick={() => setTypeFilter('')}
+            >
+              {d.typeAll}
+            </button>
+            {presentTypes.map((t) => (
+              <button
+                key={t}
+                className={`${styles.chip} ${typeFilter === t ? styles.chipActive : ''}`}
+                onClick={() => setTypeFilter(t)}
+              >
+                {d.typeLabels[t] || t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {visibleGroups.map((group) => (
           <section key={group.lang}>
             <h2 className={styles.groupTitle}>
               {LANG_LABEL[group.lang] || group.lang}
@@ -72,7 +114,10 @@ export default function PlaybookIndex({ groups }) {
             <div className={styles.grid}>
               {group.articles.map((a) => (
                 <Link key={a.slug} href={`/playbook/${a.slug}`} className={styles.card}>
-                  {a.date && <span className={styles.cardDate}>{a.date}</span>}
+                  <span className={styles.cardMeta}>
+                    {a.date && <span className={styles.cardDate}>{a.date}</span>}
+                    <span className={styles.cardType}>{d.typeLabels[a.type] || a.type}</span>
+                  </span>
                   <b className={styles.cardTitle}>{a.title}</b>
                   <span className={styles.cardDesc}>{a.description}</span>
                   <span className={styles.cardMore}>{d.read}</span>

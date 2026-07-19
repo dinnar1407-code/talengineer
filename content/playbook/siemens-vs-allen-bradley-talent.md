@@ -3,6 +3,9 @@ title: Siemens vs. Allen-Bradley: Talent Availability in 2026
 description: A regional look at where Siemens and Allen-Bradley (Rockwell) controls talent actually lives in 2026, what each ecosystem costs, and how to hire the right match for your installed base.
 date: 2026-07-15
 lang: en
+type: market-data
+track: plc
+audience: employer
 slug: siemens-vs-allen-bradley-talent
 ---
 

@@ -3,6 +3,9 @@ title: Robot Cell Commissioning: What to Expect
 description: A milestone-by-milestone guide to robot cell commissioning — from mechanical install and I/O checkout through safety validation, cycle-time tuning, and production handover.
 date: 2026-07-13
 lang: en
+type: guide
+track: robotics
+audience: both
 slug: robot-cell-commissioning-guide
 ---
 

@@ -3,6 +3,9 @@ title: 出海工厂"远程+驻场"混合用人模式
 description: 出海工厂如何用"远程开发 + 关键驻场"的混合模式配置自动化工程师，既控成本又保交付质量——阶段拆分、成本结构、协作工具与托管付款。
 date: 2026-07-09
 lang: zh
+type: guide
+track: general
+audience: employer
 slug: offshore-factory-remote-onsite-hybrid
 ---
 

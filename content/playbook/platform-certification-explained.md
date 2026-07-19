@@ -3,6 +3,9 @@ title: What TalEngineer Platform Certification Means
 description: How TalEngineer verifies automation engineers — the practical AI screener, the four certification tracks, the three levels, and why only certified engineers can be assigned to work.
 date: 2026-07-12
 lang: en
+type: certification
+track: general
+audience: both
 slug: platform-certification-explained
 ---
 

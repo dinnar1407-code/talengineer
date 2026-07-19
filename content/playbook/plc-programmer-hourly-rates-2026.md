@@ -3,6 +3,9 @@ title: PLC Programmer Hourly Rates in 2026: A Regional Breakdown
 description: What PLC programmers actually cost per hour across six regions in 2026, how Siemens vs. Rockwell skills change the number, and when offshore or nearshore hiring pays off.
 date: 2026-07-17
 lang: en
+type: market-data
+track: plc
+audience: employer
 slug: plc-programmer-hourly-rates-2026
 ---
 

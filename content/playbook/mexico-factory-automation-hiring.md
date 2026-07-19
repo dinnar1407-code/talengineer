@@ -3,6 +3,9 @@ title: 墨西哥建厂：自动化工程师怎么找
 description: 中国制造企业在墨西哥建厂时，如何找到合适的自动化工程师——本地人才现状、平台匹配、费率区间、认证与托管付款如何降低跨境用人风险。
 date: 2026-07-11
 lang: zh
+type: guide
+track: general
+audience: employer
 slug: mexico-factory-automation-hiring
 ---
 

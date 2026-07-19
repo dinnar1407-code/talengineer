@@ -3,6 +3,9 @@ title: The SCADA Integrator Due-Diligence Checklist
 description: A practical checklist for vetting a SCADA integrator before you sign — covering platform depth, architecture, security, documentation, references, and payment structure.
 date: 2026-07-14
 lang: en
+type: guide
+track: plc
+audience: employer
 slug: scada-integrator-due-diligence-checklist
 ---
 

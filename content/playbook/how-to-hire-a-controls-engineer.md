@@ -3,6 +3,9 @@ title: How to Hire a Controls Engineer (Without Getting Burned)
 description: A practical, step-by-step guide to hiring a controls engineer — how to scope the role, screen for real skill, structure milestones, and protect payment across borders.
 date: 2026-07-16
 lang: en
+type: guide
+track: plc
+audience: employer
 slug: how-to-hire-a-controls-engineer
 ---
 

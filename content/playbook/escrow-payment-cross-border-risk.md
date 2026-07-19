@@ -3,6 +3,9 @@ title: 托管付款如何降低跨境用人风险
 description: 跨境雇佣自动化工程师时，里程碑托管付款如何同时保护雇主和工程师——它解决什么问题、怎么运作、纠纷如何处理，以及平台费用如何构成。
 date: 2026-07-08
 lang: zh
+type: guide
+track: general
+audience: employer
 slug: escrow-payment-cross-border-risk
 ---
 
