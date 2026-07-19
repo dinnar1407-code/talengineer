@@ -1,0 +1,353 @@
+/* 认证漏斗页样式。颜色全部走全站语义 token，浅深色自动跟随。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.heroBtns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.btnGhost {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.16s ease;
+}
+
+.btnGhost:hover {
+  border-color: var(--primary);
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.block {
+  margin-bottom: 48px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0 0 20px;
+}
+
+.leadMuted {
+  color: var(--text-muted);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 14px;
+  line-height: 1.6;
+}
+
+/* ── 4×3 认证矩阵 ─────────────────────────────────────────────── */
+.matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.matrixRow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.matrixTrack {
+  flex: 0 0 150px;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.matrixCells {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.matrixCell {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.cellLevel {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.cellDesc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── 认证漏斗（步骤条）───────────────────────────────────────── */
+.funnel {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.funnelStep {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  padding: 0 0 22px 0;
+}
+
+/* 竖向连线：把每步串成漏斗 */
+.funnelStep::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 36px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--border);
+}
+
+.funnelStep:last-child {
+  padding-bottom: 0;
+}
+
+.funnelStep:last-child::before {
+  display: none;
+}
+
+.funnelNum {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.funnelBody {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.funnelName {
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.funnelGate {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── 反作弊设计 ───────────────────────────────────────────────── */
+.antiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.antiCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+
+.antiCardTitle {
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.antiBody {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 与 /training 的关系 ──────────────────────────────────────── */
+.relCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 12px;
+  padding: 26px 28px;
+}
+
+.relTitle {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.relBody {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: 0 0 18px;
+}
+
+/* ── 底部 CTA ─────────────────────────────────────────────────── */
+.finalCta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px;
+  text-align: center;
+}
+
+.finalCta h2 {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.finalCta p {
+  color: var(--text-muted);
+  font-size: 17px;
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+.footer {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--primary);
+}
+
+/* ── 移动端：矩阵行竖排，level 单列 ──────────────────────────── */
+@media (max-width: 640px) {
+  .hero { padding: 48px 18px 36px; }
+  .container { padding: 36px 18px 32px; }
+  .matrixRow { flex-direction: column; }
+  .matrixTrack {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0 0 10px;
+    margin-bottom: 4px;
+  }
+  .matrixCells { grid-template-columns: 1fr; }
+}
