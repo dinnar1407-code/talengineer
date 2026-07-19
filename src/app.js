@@ -128,6 +128,8 @@ const pipelineRoutes       = require('./routes/pipeline');
 const pushRoutes           = require('./routes/push');
 const entV1Routes          = require('./routes/entV1');
 const newsletterRoutes     = require('./routes/newsletter');
+const agentRoutes          = require('./routes/agent');
+const mcpRoutes            = require('./routes/mcp');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -153,6 +155,8 @@ app.use('/api/pipeline',        pipelineRoutes);
 app.use('/api/push',            pushRoutes);
 app.use('/api/v1/ent',          entV1Routes);
 app.use('/api/newsletter',      newsletterRoutes);
+app.use('/api/agent',           agentRoutes);
+app.use('/api/mcp',             mcpRoutes);
 
 // 未匹配的 /api/* 统一返回 404 JSON，避免落入下面的 catch-all 被当成页面返回 200 HTML
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
