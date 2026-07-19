@@ -15,8 +15,11 @@ Positioning — two parallel lines:
 - [Certification](https://talengineer.us/certification): 4 tracks (PLC / Robotics / Machine Vision / Electrical) × levels L1–L3. Timed 40-minute exam (10 questions: multiple-choice + scenario + deep analysis), AI-graded then human-reviewed before any certificate is issued. Only certified engineers can be assigned to projects — certification is an assignment gate, not a badge.
 - [TalScore](https://talengineer.us/talscore): public quality-score algorithm (0–100): AI screening 25 + platform certification 25 + client ratings 30 (Bayesian-averaged to resist rating manipulation) + reliability 20 (dispute rate above 10% zeroes the dimension). Badge tiers: platinum ≥85, gold ≥70, silver ≥55, bronze below.
 - [Trust Center](https://talengineer.us/trust): milestone escrow flow, refund path back to the employer, evidence-based dispute process, KYC / W-9 / insurance (COI) verification, GPS-geofenced check-ins and photo QC as an on-site delivery evidence chain.
-- [Hire by specialty](https://talengineer.us/hire/plc): dedicated landing pages for PLC (/hire/plc), robotics (/hire/robotics), machine vision (/hire/vision), and electrical (/hire/electrical), each with regional rate ranges and certification details.
-- [Playbook](https://talengineer.us/playbook): guides on hiring and working with industrial automation talent.
+- [Cost calculator](https://talengineer.us/calculator): free interactive tool — pick a specialty, region, and estimated hours to compare platform-certified engineer costs (live rate data) against local full-time hiring.
+- [Case studies](https://talengineer.us/case-studies): delivery case studies from founding-cohort projects (published as each order completes).
+- [Hire by specialty](https://talengineer.us/hire/plc): dedicated landing pages for PLC (/hire/plc), robotics (/hire/robotics), machine vision (/hire/vision), and electrical (/hire/electrical), each with regional rate ranges and certification details. Industry-specific pages: /hire/plc/automotive, /hire/plc/semiconductor, /hire/plc/food-beverage, /hire/plc/pharma, /hire/robotics/automotive, /hire/robotics/3c-electronics, /hire/vision/semiconductor, /hire/vision/packaging.
+- [Plant-buildout hiring guides](https://talengineer.us/guides/mexico): country guides for manufacturers building plants abroad — Mexico (/guides/mexico), Vietnam (/guides/vietnam), Thailand (/guides/thailand) — covering local automation-talent supply, cross-border hybrid staffing, and regional rates.
+- [Playbook](https://talengineer.us/playbook): guides on hiring and working with industrial automation talent, tagged by type (guide / market data / certification / case study), track, and audience.
 
 ## For AI agents & developers
 

@@ -1,6 +1,8 @@
 // Dynamic sitemap for SEO
 // Generates XML sitemap including engineer profile pages and project pages
 import { getAllPlaybookMeta } from '../lib/playbook';
+import { getMatrixPaths } from '../lib/hireMatrix';
+import { getGuidePaths } from '../lib/regionGuides';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
@@ -42,6 +44,16 @@ export async function getServerSideProps({ res }) {
     ...HIRE_TRACKS.map(track => ({
       url: `/hire/${track}`, priority: '0.7', changefreq: 'monthly',
     })),
+    // W1-1 垂直页矩阵（方向×行业）与建厂地域指南：路由枚举复用页面同一数据源，防漂移
+    ...getMatrixPaths().map(({ params }) => ({
+      url: `/hire/${params.track}/${params.industry}`, priority: '0.7', changefreq: 'monthly',
+    })),
+    ...getGuidePaths().map(({ params }) => ({
+      url: `/guides/${params.region}`, priority: '0.7', changefreq: 'monthly',
+    })),
+    // W1-3/W1-5 增长基建页
+    { url: '/calculator',   priority: '0.7', changefreq: 'monthly' },
+    { url: '/case-studies', priority: '0.6', changefreq: 'weekly' },
   ];
 
   // 内容引擎文章页：以 frontmatter 的 date 作为 lastmod。
