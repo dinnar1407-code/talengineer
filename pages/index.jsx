@@ -139,7 +139,7 @@ const DICT = {
     footerHire: [
       { label: 'Find Engineers', href: '/talent' }, { label: 'Post a Project', href: '/talent' },
       { label: 'Rate Benchmarks', href: '/rates' }, { label: 'Enterprise API', href: '/enterprise' },
-      { label: 'Pricing', href: '/pricing' },
+      { label: 'Pricing', href: '/pricing' }, { label: 'Cost Calculator', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'Apply to Join', href: '/talent' }, { label: 'AI Screener', href: '/talent' },
@@ -153,7 +153,7 @@ const DICT = {
     footerCompany: [
       { label: 'About', href: '/' }, { label: 'Resources', href: '#resources' },
       { label: 'Contact', href: '/' }, { label: 'Privacy & Terms', href: '/' },
-      { label: 'Trust Center', href: '/trust' },
+      { label: 'Trust Center', href: '/trust' }, { label: 'Case Studies', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — Global Industrial Automation Talent Marketplace',
   },
@@ -272,7 +272,7 @@ const DICT = {
     footerHire: [
       { label: '寻找工程师', href: '/talent' }, { label: '发布项目', href: '/talent' },
       { label: '费率基准', href: '/rates' }, { label: '企业 API', href: '/enterprise' },
-      { label: '定价', href: '/pricing' },
+      { label: '定价', href: '/pricing' }, { label: '成本计算器', href: '/calculator' },
     ],
     footerEngineers: [
       { label: '申请加入', href: '/talent' }, { label: 'AI 筛选', href: '/talent' },
@@ -286,7 +286,7 @@ const DICT = {
     footerCompany: [
       { label: '关于我们', href: '/' }, { label: '资源中心', href: '#resources' },
       { label: '联系我们', href: '/' }, { label: '隐私与条款', href: '/' },
-      { label: '信任中心', href: '/trust' },
+      { label: '信任中心', href: '/trust' }, { label: '客户案例', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — 全球工业自动化人才市场',
   },
@@ -405,7 +405,7 @@ const DICT = {
     footerHire: [
       { label: 'Buscar ingenieros', href: '/talent' }, { label: 'Publicar un proyecto', href: '/talent' },
       { label: 'Referencias de tarifas', href: '/rates' }, { label: 'API para empresas', href: '/enterprise' },
-      { label: 'Precios', href: '/pricing' },
+      { label: 'Precios', href: '/pricing' }, { label: 'Calculadora de costos', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'Postularse', href: '/talent' }, { label: 'Evaluador de IA', href: '/talent' },
@@ -419,7 +419,7 @@ const DICT = {
     footerCompany: [
       { label: 'Acerca de', href: '/' }, { label: 'Recursos', href: '#resources' },
       { label: 'Contacto', href: '/' }, { label: 'Privacidad y términos', href: '/' },
-      { label: 'Centro de confianza', href: '/trust' },
+      { label: 'Centro de confianza', href: '/trust' }, { label: 'Casos de éxito', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — Mercado global de talento en automatización industrial',
   },
@@ -538,7 +538,7 @@ const DICT = {
     footerHire: [
       { label: 'Tìm kỹ sư', href: '/talent' }, { label: 'Đăng dự án', href: '/talent' },
       { label: 'Chuẩn mức phí', href: '/rates' }, { label: 'API doanh nghiệp', href: '/enterprise' },
-      { label: 'Bảng giá', href: '/pricing' },
+      { label: 'Bảng giá', href: '/pricing' }, { label: 'Máy tính chi phí', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'Ứng tuyển gia nhập', href: '/talent' }, { label: 'Sàng lọc AI', href: '/talent' },
@@ -552,7 +552,7 @@ const DICT = {
     footerCompany: [
       { label: 'Giới thiệu', href: '/' }, { label: 'Tài nguyên', href: '#resources' },
       { label: 'Liên hệ', href: '/' }, { label: 'Quyền riêng tư & Điều khoản', href: '/' },
-      { label: 'Trung tâm tin cậy', href: '/trust' },
+      { label: 'Trung tâm tin cậy', href: '/trust' }, { label: 'Nghiên cứu điển hình', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — Sàn nhân lực tự động hóa công nghiệp toàn cầu',
   },
@@ -671,7 +671,7 @@ const DICT = {
     footerHire: [
       { label: 'इंजीनियर खोजें', href: '/talent' }, { label: 'प्रोजेक्ट पोस्ट करें', href: '/talent' },
       { label: 'दर मानक', href: '/rates' }, { label: 'एंटरप्राइज़ API', href: '/enterprise' },
-      { label: 'मूल्य निर्धारण', href: '/pricing' },
+      { label: 'मूल्य निर्धारण', href: '/pricing' }, { label: 'लागत कैलकुलेटर', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'जुड़ने के लिए आवेदन करें', href: '/talent' }, { label: 'AI स्क्रीनर', href: '/talent' },
@@ -685,7 +685,7 @@ const DICT = {
     footerCompany: [
       { label: 'हमारे बारे में', href: '/' }, { label: 'संसाधन', href: '#resources' },
       { label: 'संपर्क', href: '/' }, { label: 'गोपनीयता और शर्तें', href: '/' },
-      { label: 'ट्रस्ट सेंटर', href: '/trust' },
+      { label: 'ट्रस्ट सेंटर', href: '/trust' }, { label: 'केस स्टडी', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
   },
@@ -804,7 +804,7 @@ const DICT = {
     footerHire: [
       { label: 'Trouver des ingénieurs', href: '/talent' }, { label: 'Publier un projet', href: '/talent' },
       { label: 'Références de tarifs', href: '/rates' }, { label: 'API entreprise', href: '/enterprise' },
-      { label: 'Tarifs', href: '/pricing' },
+      { label: 'Tarifs', href: '/pricing' }, { label: 'Calculateur de coûts', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'Postuler', href: '/talent' }, { label: 'Évaluateur IA', href: '/talent' },
@@ -818,7 +818,7 @@ const DICT = {
     footerCompany: [
       { label: 'À propos', href: '/' }, { label: 'Ressources', href: '#resources' },
       { label: 'Contact', href: '/' }, { label: 'Confidentialité et conditions', href: '/' },
-      { label: 'Centre de confiance', href: '/trust' },
+      { label: 'Centre de confiance', href: '/trust' }, { label: 'Études de cas', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — Marketplace mondiale des talents en automatisation industrielle',
   },
@@ -937,7 +937,7 @@ const DICT = {
     footerHire: [
       { label: 'Ingenieure finden', href: '/talent' }, { label: 'Projekt ausschreiben', href: '/talent' },
       { label: 'Tarif-Benchmarks', href: '/rates' }, { label: 'Enterprise-API', href: '/enterprise' },
-      { label: 'Preise', href: '/pricing' },
+      { label: 'Preise', href: '/pricing' }, { label: 'Kostenrechner', href: '/calculator' },
     ],
     footerEngineers: [
       { label: 'Jetzt bewerben', href: '/talent' }, { label: 'KI-Test', href: '/talent' },
@@ -951,7 +951,7 @@ const DICT = {
     footerCompany: [
       { label: 'Über uns', href: '/' }, { label: 'Ressourcen', href: '#resources' },
       { label: 'Kontakt', href: '/' }, { label: 'Datenschutz & AGB', href: '/' },
-      { label: 'Trust Center', href: '/trust' },
+      { label: 'Trust Center', href: '/trust' }, { label: 'Fallstudien', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — Globaler Marktplatz für industrielle Automatisierungstalente',
   },
@@ -1070,7 +1070,7 @@ const DICT = {
     footerHire: [
       { label: 'エンジニアを探す', href: '/talent' }, { label: 'プロジェクトを投稿', href: '/talent' },
       { label: '料金ベンチマーク', href: '/rates' }, { label: 'エンタープライズAPI', href: '/enterprise' },
-      { label: '料金プラン', href: '/pricing' },
+      { label: '料金プラン', href: '/pricing' }, { label: 'コスト計算ツール', href: '/calculator' },
     ],
     footerEngineers: [
       { label: '参加を申し込む', href: '/talent' }, { label: 'AIスクリーナー', href: '/talent' },
@@ -1084,7 +1084,7 @@ const DICT = {
     footerCompany: [
       { label: '会社概要', href: '/' }, { label: 'リソース', href: '#resources' },
       { label: 'お問い合わせ', href: '/' }, { label: 'プライバシーと規約', href: '/' },
-      { label: 'トラストセンター', href: '/trust' },
+      { label: 'トラストセンター', href: '/trust' }, { label: '導入事例', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — 世界の産業オートメーション人材マーケットプレイス',
   },
@@ -1203,7 +1203,7 @@ const DICT = {
     footerHire: [
       { label: '엔지니어 찾기', href: '/talent' }, { label: '프로젝트 등록', href: '/talent' },
       { label: '요율 벤치마크', href: '/rates' }, { label: '엔터프라이즈 API', href: '/enterprise' },
-      { label: '요금 안내', href: '/pricing' },
+      { label: '요금 안내', href: '/pricing' }, { label: '비용 계산기', href: '/calculator' },
     ],
     footerEngineers: [
       { label: '가입 신청', href: '/talent' }, { label: 'AI 스크리너', href: '/talent' },
@@ -1217,7 +1217,7 @@ const DICT = {
     footerCompany: [
       { label: '회사 소개', href: '/' }, { label: '리소스', href: '#resources' },
       { label: '문의', href: '/' }, { label: '개인정보 및 약관', href: '/' },
-      { label: '신뢰 센터', href: '/trust' },
+      { label: '신뢰 센터', href: '/trust' }, { label: '사례 연구', href: '/case-studies' },
     ],
     copyright: '© 2026 Talengineer.us — 글로벌 산업 자동화 인재 마켓플레이스',
   },

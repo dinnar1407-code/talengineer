@@ -26,6 +26,7 @@ const DICT = {
   en: {
     findEngineers:  'Find Engineers',
     rateBenchmarks: 'Rate Benchmarks',
+    pricing:        'Pricing',
     signIn:         'Sign In',
     dashboard:      'Dashboard',
     editProfile:    'My Profile',
@@ -36,6 +37,7 @@ const DICT = {
   zh: {
     findEngineers:  '寻找工程师',
     rateBenchmarks: '费率基准',
+    pricing:        '定价',
     signIn:         '登录',
     dashboard:      '控制台',
     editProfile:    '我的档案',
@@ -46,6 +48,7 @@ const DICT = {
   es: {
     findEngineers:  'Buscar Ingenieros',
     rateBenchmarks: 'Tarifas de Mercado',
+    pricing:        'Precios',
     signIn:         'Iniciar sesión',
     dashboard:      'Panel de control',
     editProfile:    'Mi perfil',
@@ -55,6 +58,7 @@ const DICT = {
   vi: {
     findEngineers:  'Tìm Kỹ Sư',
     rateBenchmarks: 'Thị Trường Giá',
+    pricing:        'Bảng giá',
     signIn:         'Đăng nhập',
     dashboard:      'Bảng điều khiển',
     editProfile:    'Hồ sơ của tôi',
@@ -64,6 +68,7 @@ const DICT = {
   hi: {
     findEngineers:  'इंजीनियर खोजें',
     rateBenchmarks: 'बाज़ार दरें',
+    pricing:        'मूल्य निर्धारण',
     signIn:         'साइन इन करें',
     dashboard:      'डैशबोर्ड',
     editProfile:    'मेरी प्रोफ़ाइल',
@@ -73,6 +78,7 @@ const DICT = {
   fr: {
     findEngineers:  'Trouver des Ingénieurs',
     rateBenchmarks: 'Tarifs du marché',
+    pricing:        'Tarifs',
     signIn:         'Se connecter',
     dashboard:      'Tableau de bord',
     editProfile:    'Mon profil',
@@ -82,6 +88,7 @@ const DICT = {
   de: {
     findEngineers:  'Ingenieure finden',
     rateBenchmarks: 'Marktpreise',
+    pricing:        'Preise',
     signIn:         'Anmelden',
     dashboard:      'Dashboard',
     editProfile:    'Mein Profil',
@@ -91,6 +98,7 @@ const DICT = {
   ja: {
     findEngineers:  'エンジニアを探す',
     rateBenchmarks: '市場レート',
+    pricing:        '料金プラン',
     signIn:         'サインイン',
     dashboard:      'ダッシュボード',
     editProfile:    'マイプロフィール',
@@ -100,6 +108,7 @@ const DICT = {
   ko: {
     findEngineers:  '엔지니어 찾기',
     rateBenchmarks: '시장 요율',
+    pricing:        '요금 안내',
     signIn:         '로그인',
     dashboard:      '대시보드',
     editProfile:    '내 프로필',
@@ -258,6 +267,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       <nav className={styles.nav}>
         <Link href="/talent" className={styles.navLink}>{d.findEngineers}</Link>
         <Link href="/rates"  className={styles.navLink}>{d.rateBenchmarks}</Link>
+        <Link href="/pricing" className={styles.navLink}>{d.pricing}</Link>
 
         {user && (
           <Link href="/messages" className={styles.navLink} style={{ position: 'relative' }}>
@@ -407,6 +417,15 @@ export default function Navbar({ lang: langProp, onLangChange }) {
         onClick={() => setMobileMenuOpen(false)}
       >
         📈 {d.rateBenchmarks}
+      </Link>
+
+      {/* 主导航链接：定价 */}
+      <Link
+        href="/pricing"
+        className={styles.mobileNavLink}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        💲 {d.pricing}
       </Link>
 
       {/* 登录用户才显示消息入口 */}

@@ -227,3 +227,25 @@
 .footer a {
   color: var(--primary);
 }
+
+/* ── 行业子页入口链（W1-1 垂直矩阵接线）───────────────────────────────────── */
+.industryLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.industryLink {
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+
+.industryLink:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}

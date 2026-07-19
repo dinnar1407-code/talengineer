@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { useLang } from '../../hooks/useLang';
+import { getIndustriesForTrack } from '../../lib/hireMatrix';
 import styles from './hire.module.css';
 
 // 站点根 URL：canonical / OG 用。
@@ -32,6 +33,7 @@ const UI = {
     rateCol: 'Hourly (USD)',
     ratesNote:
       'Blended hourly rates from active engineer profiles, updated in real time. Development work sits toward the middle of each range; on-site commissioning carries a premium. Platform escrow fee is 15% (5% for founding customers).',
+    industriesTitle: 'Hire by industry',
     ctaHeading: 'Ready to hire?',
     ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
     l1: 'L1 — Fundamentals',
@@ -50,6 +52,7 @@ const UI = {
     rateCol: '时薪（美元）',
     ratesNote:
       '来自活跃工程师档案的综合时薪，实时更新。开发类工作位于各区间中段，现场调试有溢价。平台托管费为 15%（founding 客户 5%）。',
+    industriesTitle: '按行业细分',
     ctaHeading: '准备好招募了吗？',
     ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
     l1: 'L1 — 基础',
@@ -176,7 +179,7 @@ const TRACKS = {
 
 const TRACK_SLUGS = Object.keys(TRACKS);
 
-export default function HireTrack({ track }) {
+export default function HireTrack({ track, industries }) {
   const [lang, setLang] = useLang();
   const t = TRACKS[track];
   const c = t[lang] || t.en;
@@ -286,6 +289,24 @@ export default function HireTrack({ track }) {
           </table>
           <p className={styles.note}>{u.ratesNote}</p>
         </div>
+
+        {/* 行业子页入口（W1-1 垂直矩阵）：该方向下有行业页才渲染（electrical 暂无） */}
+        {industries && industries.length > 0 && (
+          <div className={styles.block}>
+            <h2 className={styles.sectionTitle}>{u.industriesTitle}</h2>
+            <div className={styles.industryLinks}>
+              {industries.map((i) => (
+                <Link
+                  key={i.industry}
+                  href={`/hire/${track}/${i.industry}`}
+                  className={styles.industryLink}
+                >
+                  {(i.label[lang] || i.label.en)} →
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.finalCta}>
@@ -315,5 +336,6 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   if (!TRACKS[params.track]) return { notFound: true };
-  return { props: { track: params.track } };
+  // 行业子页入口链数据（构建期从 lib/hireMatrix 单一来源取，防手写清单漂移）
+  return { props: { track: params.track, industries: getIndustriesForTrack(params.track) } };
 }
