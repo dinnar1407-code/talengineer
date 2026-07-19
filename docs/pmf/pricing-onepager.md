@@ -64,12 +64,14 @@ Result / 结果：you hire on proven capability and level, not a résumé. / 按
 
 | English | 中文 |
 |---|---|
+| **First-milestone guarantee: not satisfied with the first milestone → full refund** of the escrowed funds. | **首里程碑保证：首个里程碑不满意 → 托管资金全额退款**。 |
 | Funds stay in **escrow** until you approve the deliverable. | 资金**托管**至您验收通过为止。 |
 | If a dispute arises, our admin team reviews the evidence. | 若发生争议，平台 admin 团队依据证据复核。 |
 | **Unresolved disputes → escrow funds can be refunded** to the employer. | **争议未解决 → 托管资金可退回**雇主。 |
 | NDA & IP protection by default. | 默认签署 NDA、保护知识产权。 |
 
-> Zero upfront risk. Get paid securely. Work globally. / 零预付风险，安全收付，全球协作。
+> Zero upfront risk — try us for one milestone, money-back guaranteed. / 零预付风险——先试一个里程碑，不满意全额退款。
+> Full policy: talengineer.us/pricing · talengineer.us/trust / 完整政策见 talengineer.us/pricing 与 /trust
 
 ---
 

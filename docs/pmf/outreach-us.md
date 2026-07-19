@@ -15,7 +15,7 @@ Hi [First name],
 
 Saw [Company] is [ramping a new line / hiring controls engineers]. With controls-engineer searches now stretching past 60 days and contract rates up 25–35%, the real cost is project backlog.
 
-TalEngineer matches you with automation engineers screened by a practical AI assessment and platform-certified across PLC, robotics, vision, and electrical. Funds sit in escrow and release only when you approve each deliverable — zero risk on a first trial job. Average match: 48 hours.
+TalEngineer matches you with automation engineers screened by a practical AI assessment and platform-certified across PLC, robotics, vision, and electrical. Funds sit in escrow and release only when you approve each deliverable — and if the first milestone doesn't meet the bar, the escrowed funds come back to you in full. Average match: 48 hours.
 
 Open to a 15-minute call about your current controls backlog? Just reply here.
 
