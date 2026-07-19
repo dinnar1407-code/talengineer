@@ -26,6 +26,13 @@ const DICT = {
     sigTitle: 'Signature verification',
     sigDesc: 'Each request carries an X-TalEngineer-Signature header: the hex HMAC-SHA256 of the raw body, keyed by your webhook secret. Recompute it and compare in constant time:',
     manageBtn: 'Manage API keys & webhooks',
+    mcpTitle: 'MCP — Connect Your AI Agent',
+    mcpSell: 'Talengineer is the first industrial-automation talent platform that AI agents can call directly.',
+    mcpDesc: 'POST /api/mcp is a stateless JSON-RPC 2.0 endpoint implementing the Model Context Protocol (MCP): initialize, tools/list and tools/call. Point Claude Desktop, an IDE agent, or any MCP-compatible client at it, and your agent can search engineers, check rate benchmarks, and prepare demand drafts for you.',
+    mcpAuthDesc: 'Authentication reuses your v1 API key — send it as a Bearer token, exactly like the REST endpoints above.',
+    mcpSafety: 'Every tool is read-only except create_demand_draft, which only saves a private draft (status = draft). Drafts are never listed publicly, and publishing always requires a human click in the UI.',
+    mcpExampleTitle: 'Example: tools/call',
+    colTool: 'Tool',
   },
   zh: {
     heroBadge: '开发者',
@@ -47,6 +54,13 @@ const DICT = {
     sigTitle: '验签',
     sigDesc: '每个请求带 X-TalEngineer-Signature 头：用你的 webhook secret 对原始 body 做 HMAC-SHA256 的十六进制值。用同一算法复算并做常量时间比对：',
     manageBtn: '管理 API 密钥与 Webhook',
+    mcpTitle: 'MCP — 接入你的 AI Agent',
+    mcpSell: 'Talengineer 是第一个 AI Agent 可直接调用的工业自动化人才平台。',
+    mcpDesc: 'POST /api/mcp 是无状态的 JSON-RPC 2.0 端点，实现 Model Context Protocol（MCP）：initialize、tools/list、tools/call。把 Claude Desktop、IDE 智能体或任何兼容 MCP 的客户端指向它，你的 Agent 就能替你搜索工程师、查费率基准、准备需求草稿。',
+    mcpAuthDesc: '鉴权复用 v1 API key——与上文 REST 端点一样以 Bearer token 发送。',
+    mcpSafety: '所有工具均为只读，唯一例外 create_demand_draft 也只保存私有草稿（status = draft）。草稿绝不进入公开列表，发布永远需要人在 UI 里点击确认。',
+    mcpExampleTitle: '示例：tools/call',
+    colTool: '工具',
   },
 };
 
@@ -93,6 +107,32 @@ function verifyTalengineerWebhook(rawBody, headerSignature, webhookSecret) {
 //     return res.status(401).end();
 //   }`;
 
+// MCP 工具清单（与 src/routes/mcp.js 的显式白名单一一对应：public 4 读工具 +
+// get_my_projects / get_milestone_status / create_demand_draft，共 7 个）。
+const MCP_TOOLS = [
+  { name: 'search_engineers',       desc: { en: 'Search the public engineer directory (no PII). Filters: track, region, skill, maxRate, limit.', zh: '搜索公开工程师目录（无 PII）。过滤参数：track、region、skill、maxRate、limit。' } },
+  { name: 'get_rates',              desc: { en: 'Regional rate benchmarks, optionally filtered by region / specialty.', zh: '区域费率基准，可按 region / specialty 过滤。' } },
+  { name: 'get_certification_info', desc: { en: 'The certification system: 4 tracks × levels L1–L3, exam rules and validity.', zh: '平台认证体系：4 方向 × L1–L3 等级、考核规则与有效期。' } },
+  { name: 'parse_demand',           desc: { en: 'Parse a free-form project need (any language) into a structured demand draft. Nothing is saved.', zh: '把任意语言的大白话需求解析成结构化草稿，不落库。' } },
+  { name: 'get_my_projects',        desc: { en: 'List the projects owned by the API key account.', zh: '列出 API key 所属账号的项目。' } },
+  { name: 'get_milestone_status',   desc: { en: 'Milestone / escrow status for a project you participate in.', zh: '查询你参与项目的里程碑 / 托管状态。' } },
+  { name: 'create_demand_draft',    desc: { en: 'Save a demand as a private draft (status = draft) — never auto-published.', zh: '把需求存为私有草稿（status = draft）——绝不自动发布。' } },
+];
+
+// JSON-RPC 2.0 调用示例（curl；语言无关，放 DICT 之外）。
+const MCP_EXAMPLE = `curl -X POST https://talengineer.us/api/mcp \\
+  -H "Authorization: Bearer TE_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "search_engineers",
+      "arguments": { "region": "Monterrey", "skill": "Siemens S7", "limit": 3 }
+    }
+  }'`;
+
 export default function Developers() {
   const [lang, setLang] = useLang();
   const d = DICT[lang] || DICT.en;
@@ -102,7 +142,7 @@ export default function Developers() {
     <>
       <Head>
         <title>Developer API Docs | Talengineer</title>
-        <meta name="description" content="Talengineer API v1 for developers — authentication, endpoints, and signed webhooks with a Node signature-verification example." />
+        <meta name="description" content="Talengineer API v1 for developers — authentication, endpoints, signed webhooks, and an MCP endpoint AI agents can call directly." />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />
@@ -174,6 +214,35 @@ export default function Developers() {
           <pre className={styles.codeBlock}>{VERIFY_EXAMPLE}</pre>
 
           <Link href="/enterprise" className={styles.manageBtn}>{d.manageBtn}</Link>
+        </section>
+
+        {/* MCP — AI Agent 直连（差异化卖点 + 端点/鉴权/工具清单/示例） */}
+        <section className={styles.section}>
+          <h2>{d.mcpTitle}</h2>
+          <p className={styles.sectionDesc}><b>{d.mcpSell}</b></p>
+          <p className={styles.sectionDesc}>{d.mcpDesc}</p>
+          <p className={styles.sectionDesc}>{d.baseUrlLabel}: <code className={styles.code}>https://talengineer.us/api/mcp</code></p>
+          <p className={styles.sectionDesc}>{d.authHeaderLabel}: <code className={styles.code}>Authorization: Bearer TE_your_key_here</code></p>
+          <p className={styles.sectionDesc}>{d.mcpAuthDesc}</p>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr><th>{d.colTool}</th><th>{d.colDesc}</th></tr>
+              </thead>
+              <tbody>
+                {MCP_TOOLS.map(tool => (
+                  <tr key={tool.name}>
+                    <td><code className={styles.code}>{tool.name}</code></td>
+                    <td>{tool.desc[L]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={styles.sectionDesc} style={{ marginTop: 12 }}>{d.mcpSafety}</p>
+
+          <h3 className={styles.subTitle}>{d.mcpExampleTitle}</h3>
+          <pre className={styles.codeBlock}>{MCP_EXAMPLE}</pre>
         </section>
       </div>
 
