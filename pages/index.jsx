@@ -27,7 +27,7 @@ const LANGS = [
 const DICT = {
   en: {
     // Nav
-    navFind: 'Find Engineers', navRates: 'Rate Benchmarks', navHow: 'How It Works', navResources: 'Resources',
+    navFind: 'Find Engineers', navRates: 'Rate Benchmarks', navPricing: 'Pricing', navHow: 'How It Works', navResources: 'Resources',
     navSignIn: 'Sign In', navPost: 'Post a Project', themeDark: 'Dark', themeLight: 'Light',
     // Hero
     heroKicker: '// The global industrial automation talent marketplace',
@@ -160,7 +160,7 @@ const DICT = {
 
   zh: {
     // Nav
-    navFind: '寻找工程师', navRates: '费率基准', navHow: '运作方式', navResources: '资源中心',
+    navFind: '寻找工程师', navRates: '费率基准', navPricing: '定价', navHow: '运作方式', navResources: '资源中心',
     navSignIn: '登录', navPost: '发布项目', themeDark: '深色', themeLight: '浅色',
     // Hero
     heroKicker: '// 全球工业自动化人才市场',
@@ -293,7 +293,7 @@ const DICT = {
 
   es: {
     // Nav
-    navFind: 'Buscar ingenieros', navRates: 'Referencias de tarifas', navHow: 'Cómo funciona', navResources: 'Recursos',
+    navFind: 'Buscar ingenieros', navRates: 'Referencias de tarifas', navPricing: 'Precios', navHow: 'Cómo funciona', navResources: 'Recursos',
     navSignIn: 'Iniciar sesión', navPost: 'Publicar un proyecto', themeDark: 'Oscuro', themeLight: 'Claro',
     // Hero
     heroKicker: '// La marketplace global de talento en automatización industrial',
@@ -426,7 +426,7 @@ const DICT = {
 
   vi: {
     // Nav
-    navFind: 'Tìm kỹ sư', navRates: 'Chuẩn mức phí', navHow: 'Cách hoạt động', navResources: 'Tài nguyên',
+    navFind: 'Tìm kỹ sư', navRates: 'Chuẩn mức phí', navPricing: 'Bảng giá', navHow: 'Cách hoạt động', navResources: 'Tài nguyên',
     navSignIn: 'Đăng nhập', navPost: 'Đăng dự án', themeDark: 'Tối', themeLight: 'Sáng',
     // Hero
     heroKicker: '// Sàn nhân lực tự động hóa công nghiệp toàn cầu',
@@ -559,7 +559,7 @@ const DICT = {
 
   hi: {
     // Nav
-    navFind: 'इंजीनियर खोजें', navRates: 'दर मानक', navHow: 'यह कैसे काम करता है', navResources: 'संसाधन',
+    navFind: 'इंजीनियर खोजें', navRates: 'दर मानक', navPricing: 'मूल्य निर्धारण', navHow: 'यह कैसे काम करता है', navResources: 'संसाधन',
     navSignIn: 'साइन इन', navPost: 'प्रोजेक्ट पोस्ट करें', themeDark: 'डार्क', themeLight: 'लाइट',
     // Hero
     heroKicker: '// वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
@@ -692,7 +692,7 @@ const DICT = {
 
   fr: {
     // Nav
-    navFind: 'Trouver des ingénieurs', navRates: 'Références de tarifs', navHow: 'Comment ça marche', navResources: 'Ressources',
+    navFind: 'Trouver des ingénieurs', navRates: 'Références de tarifs', navPricing: 'Tarifs', navHow: 'Comment ça marche', navResources: 'Ressources',
     navSignIn: 'Se connecter', navPost: 'Publier un projet', themeDark: 'Sombre', themeLight: 'Clair',
     // Hero
     heroKicker: "// La marketplace mondiale des talents en automatisation industrielle",
@@ -825,7 +825,7 @@ const DICT = {
 
   de: {
     // Nav
-    navFind: 'Ingenieure finden', navRates: 'Tarif-Benchmarks', navHow: 'So funktioniert es', navResources: 'Ressourcen',
+    navFind: 'Ingenieure finden', navRates: 'Tarif-Benchmarks', navPricing: 'Preise', navHow: 'So funktioniert es', navResources: 'Ressourcen',
     navSignIn: 'Anmelden', navPost: 'Projekt ausschreiben', themeDark: 'Dunkel', themeLight: 'Hell',
     // Hero
     heroKicker: '// Der globale Marktplatz für Talente in der industriellen Automatisierung',
@@ -958,7 +958,7 @@ const DICT = {
 
   ja: {
     // Nav
-    navFind: 'エンジニアを探す', navRates: '料金ベンチマーク', navHow: '仕組み', navResources: 'リソース',
+    navFind: 'エンジニアを探す', navRates: '料金ベンチマーク', navPricing: '料金プラン', navHow: '仕組み', navResources: 'リソース',
     navSignIn: 'ログイン', navPost: 'プロジェクトを投稿', themeDark: 'ダーク', themeLight: 'ライト',
     // Hero
     heroKicker: '// 世界の産業オートメーション人材マーケットプレイス',
@@ -1091,7 +1091,7 @@ const DICT = {
 
   ko: {
     // Nav
-    navFind: '엔지니어 찾기', navRates: '요율 벤치마크', navHow: '이용 방법', navResources: '리소스',
+    navFind: '엔지니어 찾기', navRates: '요율 벤치마크', navPricing: '요금 안내', navHow: '이용 방법', navResources: '리소스',
     navSignIn: '로그인', navPost: '프로젝트 등록', themeDark: '다크', themeLight: '라이트',
     // Hero
     heroKicker: '// 글로벌 산업 자동화 인재 마켓플레이스',
@@ -1355,6 +1355,7 @@ export default function Home() {
           <nav className={styles.navLinks}>
             <Link href="/talent" className={styles.navLink}>{d.navFind}</Link>
             <Link href="/rates" className={styles.navLink}>{d.navRates}</Link>
+            <Link href="/pricing" className={styles.navLink}>{d.navPricing}</Link>
             <a href="#how-it-works" className={styles.navLink}>{d.navHow}</a>
             <a href="#resources" className={styles.navLink}>{d.navResources}</a>
           </nav>
@@ -1413,6 +1414,7 @@ export default function Home() {
           <div className={styles.mobileMenu}>
             <Link href="/talent" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navFind}</Link>
             <Link href="/rates" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navRates}</Link>
+            <Link href="/pricing" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navPricing}</Link>
             <a href="#how-it-works" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navHow}</a>
             <a href="#resources" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navResources}</a>
             <Link href="/finance" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navSignIn}</Link>
