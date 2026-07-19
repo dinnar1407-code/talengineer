@@ -1,0 +1,394 @@
+/* 成本计算器（/calculator）样式。颜色全部走全站语义 token，浅深色自动跟随。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px 40px;
+}
+
+.heroInner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 800;
+  line-height: 1.14;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 18px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 720px;
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* 输入 + 结果两栏 */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inputsCard,
+.resultCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.cardTitle {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 20px;
+  color: var(--text);
+}
+
+/* 表单字段 */
+.field {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.hoursValue {
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+.select,
+.numberInput {
+  width: 100%;
+  font-size: 15px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.select:focus,
+.numberInput:focus,
+.emailInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.range {
+  width: 100%;
+  margin: 4px 0 10px;
+  accent-color: var(--primary);
+}
+
+/* 用工形态分段切换 */
+.segmented {
+  display: flex;
+  gap: 8px;
+}
+
+.seg,
+.segActive {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.seg:hover {
+  border-color: var(--primary);
+}
+
+.segActive {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+/* 结果面板行 */
+.lineItem,
+.totalItem,
+.foundingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 15px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.num {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.totalItem {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.totalNum {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: right;
+}
+
+.foundingItem {
+  color: var(--text-muted);
+  border-bottom: none;
+}
+
+.sourceNote {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 14px 0 12px;
+}
+
+.pricingLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ── 定性对比区 ───────────────────────────────────────────────── */
+.vsBlock {
+  margin-top: 44px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.vsIntro {
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0 0 22px;
+  max-width: 760px;
+}
+
+.vsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.vsCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.vsCard h3 {
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.vsCard p {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.honestNote {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* ── Lead capture ─────────────────────────────────────────────── */
+.leadBlock {
+  margin-top: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.leadTitle {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.leadBody {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 auto 20px;
+  max-width: 560px;
+}
+
+.leadForm {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.emailInput {
+  flex: 1;
+  min-width: 220px;
+  font-size: 15px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.leadBtn {
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.leadBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.leadBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.leadMsgOk {
+  font-size: 14px;
+  color: var(--primary);
+  margin: 14px 0 0;
+}
+
+.leadMsgErr {
+  font-size: 14px;
+  color: #dc2626;
+  margin: 14px 0 0;
+}
+
+/* ── 底部 CTA ─────────────────────────────────────────────────── */
+.finalCta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 52px 20px;
+  text-align: center;
+  margin-top: 48px;
+}
+
+.finalCta h2 {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.finalCta p {
+  color: var(--text-muted);
+  font-size: 16px;
+  margin: 0 0 22px;
+}
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.footer {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--primary);
+}
