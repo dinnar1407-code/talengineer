@@ -32,6 +32,11 @@ export async function getServerSideProps({ res }) {
     { url: '/talent',   priority: '0.9', changefreq: 'daily' },
     { url: '/rates',    priority: '0.8', changefreq: 'daily' },
     { url: '/playbook', priority: '0.8', changefreq: 'weekly' },
+    // Wave 0 能力独立页（竞对改善计划 2026-07-18）：定价/信任/质量分/认证漏斗
+    { url: '/pricing',       priority: '0.8', changefreq: 'monthly' },
+    { url: '/trust',         priority: '0.7', changefreq: 'monthly' },
+    { url: '/talscore',      priority: '0.7', changefreq: 'monthly' },
+    { url: '/certification', priority: '0.7', changefreq: 'monthly' },
     { url: '/enterprise', priority: '0.7', changefreq: 'monthly' },
     { url: '/finance',  priority: '0.6', changefreq: 'weekly' },
     ...HIRE_TRACKS.map(track => ({

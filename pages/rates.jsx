@@ -41,6 +41,25 @@ export default function Rates() {
 
   const d = DICT[lang] || DICT.en;
 
+  // Dataset JSON-LD（AI-Native Phase 0 语义层）：把费率行情标注为 schema.org 数据集，
+  // 让搜索引擎与 AI 爬虫把 /rates 识别为可引用的行业数据源（含公开 JSON 端点）。
+  const datasetJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: 'Industrial Automation Engineer Rate Benchmarks',
+    description:
+      'Live hourly-rate benchmarks (USD) for industrial automation engineers by region and specialty — PLC, SCADA/HMI, robotics, electrical. Self-reported by active engineers on Talengineer, updated in real time.',
+    url: 'https://talengineer.us/rates',
+    creator: { '@type': 'Organization', name: 'Talengineer', url: 'https://talengineer.us' },
+    isAccessibleForFree: true,
+    variableMeasured: ['hourly rate (USD)', 'region', 'specialty', 'sample size'],
+    distribution: {
+      '@type': 'DataDownload',
+      encodingFormat: 'application/json',
+      contentUrl: 'https://talengineer.us/api/talent/rate-benchmarks',
+    },
+  };
+
   return (
     <>
       <Head>
@@ -56,6 +75,10 @@ export default function Rates() {
         <meta name="twitter:title" content="Automation Engineer Rate Benchmarks | Talengineer" />
         <meta name="twitter:description" content="Live market rates for automation and industrial engineers by region — PLC, SCADA, robotics, and electrical." />
         <meta name="twitter:image" content="https://talengineer.us/og.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetJsonLd) }}
+        />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

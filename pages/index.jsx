@@ -139,10 +139,12 @@ const DICT = {
     footerHire: [
       { label: 'Find Engineers', href: '/talent' }, { label: 'Post a Project', href: '/talent' },
       { label: 'Rate Benchmarks', href: '/rates' }, { label: 'Enterprise API', href: '/enterprise' },
+      { label: 'Pricing', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'Apply to Join', href: '/talent' }, { label: 'AI Screener', href: '/talent' },
       { label: 'Browse Projects', href: '/talent' }, { label: 'Payments & Escrow', href: '/finance' },
+      { label: 'Certification Exams', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLC Programming', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
@@ -151,6 +153,7 @@ const DICT = {
     footerCompany: [
       { label: 'About', href: '/' }, { label: 'Resources', href: '#resources' },
       { label: 'Contact', href: '/' }, { label: 'Privacy & Terms', href: '/' },
+      { label: 'Trust Center', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — Global Industrial Automation Talent Marketplace',
   },
@@ -269,10 +272,12 @@ const DICT = {
     footerHire: [
       { label: '寻找工程师', href: '/talent' }, { label: '发布项目', href: '/talent' },
       { label: '费率基准', href: '/rates' }, { label: '企业 API', href: '/enterprise' },
+      { label: '定价', href: '/pricing' },
     ],
     footerEngineers: [
       { label: '申请加入', href: '/talent' }, { label: 'AI 筛选', href: '/talent' },
       { label: '浏览项目', href: '/talent' }, { label: '支付与托管', href: '/finance' },
+      { label: '认证考试', href: '/certification' }, { label: 'TalScore 质量分', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLC 编程', href: '/talent' }, { label: 'SCADA 与 HMI', href: '/talent' },
@@ -281,6 +286,7 @@ const DICT = {
     footerCompany: [
       { label: '关于我们', href: '/' }, { label: '资源中心', href: '#resources' },
       { label: '联系我们', href: '/' }, { label: '隐私与条款', href: '/' },
+      { label: '信任中心', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — 全球工业自动化人才市场',
   },
@@ -399,10 +405,12 @@ const DICT = {
     footerHire: [
       { label: 'Buscar ingenieros', href: '/talent' }, { label: 'Publicar un proyecto', href: '/talent' },
       { label: 'Referencias de tarifas', href: '/rates' }, { label: 'API para empresas', href: '/enterprise' },
+      { label: 'Precios', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'Postularse', href: '/talent' }, { label: 'Evaluador de IA', href: '/talent' },
       { label: 'Explorar proyectos', href: '/talent' }, { label: 'Pagos y depósito de garantía', href: '/finance' },
+      { label: 'Exámenes de certificación', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'Programación de PLC', href: '/talent' }, { label: 'SCADA y HMI', href: '/talent' },
@@ -411,6 +419,7 @@ const DICT = {
     footerCompany: [
       { label: 'Acerca de', href: '/' }, { label: 'Recursos', href: '#resources' },
       { label: 'Contacto', href: '/' }, { label: 'Privacidad y términos', href: '/' },
+      { label: 'Centro de confianza', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — Mercado global de talento en automatización industrial',
   },
@@ -529,10 +538,12 @@ const DICT = {
     footerHire: [
       { label: 'Tìm kỹ sư', href: '/talent' }, { label: 'Đăng dự án', href: '/talent' },
       { label: 'Chuẩn mức phí', href: '/rates' }, { label: 'API doanh nghiệp', href: '/enterprise' },
+      { label: 'Bảng giá', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'Ứng tuyển gia nhập', href: '/talent' }, { label: 'Sàng lọc AI', href: '/talent' },
       { label: 'Duyệt dự án', href: '/talent' }, { label: 'Thanh toán & Ký quỹ', href: '/finance' },
+      { label: 'Thi chứng chỉ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'Lập trình PLC', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
@@ -541,6 +552,7 @@ const DICT = {
     footerCompany: [
       { label: 'Giới thiệu', href: '/' }, { label: 'Tài nguyên', href: '#resources' },
       { label: 'Liên hệ', href: '/' }, { label: 'Quyền riêng tư & Điều khoản', href: '/' },
+      { label: 'Trung tâm tin cậy', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — Sàn nhân lực tự động hóa công nghiệp toàn cầu',
   },
@@ -659,10 +671,12 @@ const DICT = {
     footerHire: [
       { label: 'इंजीनियर खोजें', href: '/talent' }, { label: 'प्रोजेक्ट पोस्ट करें', href: '/talent' },
       { label: 'दर मानक', href: '/rates' }, { label: 'एंटरप्राइज़ API', href: '/enterprise' },
+      { label: 'मूल्य निर्धारण', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'जुड़ने के लिए आवेदन करें', href: '/talent' }, { label: 'AI स्क्रीनर', href: '/talent' },
       { label: 'प्रोजेक्ट ब्राउज़ करें', href: '/talent' }, { label: 'भुगतान और एस्क्रो', href: '/finance' },
+      { label: 'प्रमाणन परीक्षाएँ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLC प्रोग्रामिंग', href: '/talent' }, { label: 'SCADA और HMI', href: '/talent' },
@@ -671,6 +685,7 @@ const DICT = {
     footerCompany: [
       { label: 'हमारे बारे में', href: '/' }, { label: 'संसाधन', href: '#resources' },
       { label: 'संपर्क', href: '/' }, { label: 'गोपनीयता और शर्तें', href: '/' },
+      { label: 'ट्रस्ट सेंटर', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
   },
@@ -789,10 +804,12 @@ const DICT = {
     footerHire: [
       { label: 'Trouver des ingénieurs', href: '/talent' }, { label: 'Publier un projet', href: '/talent' },
       { label: 'Références de tarifs', href: '/rates' }, { label: 'API entreprise', href: '/enterprise' },
+      { label: 'Tarifs', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'Postuler', href: '/talent' }, { label: 'Évaluateur IA', href: '/talent' },
       { label: 'Parcourir les projets', href: '/talent' }, { label: 'Paiements et séquestre', href: '/finance' },
+      { label: 'Examens de certification', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'Programmation PLC', href: '/talent' }, { label: 'SCADA et HMI', href: '/talent' },
@@ -801,6 +818,7 @@ const DICT = {
     footerCompany: [
       { label: 'À propos', href: '/' }, { label: 'Ressources', href: '#resources' },
       { label: 'Contact', href: '/' }, { label: 'Confidentialité et conditions', href: '/' },
+      { label: 'Centre de confiance', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — Marketplace mondiale des talents en automatisation industrielle',
   },
@@ -919,10 +937,12 @@ const DICT = {
     footerHire: [
       { label: 'Ingenieure finden', href: '/talent' }, { label: 'Projekt ausschreiben', href: '/talent' },
       { label: 'Tarif-Benchmarks', href: '/rates' }, { label: 'Enterprise-API', href: '/enterprise' },
+      { label: 'Preise', href: '/pricing' },
     ],
     footerEngineers: [
       { label: 'Jetzt bewerben', href: '/talent' }, { label: 'KI-Test', href: '/talent' },
       { label: 'Projekte durchsuchen', href: '/talent' }, { label: 'Zahlungen & Treuhand', href: '/finance' },
+      { label: 'Zertifizierungsprüfungen', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLC-Programmierung', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
@@ -931,6 +951,7 @@ const DICT = {
     footerCompany: [
       { label: 'Über uns', href: '/' }, { label: 'Ressourcen', href: '#resources' },
       { label: 'Kontakt', href: '/' }, { label: 'Datenschutz & AGB', href: '/' },
+      { label: 'Trust Center', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — Globaler Marktplatz für industrielle Automatisierungstalente',
   },
@@ -1049,10 +1070,12 @@ const DICT = {
     footerHire: [
       { label: 'エンジニアを探す', href: '/talent' }, { label: 'プロジェクトを投稿', href: '/talent' },
       { label: '料金ベンチマーク', href: '/rates' }, { label: 'エンタープライズAPI', href: '/enterprise' },
+      { label: '料金プラン', href: '/pricing' },
     ],
     footerEngineers: [
       { label: '参加を申し込む', href: '/talent' }, { label: 'AIスクリーナー', href: '/talent' },
       { label: 'プロジェクトを探す', href: '/talent' }, { label: '支払いとエスクロー', href: '/finance' },
+      { label: '認定試験', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLCプログラミング', href: '/talent' }, { label: 'SCADA・HMI', href: '/talent' },
@@ -1061,6 +1084,7 @@ const DICT = {
     footerCompany: [
       { label: '会社概要', href: '/' }, { label: 'リソース', href: '#resources' },
       { label: 'お問い合わせ', href: '/' }, { label: 'プライバシーと規約', href: '/' },
+      { label: 'トラストセンター', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — 世界の産業オートメーション人材マーケットプレイス',
   },
@@ -1179,10 +1203,12 @@ const DICT = {
     footerHire: [
       { label: '엔지니어 찾기', href: '/talent' }, { label: '프로젝트 등록', href: '/talent' },
       { label: '요율 벤치마크', href: '/rates' }, { label: '엔터프라이즈 API', href: '/enterprise' },
+      { label: '요금 안내', href: '/pricing' },
     ],
     footerEngineers: [
       { label: '가입 신청', href: '/talent' }, { label: 'AI 스크리너', href: '/talent' },
       { label: '프로젝트 둘러보기', href: '/talent' }, { label: '결제 및 에스크로', href: '/finance' },
+      { label: '인증 시험', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
       { label: 'PLC 프로그래밍', href: '/talent' }, { label: 'SCADA 및 HMI', href: '/talent' },
@@ -1191,6 +1217,7 @@ const DICT = {
     footerCompany: [
       { label: '회사 소개', href: '/' }, { label: '리소스', href: '#resources' },
       { label: '문의', href: '/' }, { label: '개인정보 및 약관', href: '/' },
+      { label: '신뢰 센터', href: '/trust' },
     ],
     copyright: '© 2026 Talengineer.us — 글로벌 산업 자동화 인재 마켓플레이스',
   },

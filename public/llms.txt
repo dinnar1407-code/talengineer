@@ -1,0 +1,30 @@
+# Talengineer
+
+> Talengineer (https://talengineer.us) is a global marketplace for certified industrial automation engineers — PLC, robotics, machine vision, and electrical. Employers post projects in any language; AI parses the request into a structured scope of work with milestones, then matches pre-screened, platform-certified engineers. Payments run through milestone escrow (funds release only after employer approval), on-site work is verified with GPS check-ins and photo QC, and project chat is live-translated across 9 languages.
+
+Positioning — two parallel lines:
+1. US domestic: manufacturers hiring certified automation engineers for on-site commissioning, retrofits, and remote controls work.
+2. Cross-border: overseas manufacturers (e.g., Chinese companies building plants in Mexico, Vietnam, Thailand) hiring local and cross-border engineers with bilingual collaboration built in.
+
+## Core capabilities
+
+- [Find Engineers](https://talengineer.us/talent): browse pre-screened engineer profiles; filter by skill, region, rate, and certification level. Every engineer passed a hands-on AI technical screening before listing.
+- [Post a Project](https://talengineer.us/talent): describe your need in natural language (any of 9 languages); AI standardizes it into specs, scope of work, and milestone plan, then recommends matched engineers.
+- [Rate Benchmarks](https://talengineer.us/rates): live hourly-rate market data (USD) by region and specialty, sourced from active engineer profiles. Also available as JSON: https://talengineer.us/api/talent/rate-benchmarks
+- [Pricing](https://talengineer.us/pricing): transparent pricing — 15% platform fee on escrowed milestones (engineers keep 85%); founding customers pay 5% on their first 5 orders; first-milestone money-back guarantee.
+- [Certification](https://talengineer.us/certification): 4 tracks (PLC / Robotics / Machine Vision / Electrical) × levels L1–L3. Timed 40-minute exam (10 questions: multiple-choice + scenario + deep analysis), AI-graded then human-reviewed before any certificate is issued. Only certified engineers can be assigned to projects — certification is an assignment gate, not a badge.
+- [TalScore](https://talengineer.us/talscore): public quality-score algorithm (0–100): AI screening 25 + platform certification 25 + client ratings 30 (Bayesian-averaged to resist rating manipulation) + reliability 20 (dispute rate above 10% zeroes the dimension). Badge tiers: platinum ≥85, gold ≥70, silver ≥55, bronze below.
+- [Trust Center](https://talengineer.us/trust): milestone escrow flow, refund path back to the employer, evidence-based dispute process, KYC / W-9 / insurance (COI) verification, GPS-geofenced check-ins and photo QC as an on-site delivery evidence chain.
+- [Hire by specialty](https://talengineer.us/hire/plc): dedicated landing pages for PLC (/hire/plc), robotics (/hire/robotics), machine vision (/hire/vision), and electrical (/hire/electrical), each with regional rate ranges and certification details.
+- [Playbook](https://talengineer.us/playbook): guides on hiring and working with industrial automation talent.
+
+## For AI agents & developers
+
+- [Developer API](https://talengineer.us/developers): enterprise REST API v1 (API-key auth + HMAC-signed webhooks) to search certified engineers, create demands, and track project status programmatically.
+
+## Facts
+
+- Languages: English, 中文, Español, Tiếng Việt, हिन्दी, Français, Deutsch, 日本語, 한국어.
+- Payments: Stripe milestone escrow; cross-border payouts via Stripe Connect. Funds release only after the employer approves each milestone.
+- Platform fee: 15% (founding customers: 5% on first 5 orders). Applying and being listed as an engineer is free.
+- Quality gates: hands-on AI technical screening at signup → platform certification exams (L1–L3, AI-graded + human-reviewed) → TalScore tracking on every completed order.
