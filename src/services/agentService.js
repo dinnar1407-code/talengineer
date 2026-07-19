@@ -199,11 +199,16 @@ async function runAgentChat(input, deps = {}) {
 
   // 角色 → 可见工具（registry 已做 public/role 过滤），映射 functionDeclarations
   const role = user?.role || 'public';
-  const declarations = registry.list(role).map((t) => ({
-    name: t.name,
-    description: t.description,
-    parameters: toGeminiSchema(t.parameters),
-  }));
+  const declarations = registry.list(role).map((t) => {
+    // 零参工具（properties 为空，如 get_my_projects / get_admin_analytics）直接
+    // 省略 parameters 字段：Gemini v1beta 对 type:'object' 且 properties 为空的
+    // schema 会返回 400（"should be non-empty for OBJECT type"），Google 官方对
+    // 无参函数的建议做法就是不带 parameters。
+    const params = toGeminiSchema(t.parameters);
+    return Object.keys(params?.properties || {}).length > 0
+      ? { name: t.name, description: t.description, parameters: params }
+      : { name: t.name, description: t.description };
+  });
 
   // 记忆注入：仅登录用户；任何失败当 null（loadMemoryProfile 内部兜底）
   const memory = user ? await loadMemoryProfile(supabase, user.userId) : null;
