@@ -158,59 +158,11 @@ router.post('/parse', async (req, res) => {
   }
 });
 
-// ── Zero-UI quick launch (chatbot / voice) ────────────────────────────────────
-router.post('/quick_launch', async (req, res) => {
-  try {
-    const { raw_text, employer_email } = req.body;
-    if (!raw_text) return res.status(400).json({ error: 'Missing raw_text' });
-
-    const parsedData = await parseDemand(raw_text);
-    if (!parsedData?.title) throw new Error('AI failed to parse demand.');
-
-    const supabase = getClient();
-    const budgetAmount = parseFloat((parsedData.budget || '1000').toString().replace(/[^0-9.]/g, '')) || 1000;
-
-    const { data: demand, error: demandErr } = await supabase
-      .from('demands')
-      .insert([{
-        employer_id: 1,
-        title: parsedData.title,
-        role_required: parsedData.role_required,
-        region: parsedData.region || 'Remote',
-        project_type: parsedData.project_type || 'Quick Launch',
-        location: parsedData.location || 'TBD',
-        budget: parsedData.budget || '$1000',
-        description: parsedData.standardized_description,
-        contact: employer_email || 'quicklaunch@talengineer.us',
-        status: 'open',
-      }])
-      .select()
-      .single();
-
-    if (demandErr) throw demandErr;
-
-    if (parsedData.milestones?.length > 0) {
-      const msData = parsedData.milestones.map(m => ({
-        demand_id: demand.id,
-        phase_name: m.phase_name,
-        percentage: m.percentage,
-        amount: budgetAmount * m.percentage,
-        status: 'locked',
-      }));
-      const { error: msErr } = await supabase.from('project_milestones').insert(msData);
-      if (msErr) throw msErr;
-    }
-
-    setTimeout(() => { runMatchmaker(demand.id).catch(console.error); }, 1000);
-
-    res.json({ status: 'ok', message: 'Zero-UI Launch Successful. Matchmaker is now hunting for engineers.', demand_id: demand.id, parsed_summary: parsedData });
-  } catch (err) {
-    console.error('[Demand] Quick launch error:', err);
-    res.status(500).json({ error: 'Something went wrong. Please try again.' });
-  }
-});
-
 // ── Submit demand (manual form) ───────────────────────────────────────────────
+// 注：曾有无鉴权的 POST /quick_launch（'Zero-UI quick launch'）直发端点，任何外部
+// 脚本无凭证即可以 status='open' 落库并触发 matchmaker 对工程师外发邮件，绕过
+// 「发布必须人类点击确认」护栏（2026-07 安全审计）。现 ChatBot 走 /api/agent/chat
+// 草稿 + 本 /submit 人类确认发布，该端点已整体删除，勿再回加无鉴权发布路径。
 router.post('/submit', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
