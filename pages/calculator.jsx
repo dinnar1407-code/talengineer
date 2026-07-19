@@ -147,14 +147,19 @@ function fmtRange(low, high) {
 
 // 在实时基准数组里为选中地区找匹配项：地区名不区分大小写地相等或互相包含即算命中。
 // talents.region 是自由文本，做模糊匹配；空字符串不参与，避免误命中。
+// 子串包含只允许长度≥4 的词参与：两字母 key（如 'na'/'sa'）会与 'china'/'vietnam'/'usa'
+// 误配，导致选北美却静默用中国实时费率还标注 live——审查确认的真 bug。相等匹配不受限；
+// 配不上宁可回退静态区间表，也不给贴错地区的"实时"数字。
 function matchBenchmark(regionObj, benchmarks) {
   if (!Array.isArray(benchmarks)) return null;
-  const targets = [regionObj.label.en.toLowerCase(), regionObj.key];
+  const targets = [regionObj.label.en.toLowerCase(), String(regionObj.key || '').toLowerCase()];
   return (
     benchmarks.find((b) => {
       const r = String(b.region || '').toLowerCase();
       if (!r) return false;
-      return targets.some((t) => r === t || r.includes(t) || t.includes(r));
+      return targets.some(
+        (t) => r === t || (t.length >= 4 && r.includes(t)) || (r.length >= 4 && t.includes(r))
+      );
     }) || null
   );
 }

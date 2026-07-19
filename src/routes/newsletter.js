@@ -20,13 +20,21 @@ const subscribeSchema = z.object({
 }).strip();
 
 /**
- * 生成退订签名：HMAC-SHA256(email, JWT_SECRET) 的十六进制。
+ * 生成退订签名：HMAC-SHA256('newsletter-unsub:' + 小写邮箱, JWT_SECRET) 的十六进制。
  * 无状态——不落库任何 token，退订链接自带签名即可验真。
- * @param {string} email 订阅邮箱（调用方应传已规范化的小写邮箱）
+ * 域分隔前缀：JWT_SECRET 同时用于签发 HS256 JWT，加前缀避免跨协议密钥复用
+ * （审查建议；此刻尚无任何已签发的退订链接，是改方案的零成本窗口）。
+ * 小写规范化收进函数内：两端（生成/校验）口径由同一函数保证，不再依赖注释契约。
+ * @param {string} email 订阅邮箱（任意大小写，函数内统一小写）
  * @returns {string} hex 签名
  */
 function unsubscribeSig(email) {
-  return crypto.createHmac('sha256', JWT_SECRET).update(String(email)).digest('hex');
+  // 空密钥 fail-fast：宁可炸在发信侧，也不能生成人人可伪造的签名。
+  if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured');
+  return crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update('newsletter-unsub:' + String(email).toLowerCase())
+    .digest('hex');
 }
 
 /**
@@ -62,7 +70,16 @@ router.post('/subscribe', async (req, res) => {
 
     if (error) {
       // 23505 = Postgres unique_violation：邮箱已订阅，幂等成功（不报错、不重复插）。
-      if (error.code === '23505') return res.json({ ok: true, already: true });
+      // 重新订阅视为撤销退订：清掉 unsubscribed_at，否则退订过的用户主动再订阅后
+      // 仍被将来的发信侧过滤，永远收不到邮件（审查确认的行为缺陷）。
+      if (error.code === '23505') {
+        const { error: upErr } = await supabase
+          .from('newsletter_subscribers')
+          .update({ unsubscribed_at: null })
+          .eq('email', email.toLowerCase());
+        if (upErr) console.error('[newsletter] resubscribe clear failed', upErr);
+        return res.json({ ok: true, already: true });
+      }
       throw error;
     }
     res.json({ ok: true });
