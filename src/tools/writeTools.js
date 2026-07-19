@@ -50,5 +50,34 @@ register({
     required: ['title', 'description', 'budget', 'region'],
   },
   roles: ['employer'],
-  handler: async (_args, _ctx) => { throw new Error('NOT_IMPLEMENTED'); },
+  handler: async (args, ctx) => {
+    const supabase = ctx.supabase;
+
+    // 插入行照 entV1.js POST /demands 的模式；G1/G2 两处硬编码：
+    // - employer_id 只来自已验证身份（ctx.user.userId），G1 机械防线也保证参数里不可能有它；
+    // - status 写死 'draft'——发布必须由用户在 UI 点「确认发布」走现有端点，工具永远发不了单。
+    const row = {
+      employer_id: ctx.user.userId,
+      title: args.title,
+      description: args.description,
+      budget: String(args.budget), // budget 是文本列，数字统一转字符串（entV1 同款）
+      region: args.region,
+      status: 'draft',
+    };
+    // 可选列：仅在提供时写入，避免把 undefined 显式落成 null 覆盖默认
+    if (args.role_required) row.role_required = args.role_required;
+    if (args.project_type) row.project_type = args.project_type;
+    if (args.location) row.location = args.location;
+
+    const { data, error } = await supabase
+      .from('demands')
+      .insert([row])
+      .select('id, title, description, region, budget, status, created_at') // 返回白名单，勿 select('*')
+      .single();
+    if (error) {
+      console.error('[writeTools] create_demand_draft insert failed:', error);
+      throw new Error('Failed to save the draft. Please try again.');
+    }
+    return data;
+  },
 });

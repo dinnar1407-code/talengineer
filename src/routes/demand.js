@@ -399,6 +399,12 @@ router.get('/:id', async (req, res) => {
 
     if (error || !demand) return res.status(404).json({ error: 'Project not found' });
 
+    // 草稿不对外可见（AI 写工具 create_demand_draft 落的 status='draft' 行）：
+    // 本路由无鉴权且 select('*')，不挡就能被 id 枚举读到未发布内容。一律按 404
+    // 处理且与"不存在"同文案（不区分二者，防探测）；无鉴权做不了属主例外——
+    // 草稿的查看走属主视角（GET /my / get_my_projects），发布后 status='open' 自然公开。
+    if (demand.status === 'draft') return res.status(404).json({ error: 'Project not found' });
+
     // Fire-and-forget view count increment
     // 原子自增（审计 P3 修复）：旧写法是"读后写"（拿 demand.view_count 加 1 再 update），
     // 并发访问互相覆盖丢计数；改用 migration 014 的 SQL 函数在行锁内单条 UPDATE 完成。
