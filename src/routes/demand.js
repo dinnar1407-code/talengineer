@@ -382,9 +382,14 @@ router.get('/:id', async (req, res) => {
 
     const payload = { ...demand, milestones: milestones || [] };
 
+    // fee_pct 是 demands 表里的 Founding 让利商业条款（原始协商费率）。本路由公开无鉴权，
+    // 上面 select('*') 会把它一并 spread 进 payload——默认从公开返回剥离，否则匿名/工程师/
+    // 他人只要枚举 id 就能读到每个项目协商的平台费率。仅下方属主/admin 分支才显式附加回去。
+    delete payload.fee_pct;
+
     // 生效费率（Founding 让利销售钩子）：仅需求所有者（employer 本人）或 admin 可见，
     // 公开/工程师视角一律不含——避免泄露他人商业条款。本路由公开无鉴权，这里对
-    // Authorization 头做「可选解码」：带合法 token 且属主/admin 才附加 effective_fee_pct；
+    // Authorization 头做「可选解码」：带合法 token 且属主/admin 才附加 fee_pct + effective_fee_pct；
     // 匿名 / 无效或过期 token / 他人一律跳过（现有公开返回保持不变）。
     // 纯展示：feeFor 是放款抽佣的唯一真值来源，这里只读它、绝不参与任何金额计算。
     const authHeader = req.headers.authorization;
@@ -392,6 +397,7 @@ router.get('/:id', async (req, res) => {
       try {
         const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
         if (decoded && (decoded.userId === demand.employer_id || decoded.role === 'admin')) {
+          payload.fee_pct = demand.fee_pct;          // 属主/admin 才把原始协商费率附加回去
           payload.effective_fee_pct = feeFor(demand);
         }
       } catch (e) { /* 无效/过期 token 按匿名处理，不附加费率 */ }
