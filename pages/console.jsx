@@ -54,7 +54,7 @@ const DICT = {
     // Messages
     messages: 'Messages', composerPh: 'Type a quick reply…', pickConv: 'Select a conversation',
     convEmpty: 'No conversations yet', convEmptySub: 'Apply to a project or message an engineer to start.',
-    openChat: 'Open full chat →', send: 'Send', browse: 'Browse Projects',
+    openChat: 'Open full chat →', enterWarRoom: 'War Room →', send: 'Send', browse: 'Browse Projects',
     // Find
     findPh: 'Search by skill, platform, or region…', search: 'Search', verified: '✓ Verified', invite: 'Invite',
     noEngineers: 'No engineers to show yet.',
@@ -114,7 +114,7 @@ const DICT = {
     escrowEmpty: '暂无托管交易',
     messages: '消息', composerPh: '快速回复…', pickConv: '选择一个对话',
     convEmpty: '暂无对话', convEmptySub: '申请项目或联系工程师后开始对话。',
-    openChat: '打开完整聊天 →', send: '发送', browse: '浏览项目',
+    openChat: '打开完整聊天 →', enterWarRoom: '战情室 →', send: '发送', browse: '浏览项目',
     findPh: '按技能、平台或地区搜索…', search: '搜索', verified: '✓ 已认证', invite: '邀请',
     noEngineers: '暂无可展示的工程师。',
     screenerStatus: '认证状态', passed: '已认证', takeAssessment: '去考试 →',
@@ -168,7 +168,7 @@ const DICT = {
     escrowEmpty: 'Sin transacciones de garantía aún',
     messages: 'Mensajes', composerPh: 'Escribe una respuesta rápida…', pickConv: 'Selecciona una conversación',
     convEmpty: 'Sin conversaciones aún', convEmptySub: 'Postúlate a un proyecto o escribe a un ingeniero para empezar.',
-    openChat: 'Abrir chat completo →', send: 'Enviar', browse: 'Ver Proyectos',
+    openChat: 'Abrir chat completo →', enterWarRoom: 'Sala de Guerra →', send: 'Enviar', browse: 'Ver Proyectos',
     findPh: 'Buscar por habilidad, plataforma o región…', search: 'Buscar', verified: '✓ Verificado', invite: 'Invitar',
     noEngineers: 'Aún no hay ingenieros para mostrar.',
     screenerStatus: 'Estado de certificación', passed: 'CERTIFICADO', takeAssessment: 'Hacer evaluación →',
@@ -221,7 +221,7 @@ const DICT = {
     escrowEmpty: 'Chưa có giao dịch ký quỹ',
     messages: 'Tin nhắn', composerPh: 'Nhập trả lời nhanh…', pickConv: 'Chọn một cuộc trò chuyện',
     convEmpty: 'Chưa có cuộc trò chuyện', convEmptySub: 'Ứng tuyển dự án hoặc nhắn cho kỹ sư để bắt đầu.',
-    openChat: 'Mở chat đầy đủ →', send: 'Gửi', browse: 'Xem Dự án',
+    openChat: 'Mở chat đầy đủ →', enterWarRoom: 'Phòng Chiến →', send: 'Gửi', browse: 'Xem Dự án',
     findPh: 'Tìm theo kỹ năng, nền tảng hoặc khu vực…', search: 'Tìm', verified: '✓ Đã xác minh', invite: 'Mời',
     noEngineers: 'Chưa có kỹ sư để hiển thị.',
     screenerStatus: 'Trạng thái chứng nhận', passed: 'ĐÃ CHỨNG NHẬN', takeAssessment: 'Làm bài đánh giá →',
@@ -274,7 +274,7 @@ const DICT = {
     escrowEmpty: 'अभी कोई एस्क्रो लेनदेन नहीं',
     messages: 'संदेश', composerPh: 'त्वरित उत्तर लिखें…', pickConv: 'एक वार्तालाप चुनें',
     convEmpty: 'अभी कोई वार्तालाप नहीं', convEmptySub: 'शुरू करने के लिए किसी प्रोजेक्ट में आवेदन करें या इंजीनियर को संदेश भेजें।',
-    openChat: 'पूरा चैट खोलें →', send: 'भेजें', browse: 'प्रोजेक्ट देखें',
+    openChat: 'पूरा चैट खोलें →', enterWarRoom: 'वॉर रूम →', send: 'भेजें', browse: 'प्रोजेक्ट देखें',
     findPh: 'कौशल, प्लेटफ़ॉर्म या क्षेत्र से खोजें…', search: 'खोजें', verified: '✓ सत्यापित', invite: 'आमंत्रित करें',
     noEngineers: 'दिखाने के लिए अभी कोई इंजीनियर नहीं।',
     screenerStatus: 'प्रमाणन स्थिति', passed: 'प्रमाणित', takeAssessment: 'मूल्यांकन दें →',
@@ -327,7 +327,7 @@ const DICT = {
     escrowEmpty: 'Aucune transaction de séquestre',
     messages: 'Messages', composerPh: 'Réponse rapide…', pickConv: 'Sélectionnez une conversation',
     convEmpty: 'Aucune conversation', convEmptySub: 'Postulez à un projet ou écrivez à un ingénieur pour commencer.',
-    openChat: 'Ouvrir le chat complet →', send: 'Envoyer', browse: 'Voir les Projets',
+    openChat: 'Ouvrir le chat complet →', enterWarRoom: 'Salle de Guerre →', send: 'Envoyer', browse: 'Voir les Projets',
     findPh: 'Rechercher par compétence, plateforme ou région…', search: 'Rechercher', verified: '✓ Vérifié', invite: 'Inviter',
     noEngineers: 'Aucun ingénieur à afficher.',
     screenerStatus: 'État de certification', passed: 'CERTIFIÉ', takeAssessment: "Passer l'évaluation →",
@@ -380,7 +380,7 @@ const DICT = {
     escrowEmpty: 'Noch keine Treuhand-Transaktionen',
     messages: 'Nachrichten', composerPh: 'Schnelle Antwort…', pickConv: 'Unterhaltung auswählen',
     convEmpty: 'Noch keine Unterhaltungen', convEmptySub: 'Bewirb dich auf ein Projekt oder schreibe einem Ingenieur.',
-    openChat: 'Vollständigen Chat öffnen →', send: 'Senden', browse: 'Projekte Ansehen',
+    openChat: 'Vollständigen Chat öffnen →', enterWarRoom: 'War Room →', send: 'Senden', browse: 'Projekte Ansehen',
     findPh: 'Nach Fähigkeit, Plattform oder Region suchen…', search: 'Suchen', verified: '✓ Verifiziert', invite: 'Einladen',
     noEngineers: 'Noch keine Ingenieure anzuzeigen.',
     screenerStatus: 'Zertifizierungsstatus', passed: 'ZERTIFIZIERT', takeAssessment: 'Prüfung ablegen →',
@@ -433,7 +433,7 @@ const DICT = {
     escrowEmpty: 'エスクロー取引はまだありません',
     messages: 'メッセージ', composerPh: 'クイック返信を入力…', pickConv: '会話を選択',
     convEmpty: '会話はまだありません', convEmptySub: 'プロジェクトに応募するかエンジニアに連絡して始めましょう。',
-    openChat: 'フルチャットを開く →', send: '送信', browse: 'プロジェクトを見る',
+    openChat: 'フルチャットを開く →', enterWarRoom: '作戦室 →', send: '送信', browse: 'プロジェクトを見る',
     findPh: 'スキル・プラットフォーム・地域で検索…', search: '検索', verified: '✓ 認証済み', invite: '招待',
     noEngineers: '表示できるエンジニアはまだいません。',
     screenerStatus: '認定ステータス', passed: '認定済み', takeAssessment: '試験を受ける →',
@@ -486,7 +486,7 @@ const DICT = {
     escrowEmpty: '아직 에스크로 거래 없음',
     messages: '메시지', composerPh: '빠른 답장 입력…', pickConv: '대화를 선택하세요',
     convEmpty: '아직 대화 없음', convEmptySub: '프로젝트에 지원하거나 엔지니어에게 메시지를 보내 시작하세요.',
-    openChat: '전체 채팅 열기 →', send: '보내기', browse: '프로젝트 보기',
+    openChat: '전체 채팅 열기 →', enterWarRoom: '워룸 →', send: '보내기', browse: '프로젝트 보기',
     findPh: '기술, 플랫폼, 지역으로 검색…', search: '검색', verified: '✓ 인증됨', invite: '초대',
     noEngineers: '표시할 엔지니어가 아직 없습니다.',
     screenerStatus: '인증 상태', passed: '인증 완료', takeAssessment: '평가 보러 가기 →',
@@ -1376,9 +1376,20 @@ export default function Console() {
                           <div className={styles.threadName}>{activeConv?.title || `Project #${activeThread}`}</div>
                           <div className={styles.threadSub}>{activeConv?.region || ''}</div>
                         </div>
-                        {String(activeThread).startsWith('demo-')
-                          ? <span className={styles.aiChip} title={d.demoReadonly} style={{ opacity: .55, cursor: 'not-allowed' }}>{d.openChat}</span>
-                          : <Link href={`/messages/${activeThread}`} className={styles.aiChip}>{d.openChat}</Link>}
+                        {/* 会话头两个入口：完整聊天 + 战情室（项目级实时翻译沟通间，按 projectId=demand_id 分房）。
+                            activeThread 即当前会话所属需求 id（demand_id），同时用作 /messages 与 /warroom 的项目标识。
+                            演示会话（demo- 前缀）无真实项目 → 两个入口都禁用防误跳，与原 openChat 处理一致。 */}
+                        {String(activeThread).startsWith('demo-') ? (
+                          <span style={{ display: 'flex', gap: 8 }}>
+                            <span className={styles.aiChip} title={d.demoReadonly} style={{ opacity: .55, cursor: 'not-allowed' }}>{d.openChat}</span>
+                            <span className={styles.aiChip} title={d.demoReadonly} style={{ opacity: .55, cursor: 'not-allowed' }}>{d.enterWarRoom}</span>
+                          </span>
+                        ) : (
+                          <span style={{ display: 'flex', gap: 8 }}>
+                            <Link href={`/messages/${activeThread}`} className={styles.aiChip}>{d.openChat}</Link>
+                            <Link href={`/warroom?projectId=${activeThread}`} className={styles.aiChip}>{d.enterWarRoom}</Link>
+                          </span>
+                        )}
                       </div>
                       <div className={styles.bubbles}>
                         {thread === null ? (

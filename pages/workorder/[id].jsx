@@ -231,6 +231,19 @@ export default function WorkOrder() {
           <div className={styles.cardLabel}>Project</div>
           <div className={styles.cardTitle}>{ms?.demands?.title || `Milestone #${id}`}</div>
           <div className={styles.cardSub}>{ms?.phase_name} · <strong style={{ color: 'var(--primary)' }}>${(ms?.amount || 0).toLocaleString()}</strong></div>
+          {/* 战情室入口（项目级实时翻译沟通间）：War Room 按 projectId 分房，
+              这里的项目 id 即里程碑所属需求 ms.demand_id（与本页"Rate the Engineer"链接取值一致）。
+              仅在拿到 demand_id 时渲染，避免离线兜底 ms 为空时生成坏链接。
+              工单页无 i18n（全站英文），按钮沿用本页英文语言模式。 */}
+          {ms?.demand_id && (
+            <a
+              href={`/warroom?projectId=${ms.demand_id}`}
+              className={styles.btnPrimary}
+              style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 12, background: '#7c3aed' }}
+            >
+              🛰️ Enter War Room
+            </a>
+          )}
         </div>
 
         {/* ── Step: Check In ── */}
