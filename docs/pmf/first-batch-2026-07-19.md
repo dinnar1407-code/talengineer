@@ -2,7 +2,7 @@
 
 > 从 84 条名单（leads-cn 51 + leads-us 33）按**匹配度 × 可触达性 × 时效**选出首批 10 家：中国出海线 5 + 美国线 5。
 > 每家均经 2026 年近况联网核实（项目在推进、无取消变数）+ 口径一致性审查 + 主编辑终修。
-> **状态**：7 家就绪可发；海信 / Malisko / CEC Controls 3 家草稿待补（见文末）。
+> **状态**：**10 家全部就绪可发**（2026-07-19 补齐海信 / Malisko / CEC 三家，含硬伤终修）。
 >
 > **发送前 Terry 必做**：① 每封把 `[Terry 落款]` 换成署名+头衔+LinkedIn/日历链接（ToDo #7）② 通读定调——话术是草稿，你的判断优先。
 > **发送节奏建议**：每天 2-3 封（中国线工作日上午发 IR 邮箱；美国线当地周二至周四早晨），避免同日群发同圈子（CSIA 会员互相认识）。
@@ -87,9 +87,19 @@
 
 - **跟进**：5 个工作日无复，以「二期 20 万辆/年扩建的设备安装调试窗口」为角度，附一页泰国本地自动化工程师供给盘点，换制造/设备口收件人再发。
 
-### 5. 海信 Hisense · 墨西哥（蒙特雷 Hofusan）— ⏳ 草稿待补
+### 5. 海信 Hisense · 墨西哥（蒙特雷北 Hofusan / Salinas Victoria, Nuevo León）
 
-已选定（2021 起 2.6 亿美元建厂、已投产、园区招商双入口），定制稿因执行中断未完成——**Terry 确认后即补**（角度：已投产工厂的产线扩改与维保外援，蒙特雷制造集群自动化人才竞争激烈）。
+- **为什么首批**：家电（冰箱+灶具产线）已进运营期、年产能超千万台大量出口美加；园区招商可作 BD 中转（掌握入驻/扩产名单）。
+- **近况核实（2026）**：推进且战略权重上升——2026 关税重构（25% IEEPA 被推翻、改 10% 且豁免 USMCA 合规品）令本地产能更值钱，stages 3-4（洗衣机/空调）扩产评估中；无停摆（elfinanciero / mexiconewsdaily / tetakawi 2026 指南）。
+- **触达**：领英搜「Hisense Monterrey Home Appliance Manufacturing」（Salinas Victoria）定位运营/工程/维保负责人 InMail；Hofusan 园区招商团队中转引荐（对中企有服务动机，转化高于冷邮件）；官网 hisense.com.mx 商务邮箱兜底。
+- **主题**：海信 Hofusan 产线扩改与维保：持证工程师 48 小时匹配
+
+> 海信在蒙特雷北 Hofusan 园区的冰箱、灶具产线已进运营期，而新莱昂州制造集群里起亚整车厂与园内数十家中企扎堆，自动化与产线工程师在本地几乎抢不到人。TalEngineer 专为运营期的产线扩改与维保供持证工程师：L1-L3 分级认证、48 小时匹配、9 语沟通；付款走托管、里程碑验收后放款，首个里程碑不满意全额退款；创始期前 5 单仅收 5%（常规 15%）。方便约 15 分钟通话聊聊吗？细节见 talengineer.us/trust
+>
+> [Terry 落款]
+
+- **终修**：审查逮到地理事实硬伤——原稿写「园区周边 BMW…扎堆」，但 BMW 在墨唯一整车厂位于圣路易斯波托西州（距蒙特雷约 500km），非邻厂；已换成真实的新莱昂州起亚厂+Hofusan 园内中企群。
+- **跟进**：5-7 天无回走 Hofusan 园区中转引荐；二次触达换钩子为 stages 3-4 新产线工程配套，附一个墨西哥制造集群同类案例；仍无回则盯扩产公告节点季度重触。
 
 ---
 
@@ -154,13 +164,51 @@
 
 - **跟进**：3-4 天无复，换 IPPE 2026 角度：他们主讲的 AI 预测性维护/先进控制落地同样需要现场调试工程师，直接问 Q3 哪个食品/饲料项目最缺人手。
 
-### 9. Malisko Engineering（St. Louis, MO）— ⏳ 草稿待补
+### 9. Malisko Engineering（St. Louis, MO）· plant-floor control / IT-OT
 
-已选定（2025 SI of the Year <$20M 档——小体量最适合外溢人力），定制稿因执行中断未完成——**Terry 确认后即补**（角度：拿奖后项目涌入，overflow controls 按里程碑外包不用背 60 天招聘）。
+- **为什么首批**：2025 第三度斩获 Control Engineering SI of the Year（<$20M 档，罕见三冠）——小体量拿奖后项目涌入，最适合 overflow controls 按里程碑外包、不背 60 天招聘。
+- **近况核实（2026）**：2025-11 被 BW Design Group 收购但**仍以 Malisko 品牌独立运营、创始 Malyszko 团队留任**，2026 营收约 $760 万仍在该档——收购是新变数但非阻断，整合期溢出项目更需弹性人力（malisko.com/2025-sioy / controleng / processingmagazine 收购稿）。
+- **触达**：官网 malisko.com 联系表单；LinkedIn 搜「Malisko Engineering」→People 定向 President Steve Malyszko / VP Dan Malyszko / Project Manager。**走 Malisko 原班人马，不联系 BW Design Group 总部**。
+- **主题**：Third SI of the Year — per-milestone controls for the overflow
 
-### 10. CEC Controls（Wixom, MI + 墨西哥办公室）— ⏳ 草稿待补
+> Hi [Name],
+>
+> A third Control Engineering System Integrator of the Year (under $20M) is rare air — and award years tend to pull in more plant-floor controls work than a team can staff on short notice.
+>
+> When that demand outruns your bench, TalEngineer supplies platform-certified controls engineers — four tracks, exam plus human review, graded L1–L3 — matched within 48 hours, so you cover overflow commissioning without a ~60-day formal hire.
+>
+> You fund escrow per approved milestone and release only against work you sign off: you're paying for accepted deliverables, not clocked hours. Full refund if the first milestone misses.
+>
+> Founding rate: 5% on your first five engagements (15% after). Worth 15 minutes?
+>
+> How it works and trust: talengineer.us/trust
+>
+> [Terry 落款]
 
-已选定（底特律汽车带+自有墨西哥办公室——跨境供给是我们独家楔子），定制稿因执行中断未完成——**Terry 确认后即补**（角度：主打墨西哥项目的本地认证工程师供给）。
+- **终修**：去掉与 Interstates 雷同的「Congrats on … SI of the Year」祝贺开头（改为直接切获奖年人力外溢痛点）；改写与 Huffman 逐字重复的 escrow 句。
+- **跟进**：4-5 工作日无回→LinkedIn 给 VP Dan Malyszko 补一条（仅一次），可温和点出「并入 BW Design Group 整合期，溢出项目按里程碑外包不占内部编制」；再无回应 2 周后季度轻触，不追第三次。
+
+### 10. CEC Controls（Wixom, MI 总部 + Silao/瓜纳华托 & 墨西哥城）· industrial/process control
+
+- **为什么首批**：本批唯一「美国 SI 但打墨西哥牌」——他们自己在墨西哥有办公室（Silao/瓜纳华托汽车集群核心），墨西哥本地认证工程师短缺正是我们跨境供给的独家楔子。
+- **近况核实（2026）**：2024 Q3 被 SCIO Automation Group 收购、现为「a SCIO Company」；2026-06-22~25 刚参展 Automate 2026（芝加哥）；220+ 员工分布美/墨/加 11 地；近岸化为顺风、无负面变数（automate.org / scio-automation / ceccontrols locations）。
+- **触达**：LinkedIn 直连 CEC / SCIO Automation North America 运营或工程负责人（正文角度直接对口墨西哥项目）；官网 ceccontrols.com/contact-us 同步补投。
+- **主题**：Local certified engineers for CEC's Silao & Mexico City projects
+
+> Hi [Name],
+>
+> It's not CEC's Wixom HQ that stands out to us — it's your Guanajuato footprint: the Silao and Mexico City vision offices, right in Mexico's busiest automotive cluster.
+>
+> That cluster's real bottleneck is the one we solve: local, credentialed automation engineers are scarce, and cross-border staffing usually means paying by the hour and hoping.
+>
+> TalEngineer supplies platform-certified engineers — four tracks, exam plus human review, graded L1–L3 — for your Mexico projects, local or a cross-border on-site hybrid, matched in 48 hours. You release escrow only per approved milestone and pay for accepted deliverables, not timesheets; full refund if the first milestone misses. Founding rate: 5% on your first five engagements (15% after).
+>
+> Worth a 15-minute call? How we keep it safe: talengineer.us/trust
+>
+> [Terry 落款]
+
+- **终修**：去掉本批第三处「Congrats on Automate 2026」祝贺开头（改为直接切 Guanajuato 布局）；改写与 Huffman/Malisko 雷同的 escrow 句；补齐 L1-L3 分级与 5%/15% 费率（对齐批次口径，原稿漏了）。
+- **跟进**：5-7 工作日无回→LinkedIn 二次触达，点名某 Silao/Bajío 汽车 OEM 产能爬坡切入，提出免费给一个在跑的墨西哥项目发一份持证工程师样本档案；可礼貌抄送 SCIO North America 运营对口人。全程只做公开触达。
 
 ---
 
@@ -171,3 +219,4 @@
 - South Shore 认证轨口径矫正（HMI/SCADA 是服务范围不是认证轨，已区分表述）
 - 中文三封开头同构、英文三封 escrow 句逐字重复 → 已逐封改写去模板化
 - 赛轮合资归属措辞已按「与墨西哥 TD 合资」写准；拓普「Founding 客户」统一为「创始期客户」；Interstates「行业平均 60 天」软化为「often takes 60 days」
+- **补充 3 家终修（2026-07-19）**：海信地理硬伤（BMW 在 SLP 非蒙特雷邻厂→换起亚+Hofusan 中企群）；Malisko/CEC 去掉与 Interstates 雷同的「Congrats…」祝贺开头；三封英文 escrow 句原本与 Huffman 逐字重复，逐封改写去模板化；CEC 补齐 L1-L3+费率对齐批次口径
