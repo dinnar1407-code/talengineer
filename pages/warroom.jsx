@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import OfflineBanner from '../components/OfflineBanner';
 import { useOfflineData } from '../lib/offline/useOfflineData';
@@ -175,6 +176,7 @@ const DICT = {
 };
 
 export default function WarRoom() {
+  const router = useRouter();
   const [lang, setLang] = useLang();
   const [joined, setJoined]         = useState(false);
   const [projectId, setProjectId]   = useState('DEMO-1082');
@@ -196,6 +198,17 @@ export default function WarRoom() {
       setMessages([{ type: 'system', text: d.welcomeMsg, id: 'welcome' }]);
     }
   }, [lang, joined]);
+
+  // 深链接接收端：console.jsx / workorder/[id].jsx 的「进入战情室」入口都跳到
+  // /warroom?projectId=<demand_id>，把当前需求 id 带在 query 里。这里读回来预填「项目编号」，
+  // 用户就不用手抄一串内部 id 了。为什么要等 router.isReady：pages-router 首屏 SSR 时 query 可能还是空，
+  // isReady 变 true 才代表 query 已解析完整；依赖里带 router.query.projectId 保证只在其真正变化时同步，
+  // 不会覆盖用户在输入框里的手动改动，也不会在已加入房间后被同一 query 反复触发。
+  useEffect(() => {
+    if (!router.isReady) return;
+    const qp = router.query.projectId;
+    if (qp && !joined) setProjectId(String(qp));
+  }, [router.isReady, router.query.projectId, joined]);
 
   useEffect(() => {
     if (messagesRef.current) {
