@@ -91,6 +91,21 @@ export default function ProjectDetail({ initialProject = null }) {
       .catch(() => setCheckins([]));
   }, [project, currentUser]);
 
+  // 生效费率（Founding 让利销售钩子）：仅需求所有者/admin 可见。公开 GET /:id（SSR 与
+  // 兜底 fetch 都不带 token）不含 effective_fee_pct，这里带 token 重拉一次——服务端据 token
+  // 判定属主才返回该字段，工程师/他人拿不到（不泄露他人商业条款）。拿到后并入 project 触发费率展示。
+  useEffect(() => {
+    if (!id || !currentUser?.token) return;
+    fetch(`/api/demand/${id}`, { headers: { Authorization: `Bearer ${currentUser.token}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.data?.effective_fee_pct != null) {
+          setProject(prev => (prev ? { ...prev, effective_fee_pct: d.data.effective_fee_pct } : prev));
+        }
+      })
+      .catch(() => {});
+  }, [id, currentUser]);
+
   // 是否已结算：至少一个里程碑已放款/退款——决定"评价雇主"入口是否出现
   const settled = !!project?.milestones?.some(m => ['released', 'refunded'].includes(m.status));
 
@@ -214,6 +229,15 @@ export default function ProjectDetail({ initialProject = null }) {
     </div>
   );
 
+  // 平台费率展示（仅需求所有者可见）：effective_fee_pct 只由带鉴权的 GET /:id 返回，
+  // 非属主视角为 undefined → showFee=false → 整个费率块不渲染（不泄露他人商业条款）。
+  // Founding 让利 = 生效费率低于标准 15%；feePctNum 取一位小数、避免浮点尾数（0.15*100=15.0000002）。
+  // 纯展示：数值只用来"显示"，真实放款抽佣以服务端 feeFor 为准。
+  const feePct    = project.effective_fee_pct;                 // 0..1 或 undefined
+  const showFee   = feePct != null;
+  const isFounding = showFee && feePct < 0.15;
+  const feePctNum = showFee ? Math.round(feePct * 1000) / 10 : 0; // e.g. 5 / 12.5 / 15
+
   return (
     <>
       {/* title 用单个模板字符串 child（混排 children 会被 Next 服务端丢弃，SSR 后 title 变空） */}
@@ -287,6 +311,22 @@ export default function ProjectDetail({ initialProject = null }) {
         {project.milestones?.length > 0 && (
           <div className={styles.card}>
             <h3 className={styles.sectionTitle}>💼 Escrow Milestones</h3>
+
+            {/* 平台费率（仅需求所有者可见）：Founding 让利 = 费率 < 15% 时高亮专享徽章。
+                effective_fee_pct 仅经带鉴权的 GET /:id 返回，工程师/公开视角 showFee=false → 不渲染。 */}
+            {showFee && (
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, margin: '2px 0 14px', fontSize: 13 }}>
+                <span style={{ color: 'var(--muted)' }}>{lang === 'zh' ? '平台费率' : 'Platform fee'}:</span>
+                <strong style={{ color: isFounding ? '#059669' : 'var(--text, #111827)' }}>{feePctNum}%</strong>
+                {isFounding && (
+                  <span style={{ background: 'rgba(5,150,105,0.12)', color: '#059669', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, border: '1px solid rgba(5,150,105,0.35)' }}>
+                    ⭐ {lang === 'zh' ? 'Founding 专享' : 'Founding rate'}
+                  </span>
+                )}
+                <span style={{ color: 'var(--muted)' }}>· {lang === 'zh' ? '标准 15%' : 'Standard 15%'}</span>
+              </div>
+            )}
+
             <div className={styles.milestoneList}>
               {project.milestones.map(m => (
                 <div key={m.id} className={styles.milestone}>
@@ -296,6 +336,12 @@ export default function ProjectDetail({ initialProject = null }) {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div className={styles.milestoneAmount}>${(m.amount || 0).toLocaleString()}</div>
+                    {/* 预计平台费金额（金额 × 生效费率）——仅属主可见的展示估算，不参与真实放款 */}
+                    {showFee && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {lang === 'zh' ? '预计平台费' : 'Est. platform fee'} ${((m.amount || 0) * feePct).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </div>
+                    )}
                     <span className={`${styles.msBadge} ${styles['ms_' + (m.status || 'locked')]}`}>{(m.status || 'locked').toUpperCase()}</span>
                   </div>
                 </div>

@@ -8,6 +8,8 @@ const { requireAuth } = require('../middleware/auth');
 const { emailNewApplication, emailEngineerAssigned, emailAutoInvite } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 const { checkAssignEligibility, getValidCertifications } = require('../services/certService'); // 认证门禁（现场正式工作授权）
+const { feeFor } = require('../config/fees'); // 生效费率单一真值来源（founding 让利折算）——本文件只读它做展示，绝不参与放款金额计算
+const jwt = require('jsonwebtoken'); // 公开路由 GET /:id 里对可选 token 做属主判定（决定是否附加 effective_fee_pct）
 
 // ── 自动邀请配置校验（邀请制路由 B2）─────────────────────────────────────────────
 // 雇主发单时可选开启"自动邀请"：平台按 TalScore/认证方向/区域/费率挑选合格工程师，
@@ -279,7 +281,12 @@ router.get('/my', requireAuth, async (req, res) => {
       .eq('employer_id', req.user.userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    res.json({ status: 'ok', data: data || [] });
+    // 生效费率（Founding 让利销售钩子）：本接口按 employer_id 过滤，返回的都是调用者本人的需求，
+    // 故可安全附加 effective_fee_pct（= feeFor(demand)，把 demands.fee_pct 折算成生效费率，无覆盖则 0.15）。
+    // 仅属主视角出现，公开/工程师接口不含此字段——避免泄露他人商业条款。
+    // 纯展示：feeFor 仍是放款抽佣的唯一真值来源，这里只读它、绝不参与任何金额计算。
+    const enriched = (data || []).map((dm) => ({ ...dm, effective_fee_pct: feeFor(dm) }));
+    res.json({ status: 'ok', data: enriched });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[demand]', err);
@@ -373,7 +380,24 @@ router.get('/:id', async (req, res) => {
       .eq('demand_id', req.params.id)
       .order('created_at', { ascending: true });
 
-    res.json({ status: 'ok', data: { ...demand, milestones: milestones || [] } });
+    const payload = { ...demand, milestones: milestones || [] };
+
+    // 生效费率（Founding 让利销售钩子）：仅需求所有者（employer 本人）或 admin 可见，
+    // 公开/工程师视角一律不含——避免泄露他人商业条款。本路由公开无鉴权，这里对
+    // Authorization 头做「可选解码」：带合法 token 且属主/admin 才附加 effective_fee_pct；
+    // 匿名 / 无效或过期 token / 他人一律跳过（现有公开返回保持不变）。
+    // 纯展示：feeFor 是放款抽佣的唯一真值来源，这里只读它、绝不参与任何金额计算。
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        if (decoded && (decoded.userId === demand.employer_id || decoded.role === 'admin')) {
+          payload.effective_fee_pct = feeFor(demand);
+        }
+      } catch (e) { /* 无效/过期 token 按匿名处理，不附加费率 */ }
+    }
+
+    res.json({ status: 'ok', data: payload });
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[demand]', err);
@@ -465,13 +489,37 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
     if (error) throw error;
 
     // 附加平台认证摘要（培训认证模块）：雇主指派前需要知道谁持证/持什么方向的证。
-    // 申请者通常个位数，逐个查询即可；查询失败按"无证"处理（展示层信息，不阻断列表）。
-    const enriched = await Promise.all((data || []).map(async (app) => {
-      let platform_certs = [];
+    // 批量 join：一次性拉取本页所有申请人的有效平台认证（避免逐人 N+1 查询）。
+    // 语义与 certService.getValidCertifications 对齐——只取 revoked=false，再在内存里
+    // 滤掉已过期（expires_at 为空视为长期），并映射成同款 {track_key,...,level} 结构，
+    // 使 platform_certs 字段形状与前端申请人卡（finance.jsx / project/[id].jsx）消费的完全一致。
+    // 注意：这里只影响「展示」；正式指派门禁仍由 POST /assign 独立经 certService 判定，互不耦合。
+    const talentIds = [...new Set((data || []).map((app) => app.talents?.id).filter((v) => v != null))];
+    const certsByTalent = {};
+    if (talentIds.length) {
       try {
-        if (app.talents?.id) platform_certs = await getValidCertifications(supabase, app.talents.id);
-      } catch (e) { /* 展示层容错：查询失败按未持证展示 */ }
-      return { ...app, platform_certs };
+        const { data: certRows } = await supabase
+          .from('platform_certifications')
+          .select('talent_id, level, issued_at, expires_at, cert_tracks(track_key, name_en, name_zh)')
+          .in('talent_id', talentIds)
+          .eq('revoked', false);
+        const now = Date.now();
+        for (const c of certRows || []) {
+          if (c.expires_at && new Date(c.expires_at).getTime() <= now) continue; // 已过期不展示（与门禁"有效证"口径一致）
+          (certsByTalent[c.talent_id] = certsByTalent[c.talent_id] || []).push({
+            track_key:     c.cert_tracks?.track_key,
+            track_name_en: c.cert_tracks?.name_en,
+            track_name_zh: c.cert_tracks?.name_zh,
+            level:         c.level,
+            issued_at:     c.issued_at,
+            expires_at:    c.expires_at,
+          });
+        }
+      } catch (e) { /* 展示层容错：认证批量查询失败则全部按未持证展示，不阻断申请列表 */ }
+    }
+    const enriched = (data || []).map((app) => ({
+      ...app,
+      platform_certs: certsByTalent[app.talents?.id] || [],
     }));
 
     res.json({ status: 'ok', data: enriched });
