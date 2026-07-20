@@ -135,6 +135,44 @@ router.get('/list', async (req, res) => {
       sorted = sorted.sort((a, b) => (order[a.availability] ?? 3) - (order[b.availability] ?? 3));
     }
 
+    // ── 认证摘要（批量补，禁 N+1）──────────────────────────────────────────────
+    // 浏览卡要显示 🎓 平台认证徽章（"持证才可指派"的核心信号）。这里用一次 in() 把本页
+    // 全部工程师的有效平台认证一次性拉回（绝不逐行 getValidCertifications 造成 N+1），
+    // 每人按方向取最高 level，附成 certs:[{track_key, level}]。
+    // 认证摘要属"增强信息"：批量查询失败仅记录日志，列表照常返回（卡片不显示徽章），绝不 500。
+    const ids = sorted.map((t) => t.id);
+    if (ids.length) {
+      try {
+        const { data: certRows, error: certErr } = await supabase
+          .from('platform_certifications')
+          // cert_tracks(track_key) 内嵌取方向 key；与 certService.js 同一 FK 关系
+          .select('talent_id, level, expires_at, cert_tracks(track_key)')
+          .in('talent_id', ids)
+          .eq('revoked', false); // 已吊销的证不算
+        if (certErr) throw certErr;
+
+        const now = Date.now();
+        // talent_id -> { track_key -> 该方向最高 level }
+        const byTalent = new Map();
+        (certRows || []).forEach((c) => {
+          // 已过期不算（expires_at 为 NULL = 长期有效）
+          if (c.expires_at && new Date(c.expires_at).getTime() <= now) return;
+          const trackKey = c.cert_tracks?.track_key;
+          if (!trackKey) return;
+          const m = byTalent.get(c.talent_id) || {};
+          if (m[trackKey] === undefined || c.level > m[trackKey]) m[trackKey] = c.level;
+          byTalent.set(c.talent_id, m);
+        });
+
+        sorted = sorted.map((t) => ({
+          ...t,
+          certs: Object.entries(byTalent.get(t.id) || {}).map(([track_key, level]) => ({ track_key, level })),
+        }));
+      } catch (e) {
+        console.error('[talent] cert summary batch failed:', e);
+      }
+    }
+
     res.json({ status: 'ok', data: sorted, total: count || 0, page: pageNum, pageSize });
   } catch (err) {
     // 真实错误完整记录到日志(供 Sentry/排查)，但只向客户端返回通用文案，避免泄露数据库/内部细节

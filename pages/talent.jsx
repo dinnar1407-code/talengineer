@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import ChatBot from '../components/ChatBot';
 import ConsoleShell from '../components/ConsoleShell';
+import TalScoreBadge from '../components/TalScoreBadge';
 import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
@@ -558,6 +559,7 @@ export default function Talent() {
                 </select>
                 <select value={filterSort} onChange={e => setFilterSort(e.target.value)} className={styles.filterSelect}>
                   <option value="score">Sort: Top Verified</option>
+                  <option value="talscore">Sort: Top TalScore</option>
                   <option value="available">Sort: Available First</option>
                   <option value="newest">Sort: Newest</option>
                 </select>
@@ -583,11 +585,13 @@ export default function Talent() {
                   : talents.map(t => (
                     <div key={t.id} className={styles.card}>
                       <div className={styles.cardTitle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <Link href={`/engineer/${t.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{t.name}</Link>
                           {t.verified_score >= 80 && (
                             <span className={styles.verifiedBadge}>🛡️ Nexus Verified ({t.verified_score})</span>
                           )}
+                          {/* TalScore 综合质量分徽章：列表 API 已返回 t.tal_score（此前前端丢弃）；未打分时组件自身返回 null */}
+                          <TalScoreBadge score={t.tal_score} />
                         </div>
                         <span style={{ fontSize: 14, color: 'var(--primary)' }}>{t.rate}</span>
                       </div>
@@ -595,6 +599,16 @@ export default function Talent() {
                         <span className={styles.badge}>📍 {t.region}</span>
                         <span className={styles.badge}>🔧 {t.skills}</span>
                         <span className={styles.badge}>⭐ {t.level}</span>
+                        {/* 评分星级（仿 index.jsx 口径）：仅在有真实评价时显示，均分保留 1 位小数 */}
+                        {t.review_count > 0 && t.avg_rating != null && (
+                          <span className={styles.badge}>
+                            <span style={{ color: '#f59e0b' }}>★</span> {Number(t.avg_rating).toFixed(1)} ({t.review_count})
+                          </span>
+                        )}
+                        {/* 🎓 平台认证徽章（"持证才可指派"的核心信号）：每方向取最高 level，后端批量补 t.certs */}
+                        {Array.isArray(t.certs) && t.certs.map(c => (
+                          <span key={c.track_key} className={styles.badge}>🎓 {c.track_key}·L{c.level}</span>
+                        ))}
                       </div>
                       <div className={styles.cardDesc}>{t.bio}</div>
                       <div className={styles.cardFooter}>
