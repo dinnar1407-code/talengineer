@@ -19,6 +19,14 @@ const REGIONS = [
   { region: { en: 'India & South Asia', zh: '印度及南亚' }, rate: '$25–50/hr' },
 ];
 
+// 建厂用人指南跨链（regional，与 /guides/[region] 路由一致）。方向页无论哪个 track 都可能跨国建厂，
+// 所以统一给出三国指南入口，修复 /guides 全站零链入的孤儿问题。
+const GUIDES = [
+  { slug: 'mexico', name: { en: 'Mexico', zh: '墨西哥' } },
+  { slug: 'vietnam', name: { en: 'Vietnam', zh: '越南' } },
+  { slug: 'thailand', name: { en: 'Thailand', zh: '泰国' } },
+];
+
 // UI 标签（章节标题、按钮等），en/zh 两套。
 const UI = {
   en: {
@@ -34,6 +42,9 @@ const UI = {
     ratesNote:
       'Blended hourly rates from active engineer profiles, updated in real time. Development work sits toward the middle of each range; on-site commissioning carries a premium. Platform escrow fee is 15% (5% for founding customers).',
     industriesTitle: 'Hire by industry',
+    guidesTitle: 'Setting up in a new country?',
+    guidesBody:
+      'Read our country hiring guides for local rate ranges, certification and on-the-ground commissioning before you build.',
     ctaHeading: 'Ready to hire?',
     ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
     l1: 'L1 — Fundamentals',
@@ -53,6 +64,8 @@ const UI = {
     ratesNote:
       '来自活跃工程师档案的综合时薪，实时更新。开发类工作位于各区间中段，现场调试有溢价。平台托管费为 15%（founding 客户 5%）。',
     industriesTitle: '按行业细分',
+    guidesTitle: '要在新国家建厂？',
+    guidesBody: '动工前，先读我们的分国用人指南：了解当地费率区间、认证与落地调试。',
     ctaHeading: '准备好招募了吗？',
     ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
     l1: 'L1 — 基础',
@@ -288,6 +301,19 @@ export default function HireTrack({ track, industries }) {
             </tbody>
           </table>
           <p className={styles.note}>{u.ratesNote}</p>
+        </div>
+
+        {/* 建厂用人指南跨链：把方向页流量引到已建成但零链入的 /guides/[region] 国别指南 */}
+        <div className={styles.block}>
+          <h2 className={styles.sectionTitle}>{u.guidesTitle}</h2>
+          <p className={`${styles.lead} ${styles.leadMuted}`}>{u.guidesBody}</p>
+          <div className={styles.industryLinks}>
+            {GUIDES.map((g) => (
+              <Link key={g.slug} href={`/guides/${g.slug}`} className={styles.industryLink}>
+                {(g.name[lang] || g.name.en)} →
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* 行业子页入口（W1-1 垂直矩阵）：该方向下有行业页才渲染（electrical 暂无） */}

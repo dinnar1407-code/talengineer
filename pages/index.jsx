@@ -105,7 +105,7 @@ const DICT = {
       { emoji: '📄', title: 'NDA & IP Protection', body: 'Standardized NDAs, code ownership transfer, and audit trails on every project by default.' },
     ],
     // Testimonials
-    testiH2: 'Trusted by OEMs and integrators worldwide',
+    testiH2: 'Trusted by OEMs and integrators worldwide', caseStudiesCta: 'Read customer case studies →',
     testimonials: [
       { quote: 'We shipped a packaging line to Vietnam and needed local commissioning within two weeks. Talengineer matched us with a verified Siemens engineer in 48 hours — the escrow model made sign-off painless.', author: 'Operations Director', meta: 'Packaging OEM, Ohio, USA' },
       { quote: "As an integrator, finding vetted robotics help during crunch is brutal. The AI screening actually filters — every engineer we've hired could program a Fanuc cell on day one.", author: 'Managing Partner', meta: 'System Integrator, Bavaria, Germany' },
@@ -135,10 +135,11 @@ const DICT = {
     // Footer
     footerTagline: 'The global marketplace for AI-verified industrial automation talent.',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Hire', footerColEngineers: 'Engineers', footerColSpecialties: 'Specialties', footerColCompany: 'Company',
+    footerColHire: 'Hire', footerColEngineers: 'Engineers', footerColSpecialties: 'Specialties', footerColGuides: 'Hiring Guides', footerColCompany: 'Company',
     footerHire: [
       { label: 'Find Engineers', href: '/talent' }, { label: 'Post a Project', href: '/talent' },
       { label: 'Rate Benchmarks', href: '/rates' }, { label: 'Enterprise API', href: '/enterprise' },
+      { label: 'Developer API', href: '/developers' },
       { label: 'Pricing', href: '/pricing' }, { label: 'Cost Calculator', href: '/calculator' },
     ],
     footerEngineers: [
@@ -147,8 +148,12 @@ const DICT = {
       { label: 'Certification Exams', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLC Programming', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
-      { label: 'Robotics', href: '/talent' }, { label: 'Panel Design', href: '/talent' },
+      { label: 'PLC Programming', href: '/hire/plc' }, { label: 'Machine Vision', href: '/hire/vision' },
+      { label: 'Robotics', href: '/hire/robotics' }, { label: 'Panel Design', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'Mexico', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
+      { label: 'Thailand', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'About', href: '/' }, { label: 'Resources', href: '#resources' },
@@ -238,7 +243,7 @@ const DICT = {
       { emoji: '📄', title: '保密与知识产权保护', body: '每个项目默认配备标准化 NDA、代码所有权转移与审计记录。' },
     ],
     // Testimonials
-    testiH2: '受到全球设备厂商与集成商的信赖',
+    testiH2: '受到全球设备厂商与集成商的信赖', caseStudiesCta: '阅读客户案例 →',
     testimonials: [
       { quote: '我们把一条包装线发往越南，两周内就需要本地调试。Talengineer 在 48 小时内为我们匹配到一位认证西门子工程师——托管模式让验收毫无后顾之忧。', author: '运营总监', meta: '包装设备厂商，美国俄亥俄州' },
       { quote: '作为集成商，赶工期时找靠谱的机器人帮手太难了。这里的 AI 筛选是真的在把关——我们招的每位工程师第一天就能编 Fanuc 工作站。', author: '执行合伙人', meta: '系统集成商，德国巴伐利亚' },
@@ -268,10 +273,11 @@ const DICT = {
     // Footer
     footerTagline: 'AI 认证工业自动化人才的全球市场。',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '招聘方', footerColEngineers: '工程师', footerColSpecialties: '专业领域', footerColCompany: '公司',
+    footerColHire: '招聘方', footerColEngineers: '工程师', footerColSpecialties: '专业领域', footerColGuides: '建厂用人指南', footerColCompany: '公司',
     footerHire: [
       { label: '寻找工程师', href: '/talent' }, { label: '发布项目', href: '/talent' },
       { label: '费率基准', href: '/rates' }, { label: '企业 API', href: '/enterprise' },
+      { label: '开发者 API', href: '/developers' },
       { label: '定价', href: '/pricing' }, { label: '成本计算器', href: '/calculator' },
     ],
     footerEngineers: [
@@ -280,8 +286,12 @@ const DICT = {
       { label: '认证考试', href: '/certification' }, { label: 'TalScore 质量分', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLC 编程', href: '/talent' }, { label: 'SCADA 与 HMI', href: '/talent' },
-      { label: '机器人', href: '/talent' }, { label: '电柜设计', href: '/talent' },
+      { label: 'PLC 编程', href: '/hire/plc' }, { label: '机器视觉', href: '/hire/vision' },
+      { label: '机器人', href: '/hire/robotics' }, { label: '电柜设计', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: '墨西哥', href: '/guides/mexico' }, { label: '越南', href: '/guides/vietnam' },
+      { label: '泰国', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: '关于我们', href: '/' }, { label: '资源中心', href: '#resources' },
@@ -371,7 +381,7 @@ const DICT = {
       { emoji: '📄', title: 'Protección de NDA y propiedad intelectual', body: 'NDA estandarizados, transferencia de propiedad del código y registros de auditoría en cada proyecto de forma predeterminada.' },
     ],
     // Testimonials
-    testiH2: 'La confianza de OEM e integradores de todo el mundo',
+    testiH2: 'La confianza de OEM e integradores de todo el mundo', caseStudiesCta: 'Ver casos de éxito de clientes →',
     testimonials: [
       { quote: 'Enviamos una línea de envasado a Vietnam y necesitábamos puesta en marcha local en dos semanas. Talengineer nos emparejó con un ingeniero Siemens verificado en 48 horas: el modelo de depósito en garantía hizo la aprobación muy sencilla.', author: 'Director de operaciones', meta: 'OEM de envasado, Ohio, EE. UU.' },
       { quote: 'Como integrador, encontrar ayuda en robótica verificada en plena presión es durísimo. La evaluación por IA de verdad filtra: cada ingeniero que hemos contratado podía programar una celda Fanuc desde el primer día.', author: 'Socio director', meta: 'Integrador de sistemas, Baviera, Alemania' },
@@ -401,10 +411,11 @@ const DICT = {
     // Footer
     footerTagline: 'La marketplace global de talento en automatización industrial verificado por IA.',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Contratar', footerColEngineers: 'Ingenieros', footerColSpecialties: 'Especialidades', footerColCompany: 'Empresa',
+    footerColHire: 'Contratar', footerColEngineers: 'Ingenieros', footerColSpecialties: 'Especialidades', footerColGuides: 'Guías de contratación', footerColCompany: 'Empresa',
     footerHire: [
       { label: 'Buscar ingenieros', href: '/talent' }, { label: 'Publicar un proyecto', href: '/talent' },
       { label: 'Referencias de tarifas', href: '/rates' }, { label: 'API para empresas', href: '/enterprise' },
+      { label: 'API para desarrolladores', href: '/developers' },
       { label: 'Precios', href: '/pricing' }, { label: 'Calculadora de costos', href: '/calculator' },
     ],
     footerEngineers: [
@@ -413,8 +424,12 @@ const DICT = {
       { label: 'Exámenes de certificación', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'Programación de PLC', href: '/talent' }, { label: 'SCADA y HMI', href: '/talent' },
-      { label: 'Robótica', href: '/talent' }, { label: 'Diseño de tableros', href: '/talent' },
+      { label: 'Programación de PLC', href: '/hire/plc' }, { label: 'Visión artificial', href: '/hire/vision' },
+      { label: 'Robótica', href: '/hire/robotics' }, { label: 'Diseño de tableros', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'México', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
+      { label: 'Tailandia', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'Acerca de', href: '/' }, { label: 'Recursos', href: '#resources' },
@@ -504,7 +519,7 @@ const DICT = {
       { emoji: '📄', title: 'Bảo vệ NDA & sở hữu trí tuệ', body: 'NDA chuẩn hóa, chuyển giao quyền sở hữu mã và nhật ký kiểm toán cho mọi dự án theo mặc định.' },
     ],
     // Testimonials
-    testiH2: 'Được các OEM và nhà tích hợp trên toàn thế giới tin dùng',
+    testiH2: 'Được các OEM và nhà tích hợp trên toàn thế giới tin dùng', caseStudiesCta: 'Đọc nghiên cứu điển hình khách hàng →',
     testimonials: [
       { quote: 'Chúng tôi chuyển một dây chuyền đóng gói sang Việt Nam và cần chạy thử tại chỗ trong hai tuần. Talengineer ghép chúng tôi với một kỹ sư Siemens đã xác minh trong 48 giờ — mô hình ký quỹ giúp việc nghiệm thu nhẹ nhàng.', author: 'Giám đốc vận hành', meta: 'OEM đóng gói, Ohio, Hoa Kỳ' },
       { quote: 'Là nhà tích hợp, tìm được người hỗ trợ robot đã kiểm chứng lúc cao điểm là cực kỳ khó. Việc sàng lọc bằng AI thực sự lọc được — mọi kỹ sư chúng tôi thuê đều có thể lập trình trạm Fanuc ngay ngày đầu.', author: 'Đối tác điều hành', meta: 'Nhà tích hợp hệ thống, Bavaria, Đức' },
@@ -534,10 +549,11 @@ const DICT = {
     // Footer
     footerTagline: 'Sàn nhân lực tự động hóa công nghiệp được AI xác minh trên toàn cầu.',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Tuyển dụng', footerColEngineers: 'Kỹ sư', footerColSpecialties: 'Chuyên môn', footerColCompany: 'Công ty',
+    footerColHire: 'Tuyển dụng', footerColEngineers: 'Kỹ sư', footerColSpecialties: 'Chuyên môn', footerColGuides: 'Cẩm nang tuyển dụng', footerColCompany: 'Công ty',
     footerHire: [
       { label: 'Tìm kỹ sư', href: '/talent' }, { label: 'Đăng dự án', href: '/talent' },
       { label: 'Chuẩn mức phí', href: '/rates' }, { label: 'API doanh nghiệp', href: '/enterprise' },
+      { label: 'API nhà phát triển', href: '/developers' },
       { label: 'Bảng giá', href: '/pricing' }, { label: 'Máy tính chi phí', href: '/calculator' },
     ],
     footerEngineers: [
@@ -546,8 +562,12 @@ const DICT = {
       { label: 'Thi chứng chỉ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'Lập trình PLC', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
-      { label: 'Robot', href: '/talent' }, { label: 'Thiết kế tủ điện', href: '/talent' },
+      { label: 'Lập trình PLC', href: '/hire/plc' }, { label: 'Thị giác máy', href: '/hire/vision' },
+      { label: 'Robot', href: '/hire/robotics' }, { label: 'Thiết kế tủ điện', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'Mexico', href: '/guides/mexico' }, { label: 'Việt Nam', href: '/guides/vietnam' },
+      { label: 'Thái Lan', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'Giới thiệu', href: '/' }, { label: 'Tài nguyên', href: '#resources' },
@@ -637,7 +657,7 @@ const DICT = {
       { emoji: '📄', title: 'NDA और IP सुरक्षा', body: 'हर प्रोजेक्ट पर डिफ़ॉल्ट रूप से मानकीकृत NDA, कोड स्वामित्व हस्तांतरण और ऑडिट ट्रेल।' },
     ],
     // Testimonials
-    testiH2: 'दुनिया भर के OEM और इंटीग्रेटर का भरोसा',
+    testiH2: 'दुनिया भर के OEM और इंटीग्रेटर का भरोसा', caseStudiesCta: 'ग्राहक केस स्टडी पढ़ें →',
     testimonials: [
       { quote: 'हमने एक पैकेजिंग लाइन वियतनाम भेजी और दो सप्ताह में स्थानीय कमीशनिंग चाहिए थी। Talengineer ने 48 घंटे में हमें एक सत्यापित Siemens इंजीनियर से मिलाया — एस्क्रो मॉडल ने स्वीकृति को आसान बना दिया।', author: 'संचालन निदेशक', meta: 'पैकेजिंग OEM, ओहायो, अमेरिका' },
       { quote: 'एक इंटीग्रेटर के रूप में, व्यस्त समय में जाँचे हुए रोबोटिक्स सहायक ढूँढना बेहद कठिन है। AI स्क्रीनिंग सचमुच छानती है — हमने जिस भी इंजीनियर को नियुक्त किया वह पहले दिन ही Fanuc सेल प्रोग्राम कर सकता था।', author: 'प्रबंध साझेदार', meta: 'सिस्टम इंटीग्रेटर, बवेरिया, जर्मनी' },
@@ -667,10 +687,11 @@ const DICT = {
     // Footer
     footerTagline: 'AI-सत्यापित औद्योगिक स्वचालन प्रतिभा का वैश्विक मंच।',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'नियुक्ति', footerColEngineers: 'इंजीनियर', footerColSpecialties: 'विशेषज्ञताएँ', footerColCompany: 'कंपनी',
+    footerColHire: 'नियुक्ति', footerColEngineers: 'इंजीनियर', footerColSpecialties: 'विशेषज्ञताएँ', footerColGuides: 'नियुक्ति गाइड', footerColCompany: 'कंपनी',
     footerHire: [
       { label: 'इंजीनियर खोजें', href: '/talent' }, { label: 'प्रोजेक्ट पोस्ट करें', href: '/talent' },
       { label: 'दर मानक', href: '/rates' }, { label: 'एंटरप्राइज़ API', href: '/enterprise' },
+      { label: 'डेवलपर API', href: '/developers' },
       { label: 'मूल्य निर्धारण', href: '/pricing' }, { label: 'लागत कैलकुलेटर', href: '/calculator' },
     ],
     footerEngineers: [
@@ -679,8 +700,12 @@ const DICT = {
       { label: 'प्रमाणन परीक्षाएँ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLC प्रोग्रामिंग', href: '/talent' }, { label: 'SCADA और HMI', href: '/talent' },
-      { label: 'रोबोटिक्स', href: '/talent' }, { label: 'पैनल डिज़ाइन', href: '/talent' },
+      { label: 'PLC प्रोग्रामिंग', href: '/hire/plc' }, { label: 'मशीन विज़न', href: '/hire/vision' },
+      { label: 'रोबोटिक्स', href: '/hire/robotics' }, { label: 'पैनल डिज़ाइन', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'मेक्सिको', href: '/guides/mexico' }, { label: 'वियतनाम', href: '/guides/vietnam' },
+      { label: 'थाईलैंड', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'हमारे बारे में', href: '/' }, { label: 'संसाधन', href: '#resources' },
@@ -770,7 +795,7 @@ const DICT = {
       { emoji: '📄', title: 'Protection NDA et propriété intellectuelle', body: "NDA standardisés, transfert de propriété du code et pistes d'audit sur chaque projet par défaut." },
     ],
     // Testimonials
-    testiH2: "La confiance des OEM et intégrateurs du monde entier",
+    testiH2: "La confiance des OEM et intégrateurs du monde entier", caseStudiesCta: 'Lire les études de cas clients →',
     testimonials: [
       { quote: "Nous avons expédié une ligne de conditionnement au Vietnam et avions besoin d'une mise en service locale sous deux semaines. Talengineer nous a mis en relation avec un ingénieur Siemens vérifié en 48 heures — le modèle de séquestre a rendu la validation sans douleur.", author: 'Directeur des opérations', meta: 'OEM de conditionnement, Ohio, États-Unis' },
       { quote: "En tant qu'intégrateur, trouver de l'aide en robotique validée en pleine période de rush est brutal. L'évaluation par IA filtre vraiment — chaque ingénieur que nous avons recruté savait programmer une cellule Fanuc dès le premier jour.", author: 'Associé gérant', meta: 'Intégrateur de systèmes, Bavière, Allemagne' },
@@ -800,10 +825,11 @@ const DICT = {
     // Footer
     footerTagline: "La marketplace mondiale des talents en automatisation industrielle vérifiés par IA.",
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Recruter', footerColEngineers: 'Ingénieurs', footerColSpecialties: 'Spécialités', footerColCompany: 'Entreprise',
+    footerColHire: 'Recruter', footerColEngineers: 'Ingénieurs', footerColSpecialties: 'Spécialités', footerColGuides: 'Guides de recrutement', footerColCompany: 'Entreprise',
     footerHire: [
       { label: 'Trouver des ingénieurs', href: '/talent' }, { label: 'Publier un projet', href: '/talent' },
       { label: 'Références de tarifs', href: '/rates' }, { label: 'API entreprise', href: '/enterprise' },
+      { label: 'API développeur', href: '/developers' },
       { label: 'Tarifs', href: '/pricing' }, { label: 'Calculateur de coûts', href: '/calculator' },
     ],
     footerEngineers: [
@@ -812,8 +838,12 @@ const DICT = {
       { label: 'Examens de certification', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'Programmation PLC', href: '/talent' }, { label: 'SCADA et HMI', href: '/talent' },
-      { label: 'Robotique', href: '/talent' }, { label: "Conception d'armoires", href: '/talent' },
+      { label: 'Programmation PLC', href: '/hire/plc' }, { label: 'Vision industrielle', href: '/hire/vision' },
+      { label: 'Robotique', href: '/hire/robotics' }, { label: "Conception d'armoires", href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'Mexique', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
+      { label: 'Thaïlande', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'À propos', href: '/' }, { label: 'Ressources', href: '#resources' },
@@ -903,7 +933,7 @@ const DICT = {
       { emoji: '📄', title: 'NDA- und IP-Schutz', body: 'Standardisierte NDAs, Übertragung des Code-Eigentums und Audit-Trails bei jedem Projekt standardmäßig.' },
     ],
     // Testimonials
-    testiH2: 'Vertraut von OEMs und Integratoren weltweit',
+    testiH2: 'Vertraut von OEMs und Integratoren weltweit', caseStudiesCta: 'Kundenfallstudien lesen →',
     testimonials: [
       { quote: 'Wir haben eine Verpackungslinie nach Vietnam geliefert und brauchten innerhalb von zwei Wochen eine lokale Inbetriebnahme. Talengineer vermittelte uns in 48 Stunden einen verifizierten Siemens-Ingenieur — das Treuhandmodell machte die Abnahme mühelos.', author: 'Betriebsleiter', meta: 'Verpackungs-OEM, Ohio, USA' },
       { quote: 'Als Integrator ist es brutal, in Stoßzeiten geprüfte Robotik-Unterstützung zu finden. Das KI-Screening filtert wirklich — jeder Ingenieur, den wir eingestellt haben, konnte am ersten Tag eine Fanuc-Zelle programmieren.', author: 'Geschäftsführender Gesellschafter', meta: 'Systemintegrator, Bayern, Deutschland' },
@@ -933,10 +963,11 @@ const DICT = {
     // Footer
     footerTagline: 'Der globale Marktplatz für KI-verifizierte Talente in der industriellen Automatisierung.',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Einstellen', footerColEngineers: 'Ingenieure', footerColSpecialties: 'Fachgebiete', footerColCompany: 'Unternehmen',
+    footerColHire: 'Einstellen', footerColEngineers: 'Ingenieure', footerColSpecialties: 'Fachgebiete', footerColGuides: 'Einstellungsleitfäden', footerColCompany: 'Unternehmen',
     footerHire: [
       { label: 'Ingenieure finden', href: '/talent' }, { label: 'Projekt ausschreiben', href: '/talent' },
       { label: 'Tarif-Benchmarks', href: '/rates' }, { label: 'Enterprise-API', href: '/enterprise' },
+      { label: 'Entwickler-API', href: '/developers' },
       { label: 'Preise', href: '/pricing' }, { label: 'Kostenrechner', href: '/calculator' },
     ],
     footerEngineers: [
@@ -945,8 +976,12 @@ const DICT = {
       { label: 'Zertifizierungsprüfungen', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLC-Programmierung', href: '/talent' }, { label: 'SCADA & HMI', href: '/talent' },
-      { label: 'Robotik', href: '/talent' }, { label: 'Schaltschrankdesign', href: '/talent' },
+      { label: 'PLC-Programmierung', href: '/hire/plc' }, { label: 'Bildverarbeitung', href: '/hire/vision' },
+      { label: 'Robotik', href: '/hire/robotics' }, { label: 'Schaltschrankdesign', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'Mexiko', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
+      { label: 'Thailand', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: 'Über uns', href: '/' }, { label: 'Ressourcen', href: '#resources' },
@@ -1036,7 +1071,7 @@ const DICT = {
       { emoji: '📄', title: 'NDA・知的財産保護', body: 'すべてのプロジェクトで標準化されたNDA、コード所有権の移転、監査証跡をデフォルトで提供。' },
     ],
     // Testimonials
-    testiH2: '世界中のOEM・インテグレーターに信頼されています',
+    testiH2: '世界中のOEM・インテグレーターに信頼されています', caseStudiesCta: '顧客の導入事例を読む →',
     testimonials: [
       { quote: '包装ラインをベトナムに出荷し、2週間以内に現地試運転が必要でした。Talengineerは48時間で検証済みのSiemensエンジニアをマッチング——エスクローモデルで検収がスムーズでした。', author: '運用ディレクター', meta: '包装OEM、米国オハイオ州' },
       { quote: 'インテグレーターとして、繁忙期に信頼できるロボティクス支援を見つけるのは至難の業です。AIスクリーニングは本当にふるいにかけてくれます——採用したエンジニアは全員、初日からFanucセルをプログラムできました。', author: 'マネージングパートナー', meta: 'システムインテグレーター、ドイツ・バイエルン州' },
@@ -1066,10 +1101,11 @@ const DICT = {
     // Footer
     footerTagline: 'AI検証済みの産業オートメーション人材の世界的マーケットプレイス。',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '採用', footerColEngineers: 'エンジニア', footerColSpecialties: '専門分野', footerColCompany: '会社',
+    footerColHire: '採用', footerColEngineers: 'エンジニア', footerColSpecialties: '専門分野', footerColGuides: '採用ガイド', footerColCompany: '会社',
     footerHire: [
       { label: 'エンジニアを探す', href: '/talent' }, { label: 'プロジェクトを投稿', href: '/talent' },
       { label: '料金ベンチマーク', href: '/rates' }, { label: 'エンタープライズAPI', href: '/enterprise' },
+      { label: '開発者 API', href: '/developers' },
       { label: '料金プラン', href: '/pricing' }, { label: 'コスト計算ツール', href: '/calculator' },
     ],
     footerEngineers: [
@@ -1078,8 +1114,12 @@ const DICT = {
       { label: '認定試験', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLCプログラミング', href: '/talent' }, { label: 'SCADA・HMI', href: '/talent' },
-      { label: 'ロボティクス', href: '/talent' }, { label: '制御盤設計', href: '/talent' },
+      { label: 'PLCプログラミング', href: '/hire/plc' }, { label: 'マシンビジョン', href: '/hire/vision' },
+      { label: 'ロボティクス', href: '/hire/robotics' }, { label: '制御盤設計', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: 'メキシコ', href: '/guides/mexico' }, { label: 'ベトナム', href: '/guides/vietnam' },
+      { label: 'タイ', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: '会社概要', href: '/' }, { label: 'リソース', href: '#resources' },
@@ -1169,7 +1209,7 @@ const DICT = {
       { emoji: '📄', title: 'NDA 및 지식재산 보호', body: '모든 프로젝트에 표준화된 NDA, 코드 소유권 이전, 감사 추적을 기본 제공.' },
     ],
     // Testimonials
-    testiH2: '전 세계 OEM 및 인티그레이터가 신뢰합니다',
+    testiH2: '전 세계 OEM 및 인티그레이터가 신뢰합니다', caseStudiesCta: '고객 사례 연구 보기 →',
     testimonials: [
       { quote: '포장 라인을 베트남으로 출하하면서 2주 안에 현지 시운전이 필요했습니다. Talengineer가 48시간 만에 검증된 Siemens 엔지니어를 매칭해 주었고, 에스크로 모델 덕분에 검수가 수월했습니다.', author: '운영 이사', meta: '포장 OEM, 미국 오하이오' },
       { quote: '인티그레이터로서 성수기에 검증된 로보틱스 인력을 찾는 일은 정말 힘듭니다. AI 스크리닝은 실제로 걸러 줍니다 — 채용한 모든 엔지니어가 첫날부터 Fanuc 셀을 프로그래밍할 수 있었습니다.', author: '경영 파트너', meta: '시스템 인티그레이터, 독일 바이에른' },
@@ -1199,10 +1239,11 @@ const DICT = {
     // Footer
     footerTagline: 'AI로 검증된 산업 자동화 인재의 글로벌 마켓플레이스.',
     footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '채용', footerColEngineers: '엔지니어', footerColSpecialties: '전문 분야', footerColCompany: '회사',
+    footerColHire: '채용', footerColEngineers: '엔지니어', footerColSpecialties: '전문 분야', footerColGuides: '채용 가이드', footerColCompany: '회사',
     footerHire: [
       { label: '엔지니어 찾기', href: '/talent' }, { label: '프로젝트 등록', href: '/talent' },
       { label: '요율 벤치마크', href: '/rates' }, { label: '엔터프라이즈 API', href: '/enterprise' },
+      { label: '개발자 API', href: '/developers' },
       { label: '요금 안내', href: '/pricing' }, { label: '비용 계산기', href: '/calculator' },
     ],
     footerEngineers: [
@@ -1211,8 +1252,12 @@ const DICT = {
       { label: '인증 시험', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
     ],
     footerSpecialties: [
-      { label: 'PLC 프로그래밍', href: '/talent' }, { label: 'SCADA 및 HMI', href: '/talent' },
-      { label: '로보틱스', href: '/talent' }, { label: '패널 설계', href: '/talent' },
+      { label: 'PLC 프로그래밍', href: '/hire/plc' }, { label: '머신 비전', href: '/hire/vision' },
+      { label: '로보틱스', href: '/hire/robotics' }, { label: '패널 설계', href: '/hire/electrical' },
+    ],
+    footerGuides: [
+      { label: '멕시코', href: '/guides/mexico' }, { label: '베트남', href: '/guides/vietnam' },
+      { label: '태국', href: '/guides/thailand' },
     ],
     footerCompany: [
       { label: '회사 소개', href: '/' }, { label: '리소스', href: '#resources' },
@@ -1628,6 +1673,10 @@ export default function Home() {
                   </figure>
                 ))}
               </div>
+              {/* 高意图 CTA：从证言区把访客引到已建成但零链入的客户案例页 */}
+              <div className={styles.sectionHeadCenter} style={{ marginTop: 28 }}>
+                <Link href="/case-studies" className={styles.headLink}>{d.caseStudiesCta}</Link>
+              </div>
             </div>
           </section>
 
@@ -1694,6 +1743,7 @@ export default function Home() {
               { title: d.footerColHire, links: d.footerHire },
               { title: d.footerColEngineers, links: d.footerEngineers },
               { title: d.footerColSpecialties, links: d.footerSpecialties },
+              { title: d.footerColGuides, links: d.footerGuides },
               { title: d.footerColCompany, links: d.footerCompany },
             ].map((col, i) => (
               <div key={i} className={styles.footerCol}>
