@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import ChatBot from '../components/ChatBot';
 import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
@@ -30,6 +31,10 @@ const DICT = {
     navUsers: 'Users', navProjects: 'Projects', navEngineers: 'Engineers', navLedger: 'Ledger',
     navCerts: 'Certifications', navExamReview: 'Cert Exams', navDisputes: 'Disputes',
     navNotifs: 'Notifications', navKyc: 'KYC', navAnalytics: 'Analytics',
+    // Newsletter 订阅 leads 面板
+    navSubscribers: 'Newsletter', subSubscribers: 'Newsletter subscribers (lead capture)',
+    thSource: 'Source', thLang: 'Lang', thUnsub: 'Unsubscribed',
+    emptySubscribers: 'No subscribers yet.', csvExport: '⬇ Export CSV', filterAll: 'All',
     subUsers: 'All registered accounts',
     subProjects: 'Posted projects and their status',
     subEngineers: 'Verified automation engineers',
@@ -104,6 +109,10 @@ const DICT = {
     navUsers: '用户', navProjects: '项目', navEngineers: '工程师', navLedger: '账本',
     navCerts: '资质认证', navExamReview: '考证复核', navDisputes: '纠纷',
     navNotifs: '通知', navKyc: 'KYC 审核', navAnalytics: '数据分析',
+    // Newsletter 订阅 leads 面板
+    navSubscribers: '邮件订阅', subSubscribers: 'Newsletter 订阅名单（lead 收集）',
+    thSource: '来源', thLang: '语言', thUnsub: '退订时间',
+    emptySubscribers: '暂无订阅。', csvExport: '⬇ 导出 CSV', filterAll: '全部',
     subUsers: '全部注册账户',
     subProjects: '已发布项目及其状态',
     subEngineers: '已认证的自动化工程师',
@@ -189,6 +198,8 @@ export default function Admin() {
   const [notifs, setNotifs]       = useState(null);
   const [kycList, setKycList]     = useState(null);
   const [funnel, setFunnel]       = useState(null);
+  const [subscribers, setSubscribers] = useState(null); // Newsletter 订阅 leads（分页读，默认拉第一页）
+  const [subSource, setSubSource] = useState('all');    // 订阅来源筛选：all|calculator|playbook|footer
   const [examPending, setExamPending] = useState(null); // 培训认证：待复核考卷
   // 纠纷裁决：选中的纠纷 + 表单 + 返回结果
   const [selectedDispute, setSelectedDispute] = useState(null);
@@ -706,6 +717,37 @@ export default function Admin() {
     } catch { setCheckins([]); }
   }
 
+  // ── Newsletter 订阅 leads：分页读 newsletter_subscribers（契约见 /api/admin/subscribers）──
+  // 后端按 created_at 倒序、支持 source/lang 过滤；这里只取第一页（limit=50），按来源筛选。
+  async function loadSubscribers(source = subSource) {
+    setSubscribers(null);
+    setSubSource(source);
+    try {
+      const qs = source && source !== 'all' ? `&source=${source}` : '';
+      const res  = await fetch(`/api/admin/subscribers?limit=50${qs}`, { headers: authHeaders() });
+      const data = await res.json();
+      setSubscribers(data.data || []);
+    } catch { setSubscribers([]); }
+  }
+
+  // 导出当前已加载的订阅列表为 CSV（纯前端，不额外打后端）。含逗号/引号/换行的值按 RFC 4180 转义。
+  function exportSubscribersCsv() {
+    const rows = subscribers || [];
+    if (rows.length === 0) { toast.error('Nothing to export.'); return; }
+    const cols = ['email', 'source', 'lang', 'created_at', 'unsubscribed_at'];
+    const esc  = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [cols.join(',')].concat(rows.map(r => cols.map(c => esc(r[c])).join(','))).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'newsletter_subscribers.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ── 培训认证：待复核考卷（AI 出分后由人工把最后一关再发证）──────────────────
   async function loadExamPending() {
     if (examPending !== null) return;
@@ -757,6 +799,7 @@ export default function Admin() {
     { id: 'disputes',   icon: '⚖️', label: d.navDisputes },
     { id: 'notifs',     icon: '🔔', label: d.navNotifs, badge: counts.notifications != null ? String(counts.notifications) : undefined },
     { id: 'kyc',        icon: '🪪', label: d.navKyc },
+    { id: 'subscribers', icon: '📧', label: d.navSubscribers },
     { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
     { id: 'pipeline',   icon: '🤝', label: d.navPipeline },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
@@ -774,6 +817,7 @@ export default function Admin() {
     disputes: [d.navDisputes, d.subDisputes],
     notifs: [d.navNotifs, d.subNotifs],
     kyc: [d.navKyc, d.subKyc],
+    subscribers: [d.navSubscribers, d.subSubscribers],
     taxDocs: [d.navTaxDocs, d.subTaxDocs],
     pipeline: [d.navPipeline, d.subPipeline],
     analytics: [d.navAnalytics, d.subAnalytics],
@@ -789,6 +833,7 @@ export default function Admin() {
     if (id === 'disputes') loadDisputes();
     if (id === 'notifs') loadNotifs();
     if (id === 'kyc') loadKycList();
+    if (id === 'subscribers') loadSubscribers();
     if (id === 'taxDocs') loadTaxDocs();
     if (id === 'pipeline') loadPipeline();
     if (id === 'analytics') loadFunnel();
@@ -1186,6 +1231,55 @@ export default function Admin() {
                 </div>
               )}
 
+              {/* Newsletter 订阅 leads：来源筛选 + CSV 导出 + 列表（email/source/lang/订阅时间/退订时间）*/}
+              {activeTab === 'subscribers' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {['all', 'calculator', 'playbook', 'footer'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => loadSubscribers(s)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 12,
+                          border: '1px solid var(--border)',
+                          background: subSource === s ? 'var(--primary)' : 'var(--surface)',
+                          color: subSource === s ? '#fff' : 'var(--text)',
+                        }}
+                      >{s === 'all' ? d.filterAll : s}</button>
+                    ))}
+                    <button
+                      onClick={exportSubscribersCsv}
+                      disabled={!subscribers || subscribers.length === 0}
+                      style={{
+                        marginLeft: 'auto', padding: '5px 12px', borderRadius: 5, fontSize: 12, fontWeight: 700,
+                        border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)',
+                        cursor: (!subscribers || subscribers.length === 0) ? 'not-allowed' : 'pointer',
+                        opacity: (!subscribers || subscribers.length === 0) ? 0.5 : 1,
+                      }}
+                    >{d.csvExport}</button>
+                  </div>
+                  <table className={styles.table}>
+                    <thead><tr><th>{d.thEmail}</th><th>{d.thSource}</th><th>{d.thLang}</th><th>{d.thDate}</th><th>{d.thUnsub}</th></tr></thead>
+                    <tbody>
+                      {subscribers === null
+                        ? <tr><td colSpan={5} className={styles.empty}>{d.loading}</td></tr>
+                        : subscribers.length === 0
+                          ? <tr><td colSpan={5} className={styles.empty}>{d.emptySubscribers}</td></tr>
+                          : subscribers.map((s, i) => (
+                            <tr key={s.email || i} style={{ opacity: s.unsubscribed_at ? 0.55 : 1 }}>
+                              <td style={{ fontSize: 12 }}>{s.email}</td>
+                              <td><span className={`${styles.badge} ${styles.badgeGray}`}>{s.source || '—'}</span></td>
+                              <td className={styles.muted}>{s.lang || '—'}</td>
+                              <td className={styles.muted}>{s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}</td>
+                              <td className={styles.muted}>{s.unsubscribed_at ? new Date(s.unsubscribed_at).toLocaleDateString() : '—'}</td>
+                            </tr>
+                          ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               {/* Tax Docs：W-9 等税务文件审核（查看签名 URL / 确认收讫 / 退回带备注）*/}
               {activeTab === 'taxDocs' && (
                 <div>
@@ -1486,6 +1580,9 @@ export default function Admin() {
           </main>
         </div>
       </div>
+
+      {/* Admin copilot：全站同款 Maisui 助手，admin 场景后端已就绪 get_admin_analytics 工具 */}
+      <ChatBot lang={lang} />
     </>
   );
 }

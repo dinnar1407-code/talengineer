@@ -4,6 +4,7 @@ const { getClient } = require('../config/db');
 // 管理员口令校验已提炼为共享中间件（已移除 query.pwd 通道，仅接受 header：SHA-256 恒时比较 + 未配置 503 fail-closed）
 const { requireAdmin } = require('../middleware/adminAuth');
 const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例单一来源（营收估算与真实放款用同一费率）
+const { clampPagination } = require('../utils/pagination'); // 分页钳制（与 talent 列表同口径的可测纯函数）
 
 // ── admin 写操作审计中间件 ────────────────────────────────────────────────────
 // 挂在 requireAdmin 之后：此时 req.adminEmail / req.adminAuthMethod 已就绪（谁、用哪条通道）。
@@ -250,6 +251,42 @@ router.put('/demands/:id/fee', requireAdmin, auditLog, async (req, res) => {
   } catch (err) {
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[admin:fee]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /api/admin/subscribers — newsletter 订阅列表（分页、created_at 倒序，可选 source/lang 过滤）──
+// leads 面板数据源：读 newsletter_subscribers 白名单字段（email/source/lang/created_at/unsubscribed_at）。
+// 分页复用 clampPagination（与 talent 列表同口径）；page 越界返回 200+空数组而非 500。
+router.get('/subscribers', requireAdmin, async (req, res) => {
+  try {
+    const supabase = getClient();
+    // page/limit 来自用户可控 query，先钳制成安全整数再算 .range()
+    const { pageNum, pageSize, from, to } = clampPagination(req.query.page, req.query.limit);
+
+    let query = supabase
+      .from('newsletter_subscribers')
+      // 只选白名单字段（不含内部 id），按订阅时间倒序
+      .select('email, source, lang, created_at, unsubscribed_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    // 可选过滤：来源（calculator/playbook/footer）与语言，各自精确匹配
+    if (req.query.source) query = query.eq('source', req.query.source);
+    if (req.query.lang)   query = query.eq('lang', req.query.lang);
+
+    const { data, error, count } = await query;
+    if (error) {
+      // 翻过最后一页时 PostgREST 返回 PGRST103：按空页处理，返回 200+空数组
+      if (error.code === 'PGRST103') {
+        return res.json({ status: 'ok', data: [], total: count || 0, page: pageNum, pageSize });
+      }
+      throw error;
+    }
+    res.json({ status: 'ok', data: data || [], total: count || 0, page: pageNum, pageSize });
+  } catch (err) {
+    // 真实错误记录到日志，客户端只收到通用文案
+    console.error('[admin]', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });

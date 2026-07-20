@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
@@ -24,9 +25,72 @@ const CTA = {
   },
 };
 
+// 文末订阅卡文案：按文章语言选择（en/zh），复用 calculator 的 lead-capture 视觉与状态机。
+const NEWSLETTER = {
+  en: {
+    title: 'Get the next playbook in your inbox',
+    body: 'Practical guides on hiring and managing automation engineers across borders. No spam, unsubscribe anytime.',
+    placeholder: 'you@company.com',
+    btn: 'Subscribe',
+    btnSending: 'Sending…',
+    ok: 'Thanks — you are subscribed.',
+    already: 'You are already on the list — thanks for coming back.',
+    err: 'Something went wrong. Please check the email and try again.',
+    invalid: 'Please enter a valid email address.',
+  },
+  zh: {
+    title: '把下一篇指南发到你的邮箱',
+    body: '关于跨境雇佣与管理自动化工程师的实操指南。不发垃圾邮件，随时可退订。',
+    placeholder: 'you@company.com',
+    btn: '订阅',
+    btnSending: '发送中…',
+    ok: '谢谢——你已订阅。',
+    already: '你已经在订阅列表里了——欢迎回来。',
+    err: '出了点问题，请检查邮箱后重试。',
+    invalid: '请输入有效的邮箱地址。',
+  },
+};
+
+// 邮箱基础校验（前端只做轻校验，真正的权威校验在后端 zod）。
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function PlaybookArticle({ article }) {
   const [lang, setLang] = useLang();
   const cta = CTA[article.lang] || CTA.en;
+  // 订阅卡文案按文章语言取（与文末 CTA 同口径，独立于导航语言切换）。
+  const nl = NEWSLETTER[article.lang] || NEWSLETTER.en;
+
+  // Lead capture 状态：idle | sending | ok | already | error | invalid（复用 calculator 的状态机）。
+  const [email, setEmail] = useState('');
+  const [leadState, setLeadState] = useState('idle');
+
+  // 提交订阅：轻校验邮箱 → POST /api/newsletter/subscribe，source 固定 'playbook'。
+  async function handleSubscribe(e) {
+    e.preventDefault();
+    if (leadState === 'sending') return;
+    if (!EMAIL_RE.test(email.trim())) {
+      setLeadState('invalid');
+      return;
+    }
+    setLeadState('sending');
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), source: 'playbook', lang: article.lang }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.ok) {
+        setLeadState(json.already ? 'already' : 'ok');
+      } else {
+        setLeadState('error');
+      }
+    } catch (err) {
+      // 网络等异常：给用户可重试的错误提示，不吞错。
+      console.error('[playbook] subscribe failed', err);
+      setLeadState('error');
+    }
+  }
 
   const canonical = `${SITE}/playbook/${article.slug}`;
   const ogImage = `${SITE}/og.png`;
@@ -84,6 +148,49 @@ export default function PlaybookArticle({ article }) {
           className={styles.article}
           dangerouslySetInnerHTML={{ __html: article.html }}
         />
+
+        {/* 文末订阅卡：复用 ctaBox 卡片外观，表单/提示走内联样式（本页 CSS module 只读）。 */}
+        <div className={styles.ctaBox}>
+          <h3>{nl.title}</h3>
+          <p>{nl.body}</p>
+          <form
+            onSubmit={handleSubscribe}
+            style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 460, margin: '0 auto' }}
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                // 用户重新输入时清掉上一轮的错误态，回到 idle。
+                if (leadState === 'invalid' || leadState === 'error') setLeadState('idle');
+              }}
+              placeholder={nl.placeholder}
+              aria-label={nl.placeholder}
+              style={{
+                flex: '1 1 220px', minWidth: 0, padding: '11px 14px', fontSize: 15,
+                border: '1px solid var(--border)', borderRadius: 10,
+                background: 'var(--bg)', color: 'var(--text)',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={leadState === 'sending'}
+              style={{
+                background: 'var(--primary)', color: 'var(--primary-ink)', fontWeight: 700,
+                padding: '11px 22px', borderRadius: 10, border: 'none',
+                cursor: leadState === 'sending' ? 'default' : 'pointer',
+                opacity: leadState === 'sending' ? 0.7 : 1,
+              }}
+            >
+              {leadState === 'sending' ? nl.btnSending : nl.btn}
+            </button>
+          </form>
+          {leadState === 'ok' && <p style={{ margin: '14px 0 0', color: 'var(--primary)' }}>{nl.ok}</p>}
+          {leadState === 'already' && <p style={{ margin: '14px 0 0', color: 'var(--primary)' }}>{nl.already}</p>}
+          {leadState === 'invalid' && <p style={{ margin: '14px 0 0', color: '#ef4444' }}>{nl.invalid}</p>}
+          {leadState === 'error' && <p style={{ margin: '14px 0 0', color: '#ef4444' }}>{nl.err}</p>}
+        </div>
 
         <div className={styles.ctaBox}>
           <h3>{cta.heading}</h3>
