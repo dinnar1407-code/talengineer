@@ -16,6 +16,7 @@ const { generateExamQuestions, gradeExamAnswers, generateLearningPath, generateL
 const { summarizeStudy, SESSION_CAP_SECONDS } = require('../utils/studyStats');
 const { createNotification } = require('../services/notificationService');
 const { getValidCertifications } = require('../services/certService');
+const { recomputeTalScore } = require('../services/talScore');
 const { canStartExam, isExpired, summarizeGrading, mergeGrading, selectBankSlot } = require('../utils/examRules');
 const { QUESTIONS_PER_EXAM, EXAM_QUESTION_MIX, EXAM_MINUTES, PASS_SCORE, RETAKE_COOLDOWN_DAYS, MAX_LEVEL, EXAM_BANK_SIZE } = require('../config/training');
 
@@ -532,6 +533,11 @@ router.post('/admin/:id/review', requireAdmin, async (req, res) => {
           { onConflict: 'talent_id,track_id' },
         );
       if (upsertErr) throw upsertErr;
+
+      // 平台认证是 TalScore 的 25% 维度：发证成功后即时重算该工程师的综合质量分，
+      // 让"发放认证 → 分数上调"如 /talscore 页面所述真·即时生效（与 reviews.js 同模式）。
+      // fire-and-forget——证书已落库，打分失败不该回滚发证，故不 await、错误内部吞掉。
+      recomputeTalScore(supabase, attempt.talent_id).catch((e) => console.error('[training] talScore recompute:', e));
     }
 
     const newStatus = approve ? 'certified' : 'rejected';
