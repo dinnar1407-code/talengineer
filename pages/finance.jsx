@@ -13,8 +13,8 @@ import { useTheme } from '../hooks/useTheme';
 import styles from './finance.module.css';
 
 const DICT = {
-  en: { dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out', recAiScore: 'AI Screening', recUnverified: 'Unverified', recReviews: 'reviews', recNoReviews: 'No reviews yet', availAvailable: 'Available', availBusy: 'Busy', availUnavailable: 'Unavailable', offlineBannerPrefix: 'Offline · data as of', offlineFundsPaused: 'fund actions paused', offlineNoFundsAction: 'Funds actions unavailable while offline', msFee: 'Platform fee', msNet: 'Net to engineer' },
-  zh: { dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录', recAiScore: 'AI 筛选分', recUnverified: '未验证', recReviews: '条评价', recNoReviews: '暂无评价', availAvailable: '可接单', availBusy: '忙碌', availUnavailable: '不可用', offlineBannerPrefix: '离线 · 数据截至', offlineFundsPaused: '资金操作已暂停', offlineNoFundsAction: '离线状态不可操作资金', msFee: '平台费', msNet: '工程师净得' },
+  en: { dashTitle: 'Finance & Invoices', dashSub: 'Manage your active escrows, project milestones, and payout history.', lblEscrow: 'Funds in Escrow', lblReleased: 'Total Released', lblPending: 'Active Projects', thProject: 'Project / Order ID', thCounterparty: 'Counterparty', thAmount: 'Total Amount', thStatus: 'Status', thAction: 'Action', modalTitle: 'Project Milestones', btnModalClose: 'Close', signIn: 'Sign In', createAccount: 'Create Account', lblName: 'Full Name', lblRole: 'I am a...', lblEmail: 'Email Address', lblPassword: 'Password', lblOr: 'or continue with', btnLogin: 'Sign In to Dashboard', btnCreate: 'Create Account', logout: 'Sign Out', recAiScore: 'AI Screening', recUnverified: 'Unverified', recReviews: 'reviews', recNoReviews: 'No reviews yet', availAvailable: 'Available', availBusy: 'Busy', availUnavailable: 'Unavailable', offlineBannerPrefix: 'Offline · data as of', offlineFundsPaused: 'fund actions paused', offlineNoFundsAction: 'Funds actions unavailable while offline', msFee: 'Platform fee', msNet: 'Net to engineer', referralLabel: 'Referral code (optional)' },
+  zh: { dashTitle: '财务与账单', dashSub: '管理您的活跃资金托管、项目里程碑及支付历史。', lblEscrow: '托管中资金', lblReleased: '已释放总额', lblPending: '活跃项目', thProject: '项目 / 订单 ID', thCounterparty: '交易方', thAmount: '总金额', thStatus: '状态', thAction: '操作', modalTitle: '项目里程碑', btnModalClose: '关闭', signIn: '登 录', createAccount: '创建账号', lblName: '全名', lblRole: '我是...', lblEmail: '邮箱地址', lblPassword: '密码', lblOr: '或者通过以下方式继续', btnLogin: '登 录', btnCreate: '创建账号', logout: '退出登录', recAiScore: 'AI 筛选分', recUnverified: '未验证', recReviews: '条评价', recNoReviews: '暂无评价', availAvailable: '可接单', availBusy: '忙碌', availUnavailable: '不可用', offlineBannerPrefix: '离线 · 数据截至', offlineFundsPaused: '资金操作已暂停', offlineNoFundsAction: '离线状态不可操作资金', msFee: '平台费', msNet: '工程师净得', referralLabel: '推荐码（选填）' },
   es: { dashTitle: 'Finanzas y Facturas', dashSub: 'Gestione sus depósitos en garantía, hitos del proyecto e historial de pagos.', lblEscrow: 'Fondos en Garantía', lblReleased: 'Total Liberado', lblPending: 'Proyectos Activos', thProject: 'Proyecto / ID Pedido', thCounterparty: 'Contraparte', thAmount: 'Monto Total', thStatus: 'Estado', thAction: 'Acción', modalTitle: 'Hitos del Proyecto', btnModalClose: 'Cerrar', signIn: 'Iniciar Sesión', createAccount: 'Crear Cuenta', lblName: 'Nombre completo', lblRole: 'Yo soy un...', lblEmail: 'Correo Electrónico', lblPassword: 'Contraseña', lblOr: 'o continuar con', btnLogin: 'Iniciar Sesión', btnCreate: 'Crear Cuenta', logout: 'Cerrar sesión', offlineBannerPrefix: 'Sin conexión · datos al', offlineFundsPaused: 'operaciones de fondos en pausa', offlineNoFundsAction: 'Operaciones de fondos no disponibles sin conexión', msFee: 'Comisión de plataforma', msNet: 'Neto para el ingeniero' },
   vi: { dashTitle: 'Tài chính & Hóa đơn', dashSub: 'Quản lý ký quỹ, cột mốc dự án và lịch sử thanh toán.', lblEscrow: 'Tiền ký quỹ', lblReleased: 'Tổng đã giải ngân', lblPending: 'Dự án đang hoạt động', thProject: 'Dự án / ID đơn hàng', thCounterparty: 'Đối tác', thAmount: 'Tổng tiền', thStatus: 'Trạng thái', thAction: 'Hành động', modalTitle: 'Cột mốc dự án', btnModalClose: 'Đóng', signIn: 'Đăng nhập', createAccount: 'Tạo tài khoản', lblName: 'Họ và tên', lblRole: 'Tôi là...', lblEmail: 'Địa chỉ email', lblPassword: 'Mật khẩu', lblOr: 'hoặc tiếp tục với', btnLogin: 'Đăng nhập vào bảng điều khiển', btnCreate: 'Tạo tài khoản', logout: 'Đăng xuất', offlineBannerPrefix: 'Ngoại tuyến · dữ liệu tính đến', offlineFundsPaused: 'thao tác tiền đã tạm dừng', offlineNoFundsAction: 'Không thể thao tác tiền khi ngoại tuyến', msFee: 'Phí nền tảng', msNet: 'Kỹ sư thực nhận' },
   hi: { dashTitle: 'वित्त और चालान', dashSub: 'अपने एस्क्रो, प्रोजेक्ट माइलस्टोन और भुगतान इतिहास प्रबंधित करें।', lblEscrow: 'एस्क्रो में धनराशि', lblReleased: 'कुल जारी', lblPending: 'सक्रिय प्रोजेक्ट', thProject: 'प्रोजेक्ट / ऑर्डर ID', thCounterparty: 'प्रतिपक्ष', thAmount: 'कुल राशि', thStatus: 'स्थिति', thAction: 'कार्रवाई', modalTitle: 'प्रोजेक्ट माइलस्टोन', btnModalClose: 'बंद करें', signIn: 'साइन इन', createAccount: 'खाता बनाएं', lblName: 'पूरा नाम', lblRole: 'मैं हूँ...', lblEmail: 'ईमेल पता', lblPassword: 'पासवर्ड', lblOr: 'या इसके साथ जारी रखें', btnLogin: 'डैशबोर्ड में साइन इन', btnCreate: 'खाता बनाएं', logout: 'साइन आउट', offlineBannerPrefix: 'ऑफ़लाइन · डेटा इस समय तक', offlineFundsPaused: 'फ़ंड कार्रवाई रुकी हुई', offlineNoFundsAction: 'ऑफ़लाइन में फ़ंड कार्रवाई उपलब्ध नहीं', msFee: 'प्लेटफ़ॉर्म शुल्क', msNet: 'इंजीनियर को शुद्ध राशि' },
@@ -42,6 +42,8 @@ export default function Finance() {
   const [name, setName]         = useState('');
   const [role, setRole]         = useState('employer');
   const [logging, setLogging]   = useState(false);
+  // 推荐码（W2-4，可选）：注册与首次 OAuth 选角色共用同一份输入，覆盖两条新用户入口
+  const [referralCode, setReferralCode] = useState('');
 
   // Role selection modal (for Google OAuth users)
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -187,7 +189,7 @@ export default function Finance() {
       const res = await fetch('/api/auth/oauth-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: accessToken, role: roleVal }),
+        body: JSON.stringify({ access_token: accessToken, role: roleVal, referral_code: referralCode.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -258,7 +260,7 @@ export default function Finance() {
     setLogging(true);
     try {
       const endpoint = authMode === 'signin' ? '/api/auth/login' : '/api/auth/register';
-      const res  = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, role, name: name || email.split('@')[0] }) });
+      const res  = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, role, name: name || email.split('@')[0], referral_code: referralCode.trim() || undefined }) });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Authentication failed'); setLogging(false); return; }
       persistAndSet(data);
@@ -480,6 +482,7 @@ export default function Finance() {
                 </div>
               ))}
             </div>
+            <FormGroup label={tr('referralLabel')}><input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="ABCD2345" maxLength={32} /></FormGroup>
             <button className={styles.btnPrimary} onClick={confirmOAuthRole}>Continue</button>
           </div>
         </div>
@@ -523,6 +526,7 @@ export default function Finance() {
                         <option value="engineer">Automation Engineer</option>
                       </select>
                     </FormGroup>
+                    <FormGroup label={tr('referralLabel')}><input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="ABCD2345" maxLength={32} /></FormGroup>
                   </>
                 )}
                 <FormGroup label={d.lblEmail}><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required /></FormGroup>

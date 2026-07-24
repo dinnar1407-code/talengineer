@@ -1,0 +1,248 @@
+/* 推荐计划页（/referral）样式。颜色全部走全站语义 token，浅深色自动跟随。
+   类词汇表沿用 hire.module.css（page/hero/container/block/sectionTitle/…），
+   另加推荐码盒（codeBox）、状态徽章（badge*）与列表表格（refTable）。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 上线状态横幅（enabled=false：即将上线；true：已上线）────────── */
+.banner {
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* 已上线状态：主色描边强调（半透明底在双主题下都可读，TalScoreBadge 同手法） */
+.bannerLive {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--text);
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.block {
+  margin-bottom: 44px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.leadMuted {
+  color: var(--text-muted);
+}
+
+/* 三步卡片 */
+.stepGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.stepCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.stepTag {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.stepDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── 我的推荐码 ───────────────────────────────────────────────── */
+.codeBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.codeText {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+
+.copyBtn {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.copyBtn:hover {
+  border-color: var(--primary);
+}
+
+/* 未登录 CTA */
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+/* ── 我推荐的人（表格）────────────────────────────────────────── */
+.refTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.refTable th,
+.refTable td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.refTable th {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.refTable td {
+  color: var(--text);
+}
+
+/* 状态徽章：半透明底色在浅/深两主题下都可读（不写死实色背景） */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.badgeAttributed {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.badgeVested {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.badgeVoid {
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  line-height: 1.6;
+}
+
+.footer {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.footer a {
+  color: var(--primary);
+}

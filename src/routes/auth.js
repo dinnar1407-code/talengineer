@@ -33,6 +33,10 @@ const registerSchema = z.object({
   // token 缺失/无效/过期都不阻断注册，只是分数按 0 落库（可稍后重新筛选提分）。
   // 兼容说明：旧客户端若仍传 verified_score，zod 会静默丢弃未知字段，注册不受影响。
   score_token: z.string().optional(),
+  // 推荐码（W2-4 推荐计划）：可选。zod 会静默剥掉未声明字段，所以必须在 schema 里显式声明，
+  // 否则前端传了也会被丢弃。归因在注册成功后 fire-and-forget 执行（fail-open）：
+  // 码非法/不存在/自荐/重复归因都不阻断注册——与 score_token 同一"永不卡死注册"纪律。
+  referral_code: z.string().max(32).optional(),
 });
 
 /**
@@ -68,7 +72,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
-    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, score_token } = parsed.data;
+    const { email, password, role, name, engName, engSkills, engRate, engBio, engRegion, engLevel, engPricingModel, score_token, referral_code } = parsed.data;
     const supabase = getClient();
 
     // Hash password with bcrypt (salted)
@@ -112,6 +116,18 @@ router.post('/register', async (req, res) => {
 
     // 发送邮箱验证邮件（fire-and-forget：发信失败不阻断注册，可稍后经 /resend-verification 重发）
     sendVerificationEmail(user.email);
+
+    // 推荐归因（fire-and-forget，fail-open）：码无效/自荐/已被推荐都不阻断注册。
+    // 懒 require：即便 referralService 加载出错也不影响注册主路径（与副作用同纪律）。
+    if (referral_code) {
+      try {
+        const { attributeReferral } = require('../services/referralService');
+        attributeReferral(supabase, { newUserId: user.id, newUserEmail: user.email, referralCode: referral_code })
+          .catch((e) => console.error('[Auth] Referral attribution error:', e));
+      } catch (e) {
+        console.error('[Auth] Referral attribution error:', e);
+      }
+    }
 
     // Issue JWT
     const token = jwt.sign(
@@ -257,7 +273,9 @@ router.post('/login', async (req, res) => {
 
 router.post('/oauth-token', async (req, res) => {
   try {
-    const { access_token, role } = req.body;
+    // referral_code（可选）：OAuth 注册绕过 /register，若只在 /register 挂归因会漏掉 OAuth 新用户。
+    // 前端暂无入口传 code，后端先行支持 body.referral_code（W2-4）。
+    const { access_token, role, referral_code } = req.body;
     if (!access_token || !role) return res.status(400).json({ error: 'Missing access_token or role' });
     if (!['employer', 'engineer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
 
@@ -283,6 +301,18 @@ router.post('/oauth-token', async (req, res) => {
         .single();
       if (insertErr) throw insertErr;
       dbUser = newUser;
+
+      // 推荐归因（仅限【新建】用户；老用户 OAuth 登录不归因，防止"拿别人的码归因存量账号"）。
+      // 与 /register 同一 fire-and-forget + fail-open 纪律：任何失败不阻断登录。
+      if (referral_code && typeof referral_code === 'string') {
+        try {
+          const { attributeReferral } = require('../services/referralService');
+          attributeReferral(supabase, { newUserId: newUser.id, newUserEmail: newUser.email, referralCode: referral_code })
+            .catch((e) => console.error('[Auth] OAuth referral attribution error:', e));
+        } catch (e) {
+          console.error('[Auth] OAuth referral attribution error:', e);
+        }
+      }
     }
 
     const token = jwt.sign(
