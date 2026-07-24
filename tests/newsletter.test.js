@@ -22,6 +22,12 @@ describe('subscribeSchema（订阅入参 zod 校验）', () => {
     assert.equal(ok2.success, true); // 缺 lang 也应通过
   });
 
+  it("source='whitepaper'（Wave2 F6 白皮书软门入口）：通过", () => {
+    const r = subscribeSchema.safeParse({ email: 'a@b.com', source: 'whitepaper', lang: 'en' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.source, 'whitepaper');
+  });
+
   it('非法 email：拒绝', () => {
     assert.equal(subscribeSchema.safeParse({ email: 'not-an-email', source: 'calculator' }).success, false);
     assert.equal(subscribeSchema.safeParse({ email: '', source: 'calculator' }).success, false);

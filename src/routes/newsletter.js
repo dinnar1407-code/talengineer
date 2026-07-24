@@ -11,11 +11,12 @@ const { getClient } = require('../config/db');
 // 模块加载时读取密钥（与 middleware/auth.js 同样的时机口径）。生产环境恒有 JWT_SECRET。
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
-// 订阅入参校验：email 必须合法、source 限定三个已知入口、lang 可选。
+// 订阅入参校验：email 必须合法、source 限定已知入口、lang 可选。
 // .strip() 丢弃未知字段而非报错，兼容前端多传字段。
+// 'whitepaper' = /whitepaper 白皮书软门（Wave2 F6）：邮箱解锁页内全文的 lead capture 入口。
 const subscribeSchema = z.object({
   email:  z.string().email('Invalid email address'),
-  source: z.enum(['calculator', 'playbook', 'footer']),
+  source: z.enum(['calculator', 'playbook', 'footer', 'whitepaper']),
   lang:   z.string().max(8).optional(),
 }).strip();
 

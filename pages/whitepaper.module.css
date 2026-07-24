@@ -1,0 +1,325 @@
+/* 白皮书门控页（/whitepaper）样式。
+   颜色全部走全站语义 token（var(--bg)/--surface/--text/...），浅色/深色主题自动跟随。
+   版式词汇沿用 calculator.module.css（hero/container/lead 表单）与
+   playbook.module.css（.article 后代选择器排版）。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px 40px;
+}
+
+.heroInner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 800;
+  line-height: 1.14;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 18px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 720px;
+}
+
+.heroDate {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 14px 0 0;
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+/* 草稿横幅：用半透明警示底色（两种主题下都可读），不引入硬编码主题色块。 */
+.draftBanner {
+  background: rgba(234, 179, 8, 0.14);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin: 0 0 24px;
+}
+
+/* 目录预览卡 */
+.tocCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin: 0 0 24px;
+}
+
+.tocTitle {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.tocList {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.tocList li {
+  margin-bottom: 6px;
+}
+
+/* ── 邮箱软门卡 ───────────────────────────────────────────────── */
+.gateCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.gateTitle {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.gateBody {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 auto 20px;
+  max-width: 560px;
+}
+
+.gateForm {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.emailInput {
+  flex: 1;
+  min-width: 220px;
+  font-size: 15px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.emailInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.gateBtn {
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.gateBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.gateBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.gateMsgOk {
+  font-size: 14px;
+  color: var(--primary);
+  margin: 0 0 20px;
+}
+
+.gateMsgErr {
+  font-size: 14px;
+  color: #dc2626;
+  margin: 14px 0 0;
+}
+
+/* ── 全文排版（marked 输出的原生 HTML，用后代选择器统一排版）────── */
+.article {
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.article h1 {
+  font-family: var(--font-head);
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 800;
+  line-height: 1.18;
+  margin: 0 0 24px;
+}
+
+.article h2 {
+  font-family: var(--font-head);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 40px 0 14px;
+  padding-top: 8px;
+}
+
+.article h3 {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 28px 0 12px;
+}
+
+.article p {
+  margin: 0 0 18px;
+}
+
+.article ul,
+.article ol {
+  margin: 0 0 18px;
+  padding-left: 24px;
+}
+
+.article li {
+  margin-bottom: 8px;
+}
+
+.article strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.article a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article a:hover {
+  color: var(--primary-hover);
+}
+
+.article blockquote {
+  border-left: 3px solid var(--primary);
+  margin: 0 0 18px;
+  padding: 4px 0 4px 18px;
+  color: var(--text-muted);
+}
+
+/* 表格（费率参考区间表）。 */
+.article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 18px;
+  font-size: 15px;
+}
+
+.article th,
+.article td {
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.article th {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+
+/* ── 文末 CTA 卡（与 playbook 同型）──────────────────────────── */
+.ctaBox {
+  margin-top: 48px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.ctaBox h3 {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.ctaBox p {
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+
+.ctaBtn {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 12px 26px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.ctaBtn:hover {
+  background: var(--primary-hover);
+}
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--primary);
+}
