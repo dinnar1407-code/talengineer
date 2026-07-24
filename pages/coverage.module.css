@@ -1,0 +1,323 @@
+/* 覆盖地图页（/coverage）样式。颜色全部走全站语义 token，浅深色主题自动跟随。
+   词汇表照 hire.module.css / rates.module.css：hero/container/card/infoBox/footer。
+   例外：档位分布条的分段底色在 JSX 里用半透明 rgba 内联（照 TalScoreBadge 手法，
+   半透明底叠在 var(--surface) 上，两个主题下都可读）。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero（照 hire.module.css 的主题自适应渐变，而非 rates 的固定深色）──── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+  text-align: center;
+}
+
+.heroInner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.heroBadge {
+  display: inline-block;
+  background: var(--surface-2);
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 17px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 内容区 ──────────────────────────────────────────────────────────────── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* ── 全站汇总条 ──────────────────────────────────────────────────────────── */
+.totalsBar {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 0;
+  margin-bottom: 32px;
+}
+
+.totalStat { flex: 1; text-align: center; }
+.totalVal {
+  font-family: var(--font-head);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.totalLabel { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.totalDivider { width: 1px; background: var(--border); height: 40px; }
+
+/* ── 地区卡片网格（照 rates.module.css 的 grid/card 词汇）────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+
+.cardRegion {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cardCount {
+  font-family: var(--font-head);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.cardCount span { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.metaAvailable { color: var(--primary); font-weight: 600; }
+.metaCertified { color: var(--text-muted); font-weight: 600; }
+
+/* 档位分布条：容器给 token 底色，分段底色由 JSX 内联 rgba（两主题通用）*/
+.tierLabel { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+
+.tierBar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+  margin-bottom: 8px;
+}
+
+.tierSeg { height: 100%; }
+
+.tierLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.tierChip { white-space: nowrap; }
+
+/* 方向徽章 */
+.trackList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trackChip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+/* 骨架屏（照 rates.module.css）*/
+.cardSkeleton {
+  height: 240px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── 全空 founding 空态 ─────────────────────────────────────────────────── */
+.emptyBox {
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 64px 24px;
+  margin-bottom: 40px;
+}
+
+.emptyBox h2 {
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.emptyBox p {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 auto 24px;
+}
+
+.emptyBtns { display: flex; justify-content: center; gap: 12px; }
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 12px 26px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover { background: var(--primary-hover); }
+
+/* ── 信息盒（方向汇总 / founding 叙事，照 rates 的 infoBox）──────────────── */
+.infoBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 32px;
+}
+
+.infoBox h2 {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.infoBox p { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin: 0; }
+
+.updatedAt {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 14px !important;
+}
+
+.trackSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.trackSummaryItem {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.trackSummaryName { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.trackSummaryVal { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+
+.linkRow { display: flex; flex-wrap: wrap; gap: 20px; }
+
+.btnBrowse {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.btnBrowse:hover { text-decoration: underline; }
+
+/* ── 底部 CTA（主题自适应版：token 面色，不用 rates 的固定深色渐变）──────── */
+.ctaBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 16px;
+  padding: 40px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.ctaBox h2 { font-family: var(--font-head); font-size: 22px; font-weight: 800; margin: 0 0 8px; }
+.ctaBox p { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+.btnCta {
+  background: var(--primary);
+  color: var(--primary-ink);
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.btnCta:hover { background: var(--primary-hover); }
+
+/* ── 页脚 ────────────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 32px 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+.footer a { color: var(--text-muted); }
+.footer a:hover { text-decoration: underline; }
