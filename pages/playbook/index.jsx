@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
 import { getAllPlaybookMeta } from '../../lib/playbook';
 import styles from './playbook.module.css';
@@ -21,6 +22,8 @@ const DICT = {
     read: 'Read guide →',
     typeAll: 'All',
     typeLabels: { guide: 'Guide', 'market-data': 'Market Data', certification: 'Certification', case: 'Case Study' },
+    audAll: 'All audiences',
+    audLabels: { employer: 'For employers', engineer: 'For engineers' },
   },
   zh: {
     kicker: 'Talengineer 实战指南',
@@ -29,28 +32,47 @@ const DICT = {
     read: '阅读指南 →',
     typeAll: '全部',
     typeLabels: { guide: '指南', 'market-data': '市场数据', certification: '认证解读', case: '案例' },
+    audAll: '全部受众',
+    audLabels: { employer: '雇主向', engineer: '工程师向' },
   },
 };
 
 // 类型筛选的展示顺序（内容 taxonomy，竞对改善 W1-2）。
 const TYPE_ORDER = ['guide', 'market-data', 'certification', 'case'];
 
+// 受众筛选的展示顺序（taxonomy 受众维度激活，与 4 篇工程师文章同批上线）。
+// 注意 'both' 不出 chip：它是"双受众"文章的标注值，选任一受众 chip 时都算命中。
+const AUD_ORDER = ['employer', 'engineer'];
+
+// 受众命中判定：文章 audience 精确等于所选受众，或标注为 both（双受众文章两边都算）。
+const matchesAudience = (article, aud) =>
+  !aud || article.audience === aud || article.audience === 'both';
+
 export default function PlaybookIndex({ groups }) {
   const [lang, setLang] = useLang();
   const [typeFilter, setTypeFilter] = useState('');
+  // 受众筛选状态：'' = 不过滤（全部受众），镜像 typeFilter 的模式。
+  const [audFilter, setAudFilter] = useState('');
   const d = DICT[lang] || DICT.en;
 
-  // 按类型客户端过滤；只展示筛选后仍有文章的语言组。
+  // 按类型 + 受众客户端过滤（两个维度是 AND 关系）；只展示筛选后仍有文章的语言组。
   const visibleGroups = groups
     .map((g) => ({
       ...g,
-      articles: typeFilter ? g.articles.filter((a) => a.type === typeFilter) : g.articles,
+      articles: g.articles.filter(
+        (a) => (!typeFilter || a.type === typeFilter) && matchesAudience(a, audFilter)
+      ),
     }))
     .filter((g) => g.articles.length > 0);
 
   // 只给实际存在的类型出筛选 chip，避免空筛选项。
   const presentTypes = TYPE_ORDER.filter((t) =>
     groups.some((g) => g.articles.some((a) => a.type === t))
+  );
+
+  // 只给选中后有结果的受众出 chip（both 文章让两个受众都"存在"），避免空态筛选项。
+  const presentAuds = AUD_ORDER.filter((aud) =>
+    groups.some((g) => g.articles.some((a) => matchesAudience(a, aud)))
   );
 
   const pageTitle = 'Automation Hiring Playbook | Talengineer';
@@ -106,6 +128,28 @@ export default function PlaybookIndex({ groups }) {
           </div>
         )}
 
+        {/* 第二排 chips：受众维度（taxonomy audience 激活）。复用类型 chips 的样式与交互模式；
+            两个受众都有内容时才渲染整排（单受众时筛选没有意义，照 presentTypes.length > 1 的门槛）。 */}
+        {presentAuds.length > 1 && (
+          <div className={styles.typeChips}>
+            <button
+              className={`${styles.chip} ${audFilter === '' ? styles.chipActive : ''}`}
+              onClick={() => setAudFilter('')}
+            >
+              {d.audAll}
+            </button>
+            {presentAuds.map((aud) => (
+              <button
+                key={aud}
+                className={`${styles.chip} ${audFilter === aud ? styles.chipActive : ''}`}
+                onClick={() => setAudFilter(aud)}
+              >
+                {d.audLabels[aud] || aud}
+              </button>
+            ))}
+          </div>
+        )}
+
         {visibleGroups.map((group) => (
           <section key={group.lang}>
             <h2 className={styles.groupTitle}>
@@ -128,13 +172,8 @@ export default function PlaybookIndex({ groups }) {
         ))}
       </div>
 
-      <footer className={styles.footer}>
-        <p>
-          © 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> ·{' '}
-          <Link href="/rates">Rate Benchmarks</Link> ·{' '}
-          <Link href="/playbook">Playbook</Link>
-        </p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }

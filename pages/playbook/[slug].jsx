@@ -2,8 +2,9 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
-import { getAllPlaybookSlugs, getPlaybookBySlug } from '../../lib/playbook';
+import { getAllPlaybookMeta, getAllPlaybookSlugs, getPlaybookBySlug } from '../../lib/playbook';
 import styles from './playbook.module.css';
 
 // 站点根 URL：canonical / OG 用。
@@ -54,7 +55,10 @@ const NEWSLETTER = {
 // 邮箱基础校验（前端只做轻校验，真正的权威校验在后端 zod）。
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function PlaybookArticle({ article }) {
+// 相关文章带标题（按文章语言取，与文末 CTA 同口径）。
+const RELATED_TITLE = { en: 'Related guides', zh: '相关指南' };
+
+export default function PlaybookArticle({ article, related }) {
   const [lang, setLang] = useLang();
   const cta = CTA[article.lang] || CTA.en;
   // 订阅卡文案按文章语言取（与文末 CTA 同口径，独立于导航语言切换）。
@@ -197,15 +201,29 @@ export default function PlaybookArticle({ article }) {
           <p>{cta.body}</p>
           <Link href="/talent" className={styles.ctaBtn}>{cta.btn}</Link>
         </div>
+
+        {/* 相关文章带（内链系统 B4）：构建期在 getStaticProps 里按 同track→同type 挑好 ≤3 篇，
+            这里只负责渲染；复用列表页的 grid/card 样式，零新增 CSS。 */}
+        {related && related.length > 0 && (
+          <section>
+            <h2 className={styles.groupTitle}>
+              {RELATED_TITLE[article.lang] || RELATED_TITLE.en}
+            </h2>
+            <div className={styles.grid}>
+              {related.map((r) => (
+                <Link key={r.slug} href={`/playbook/${r.slug}`} className={styles.card}>
+                  {r.date && <span className={styles.cardDate}>{r.date}</span>}
+                  <b className={styles.cardTitle}>{r.title}</b>
+                  <span className={styles.cardDesc}>{r.description}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
 
-      <footer className={styles.footer}>
-        <p>
-          © 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> ·{' '}
-          <Link href="/rates">Rate Benchmarks</Link> ·{' '}
-          <Link href="/playbook">Playbook</Link>
-        </p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }
@@ -219,8 +237,25 @@ export async function getStaticPaths() {
 }
 
 // 构建期取单篇文章（含渲染好的 HTML）。找不到则 404。
+// 同时算好相关文章带（≤3 篇）：优先同 track，一篇同 track 都没有才回退同 type；
+// 组内再把与本文同语言的排到前面（读者大概率想继续读同语言的内容）。
 export async function getStaticProps({ params }) {
   const article = getPlaybookBySlug(params.slug);
   if (!article) return { notFound: true };
-  return { props: { article } };
+
+  // 候选池：全部已发布文章（getAllPlaybookMeta 已过滤草稿），排除本文自身。
+  const candidates = getAllPlaybookMeta().filter((m) => m.slug !== article.slug);
+  let pool = candidates.filter((m) => m.track === article.track);
+  if (pool.length === 0) pool = candidates.filter((m) => m.type === article.type);
+  // 同语言优先：两次 filter 拼接是稳定的（保留各自组内的日期倒序）。
+  pool = [
+    ...pool.filter((m) => m.lang === article.lang),
+    ...pool.filter((m) => m.lang !== article.lang),
+  ];
+  // 只带渲染需要的字段进 props，避免把整份 meta 塞进页面数据。
+  const related = pool.slice(0, 3).map(({ slug, title, description, date }) => ({
+    slug, title, description, date,
+  }));
+
+  return { props: { article, related } };
 }
