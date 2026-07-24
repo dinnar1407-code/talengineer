@@ -1,8 +1,9 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
+import Footer from '../../../components/Footer';
 import { useLang } from '../../../hooks/useLang';
-import { REGIONS, getMatrixPaths, hasMatrixEntry, getMatrixPage } from '../../../lib/hireMatrix';
+import { REGIONS, RATES_NOTE, getMatrixPaths, hasMatrixEntry, getMatrixPage } from '../../../lib/hireMatrix';
 import styles from './industry.module.css';
 
 // 站点根 URL：canonical / OG 用。
@@ -22,8 +23,6 @@ const UI = {
     ratesTitle: 'Rate ranges by region',
     regionCol: 'Region',
     rateCol: 'Hourly (USD)',
-    ratesNote:
-      'Blended hourly rates from active engineer profiles, updated in real time, aligned with our /rates benchmarks. Development work sits toward the middle of each range; on-site commissioning carries a premium. Platform escrow fee is 15% (5% for founding customers).',
     linksTitle: 'Explore related talent',
     linksSameTrack: 'Same specialty · other industries',
     linksSameIndustry: 'Same industry · other specialties',
@@ -51,8 +50,6 @@ const UI = {
     ratesTitle: '各地区费率区间',
     regionCol: '地区',
     rateCol: '时薪（美元）',
-    ratesNote:
-      '来自活跃工程师档案的综合时薪，实时更新，与 /rates 基准同源。开发类工作位于各区间中段，现场调试有溢价。平台托管费为 15%（founding 客户 5%）。',
     linksTitle: '探索相关人才',
     linksSameTrack: '同方向 · 其他行业',
     linksSameIndustry: '同行业 · 其他方向',
@@ -194,7 +191,7 @@ export default function HireIndustry({ data }) {
               ))}
             </tbody>
           </table>
-          <p className={styles.note}>{u.ratesNote}</p>
+          <p className={styles.note}>{RATES_NOTE[lang] || RATES_NOTE.en}</p>
         </div>
 
         {/* 内链区：同方向其他行业 + 同行业其他方向 + 母页/费率/定价/认证 */}
@@ -256,13 +253,8 @@ export default function HireIndustry({ data }) {
         <Link href="/talent" className={styles.btnPrimary}>{u.heroPost}</Link>
       </div>
 
-      <footer className={styles.footer}>
-        <p>
-          © 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> ·{' '}
-          <Link href="/rates">Rate Benchmarks</Link> ·{' '}
-          <Link href="/pricing">Pricing</Link>
-        </p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }

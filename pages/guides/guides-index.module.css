@@ -1,0 +1,121 @@
+/* /guides 索引页专属样式（三国卡网格 + 语言徽章 + 文章链列表）。
+   共享的 hero/正文/CTA 等直接复用同目录 guides.module.css（与 /guides/[region] 同一套），
+   这里只放索引页独有的部分。颜色一律走全站语义 token，浅深色主题自动跟随。 */
+
+/* hero 上方的小标（guides.module.css 没有 kicker 类——详情页 hero 用旗帜，这里补一个） */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+/* ── 三国卡网格 ───────────────────────────────────────────────── */
+.guideGrid {
+  display: grid;
+  /* 三列自适应：窄屏自动折为单列，免写媒体查询 */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 8px;
+}
+
+/* 整卡即链接（Link 包卡）：hover 主色描边提示可点 */
+.guideCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  color: var(--text);
+  transition: border-color 0.16s ease;
+}
+
+.guideCard:hover {
+  border-color: var(--primary);
+}
+
+.guideFlag {
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.guideName {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.guideSub {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  /* 让三张卡底部对齐：简介吃掉剩余高度，徽章/箭头钉在卡底 */
+  flex: 1;
+}
+
+/* 指南可用语言徽章行（内容语言因地而异：墨西哥/越南四语、泰国两语） */
+.langBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.langBadge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.guideMore {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ── 相关 Playbook 文章链列表 ─────────────────────────────────── */
+.articleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.articleItem {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: border-color 0.16s ease;
+}
+
+.articleItem:hover {
+  border-color: var(--primary);
+}
+
+.articleTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.articleMeta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}

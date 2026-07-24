@@ -1,0 +1,416 @@
+/* 职业页（/occupations 索引 + /occupations/[role] 详情）共用样式。
+   基底照抄 pages/hire/hire.module.css 的版式语言（hero/chips/费率表/级别卡），
+   颜色全部走全站语义 token（var(--*)），浅深色主题自动跟随，零硬编码色值。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.heroBtns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.btnGhost {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.16s ease;
+}
+
+.btnGhost:hover {
+  border-color: var(--primary);
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.block {
+  margin-bottom: 44px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.leadMuted {
+  color: var(--text-muted);
+}
+
+/* 章节内的"看更多"行内链接（认证中心 / how-it-works 全流程） */
+.blockLink {
+  margin: 18px 0 0;
+}
+
+.inlineLink {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+/* ── 技能 chips（两排：方向基本功 + 职位专属，各带小标题）────── */
+.chipsCaption {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 14px 0 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+/* ── 费率表（与 hire.module.css 同版式）───────────────────────── */
+.rateTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.rateTable th,
+.rateTable td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rateTable th {
+  font-family: var(--font-head);
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.rateTable td {
+  color: var(--text);
+}
+
+.rateTable td:last-child {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+/* ── 认证级别卡 + SCADA 诚实声明框 ────────────────────────────── */
+.levelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.levelCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.levelTag {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.levelDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* SCADA 页专用：认证归属 PLC 方向的声明，左侧主色竖线突出但不喧宾夺主 */
+.certNote {
+  border-left: 3px solid var(--primary);
+  background: var(--surface);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+}
+
+/* ── 招聘流程 4 步 mini-flow ──────────────────────────────────── */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.stepCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.stepNum {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-ink);
+  margin-bottom: 12px;
+}
+
+.stepTitle {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.stepDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── 关联链接带（分组样式照 hire/[track]/industry.module.css 口径）─ */
+.linkGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.linkGroupTitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.linkList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.linkItem {
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+
+.linkItem:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ── FAQ ─────────────────────────────────────────────────────── */
+.faqItem {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+
+.faqItem:last-child {
+  border-bottom: none;
+}
+
+.faqQ {
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.faqA {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── 底部 CTA ─────────────────────────────────────────────────── */
+.finalCta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px;
+  text-align: center;
+}
+
+.finalCta h2 {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.finalCta p {
+  color: var(--text-muted);
+  font-size: 17px;
+  margin: 0 0 24px;
+}
+
+/* ── 索引页：方向分组 + 职业卡片 ──────────────────────────────── */
+/* 组标题本身是链接（去方向母页），保持标题色、hover 转主色提示可点 */
+.groupTitleLink {
+  color: var(--text);
+  transition: color 0.15s ease;
+}
+
+.groupTitleLink:hover {
+  color: var(--primary);
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.roleCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.roleCard:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.roleName {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.roleSub {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.roleMore {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}

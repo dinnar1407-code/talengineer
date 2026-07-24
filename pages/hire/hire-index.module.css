@@ -1,0 +1,126 @@
+/* /hire 索引页专属样式（方向卡网格 + 职位名带）。
+   共享的 hero/表格/CTA 等直接复用同目录 hire.module.css（与 /hire/[track] 同一套），
+   这里只放索引页独有的卡片布局。颜色一律走全站语义 token，浅深色主题自动跟随。 */
+
+/* ── 四个方向卡的网格 ─────────────────────────────────────────── */
+.trackGrid {
+  display: grid;
+  /* 桌面双列、窄屏自动单列：auto-fit + minmax 免写媒体查询 */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.trackCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color 0.16s ease;
+}
+
+/* hover 用主色描边提示卡片可交互 */
+.trackCard:hover {
+  border-color: var(--primary);
+}
+
+.trackKicker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 8px;
+}
+
+.trackTitle {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.trackDesc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+/* 卡内技能 chips：比母页 chips 更小一号，塞得下 6 个标签 */
+.trackChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.trackChip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* 卡底：进入方向页的箭头链 + 行业子链行 */
+.trackFoot {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.trackMore {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.trackIndustries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+
+.trackIndustriesLabel {
+  color: var(--text-muted);
+}
+
+.trackIndustryLink {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.trackIndustryLink:hover {
+  color: var(--primary);
+}
+
+/* ── 「按职位名招募」带：6 个职业页的胶囊链 ───────────────────── */
+.roleStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.roleLink {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+
+.roleLink:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}

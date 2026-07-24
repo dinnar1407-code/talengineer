@@ -1,8 +1,9 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
-import { getIndustriesForTrack } from '../../lib/hireMatrix';
+import { getIndustriesForTrack, RATES_NOTE } from '../../lib/hireMatrix';
 import styles from './hire.module.css';
 
 // 站点根 URL：canonical / OG 用。
@@ -39,9 +40,8 @@ const UI = {
     ratesTitle: 'Rate ranges by region',
     regionCol: 'Region',
     rateCol: 'Hourly (USD)',
-    ratesNote:
-      'Blended hourly rates from active engineer profiles, updated in real time. Development work sits toward the middle of each range; on-site commissioning carries a premium. Platform escrow fee is 15% (5% for founding customers).',
     industriesTitle: 'Hire by industry',
+    rolesTitle: 'Common role titles',
     guidesTitle: 'Setting up in a new country?',
     guidesBody:
       'Read our country hiring guides for local rate ranges, certification and on-the-ground commissioning before you build.',
@@ -61,9 +61,8 @@ const UI = {
     ratesTitle: '各地区费率区间',
     regionCol: '地区',
     rateCol: '时薪（美元）',
-    ratesNote:
-      '来自活跃工程师档案的综合时薪，实时更新。开发类工作位于各区间中段，现场调试有溢价。平台托管费为 15%（founding 客户 5%）。',
     industriesTitle: '按行业细分',
+    rolesTitle: '常见职位名',
     guidesTitle: '要在新国家建厂？',
     guidesBody: '动工前，先读我们的分国用人指南：了解当地费率区间、认证与落地调试。',
     ctaHeading: '准备好招募了吗？',
@@ -192,7 +191,7 @@ const TRACKS = {
 
 const TRACK_SLUGS = Object.keys(TRACKS);
 
-export default function HireTrack({ track, industries }) {
+export default function HireTrack({ track, industries, roles }) {
   const [lang, setLang] = useLang();
   const t = TRACKS[track];
   const c = t[lang] || t.en;
@@ -300,7 +299,7 @@ export default function HireTrack({ track, industries }) {
               ))}
             </tbody>
           </table>
-          <p className={styles.note}>{u.ratesNote}</p>
+          <p className={styles.note}>{RATES_NOTE[lang] || RATES_NOTE.en}</p>
         </div>
 
         {/* 建厂用人指南跨链：把方向页流量引到已建成但零链入的 /guides/[region] 国别指南 */}
@@ -333,6 +332,26 @@ export default function HireTrack({ track, industries }) {
             </div>
           </div>
         )}
+
+        {/* 常见职位名带：链去 /occupations/[role] 职业页（B4 内链系统）。
+            清单构建期来自 lib/occupations.js 的 getRolesForTrack 单一来源；
+            scada-engineer 因认证归属会出现在 plc 方向下（刻意设计）。 */}
+        {roles && roles.length > 0 && (
+          <div className={styles.block}>
+            <h2 className={styles.sectionTitle}>{u.rolesTitle}</h2>
+            <div className={styles.industryLinks}>
+              {roles.map((r) => (
+                <Link
+                  key={r.role}
+                  href={`/occupations/${r.role}`}
+                  className={styles.industryLink}
+                >
+                  {(r.name[lang] || r.name.en)} →
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.finalCta}>
@@ -341,13 +360,8 @@ export default function HireTrack({ track, industries }) {
         <Link href="/talent" className={styles.btnPrimary}>{u.heroPost}</Link>
       </div>
 
-      <footer className={styles.footer}>
-        <p>
-          © 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> ·{' '}
-          <Link href="/rates">Rate Benchmarks</Link> ·{' '}
-          <Link href="/playbook">Playbook</Link>
-        </p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }
@@ -362,6 +376,15 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   if (!TRACKS[params.track]) return { notFound: true };
-  // 行业子页入口链数据（构建期从 lib/hireMatrix 单一来源取，防手写清单漂移）
-  return { props: { track: params.track, industries: getIndustriesForTrack(params.track) } };
+  // 常见职位名带数据：构建期动态引 lib/occupations.js（单一来源），
+  // 避免顶层 import 把职业内容数据一并打进本页客户端 bundle。
+  const { getRolesForTrack } = await import('../../lib/occupations.js');
+  return {
+    props: {
+      track: params.track,
+      // 行业子页入口链数据（构建期从 lib/hireMatrix 单一来源取，防手写清单漂移）
+      industries: getIndustriesForTrack(params.track),
+      roles: getRolesForTrack(params.track),
+    },
+  };
 }
