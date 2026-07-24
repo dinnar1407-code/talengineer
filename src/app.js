@@ -130,6 +130,15 @@ const entV1Routes          = require('./routes/entV1');
 const newsletterRoutes     = require('./routes/newsletter');
 const agentRoutes          = require('./routes/agent');
 const mcpRoutes            = require('./routes/mcp');
+// ── Wave 2 × Phase 4 批次新增路由（2026-07-24）────────────────────────────────
+// coverage=公开覆盖地图聚合；referral=推荐计划；pools=企业人才池；
+// bgcheck=背调；aiops=AI 周报（Phase 4 人审闭环）。
+// 这五个必须全部挂载——漏挂即静默 404（会被下面的 /api catch-all 接住）。
+const coverageRoutes       = require('./routes/coverage');
+const referralRoutes       = require('./routes/referral');
+const poolsRoutes          = require('./routes/pools');
+const bgcheckRoutes        = require('./routes/bgcheck');
+const aiopsRoutes          = require('./routes/aiops');
 
 app.use('/api/talent',          talentRoutes);
 app.use('/api/finance',         financeRoutes);
@@ -157,6 +166,11 @@ app.use('/api/v1/ent',          entV1Routes);
 app.use('/api/newsletter',      newsletterRoutes);
 app.use('/api/agent',           agentRoutes);
 app.use('/api/mcp',             mcpRoutes);
+app.use('/api/coverage',        coverageRoutes);
+app.use('/api/referral',        referralRoutes);
+app.use('/api/pools',           poolsRoutes);
+app.use('/api/bgcheck',         bgcheckRoutes);
+app.use('/api/aiops',           aiopsRoutes);
 
 // 未匹配的 /api/* 统一返回 404 JSON，避免落入下面的 catch-all 被当成页面返回 200 HTML
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

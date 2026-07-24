@@ -54,6 +54,10 @@ export async function getServerSideProps({ res }) {
     // W1-3/W1-5 增长基建页
     { url: '/calculator',   priority: '0.7', changefreq: 'monthly' },
     { url: '/case-studies', priority: '0.6', changefreq: 'weekly' },
+    // Wave 2 公开页（2026-07-24）：覆盖地图（实时聚合数据，daily）+ 推荐计划。
+    // 注：/whitepaper 草稿期带 noindex 不进 sitemap；/pools 是登录态控制台页也不进。
+    { url: '/coverage', priority: '0.7', changefreq: 'daily' },
+    { url: '/referral', priority: '0.6', changefreq: 'monthly' },
   ];
 
   // 内容引擎文章页：以 frontmatter 的 date 作为 lastmod。

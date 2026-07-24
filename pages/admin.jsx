@@ -87,6 +87,23 @@ const DICT = {
     taxTip2: 'Enable in Stripe Dashboard → Connect → Tax reporting (1099-NEC); Stripe auto-aggregates transfers per Connect account.',
     taxTip3: 'manual / payoneer payouts are outside Stripe 1099 — handle separately.',
     taxTipDoc: 'Full setup checklist: docs/1099-setup.md',
+    // Referral 推荐计划面板
+    navReferral: 'Referral', subReferral: 'Referral attributions — refreshing re-runs lazy vesting',
+    thReferrer: 'Referrer', thReferred: 'Referred', thCode: 'Code', thVestedAt: 'Vested at',
+    emptyReferrals: 'No referrals yet.', refreshList: '↻ Refresh list',
+    // 背调复核面板
+    navBgChecks: 'BG Checks', subBgChecks: 'Background check review queue',
+    thProvider: 'Provider', thRequestedAt: 'Requested', thExpires: 'Expires',
+    bgDecide: 'Decide', bgPass: '✅ Pass', bgFail: '✗ Fail', bgCancel: 'Cancel',
+    bgEvidencePh: 'Evidence URL (optional)', bgNotePh: 'Note (optional)',
+    emptyBg: 'No checks with this status.',
+    // AI 周报面板（Phase 4 人审闭环）
+    navAiWeekly: 'AI Weekly', subAiWeekly: 'AI self-improvement reports — human review loop',
+    aiPeriod: 'Period', aiEvents: 'Events', aiErrorRate: 'Error rate', aiToolCalls: 'Tool calls',
+    aiTopTools: 'Top tools', aiHypotheses: 'Hypotheses', aiNoHypotheses: 'No hypotheses generated for this period.',
+    aiEvidence: 'Evidence', aiChange: 'Proposed change', aiRisk: 'Risk',
+    aiMarkReviewed: '✔ Mark reviewed', aiDismiss: '✗ Dismiss', aiPromptVer: 'Prompt',
+    emptyAi: 'No AI reports yet.',
   },
   zh: {
     backConsole: '← 控制台', adminPanel: '管理面板', superAdmin: '超级管理员',
@@ -165,6 +182,23 @@ const DICT = {
     taxTip2: '开通路径：Stripe Dashboard → Connect → Tax reporting（选 1099-NEC）；Stripe 会按 Connect 账户自动汇总放款额。',
     taxTip3: 'manual / payoneer 收款不在 Stripe 1099 覆盖内，需单独处理。',
     taxTipDoc: '完整开通清单见 docs/1099-setup.md',
+    // Referral 推荐计划面板
+    navReferral: '推荐计划', subReferral: '推荐归因列表 —— 刷新即触发懒兑现评估',
+    thReferrer: '推荐人', thReferred: '被推荐人', thCode: '推荐码', thVestedAt: '兑现时间',
+    emptyReferrals: '暂无推荐记录。', refreshList: '↻ 刷新列表',
+    // 背调复核面板
+    navBgChecks: '背调', subBgChecks: '背调复核队列',
+    thProvider: '渠道', thRequestedAt: '发起时间', thExpires: '有效期至',
+    bgDecide: '复核', bgPass: '✅ 通过', bgFail: '✗ 不通过', bgCancel: '取消',
+    bgEvidencePh: '证据 URL（可选）', bgNotePh: '备注（可选）',
+    emptyBg: '该状态下暂无背调记录。',
+    // AI 周报面板（Phase 4 人审闭环）
+    navAiWeekly: 'AI 周报', subAiWeekly: 'AI 自改进周报 —— 人审闭环',
+    aiPeriod: '周期', aiEvents: '事件数', aiErrorRate: '错误率', aiToolCalls: '工具调用',
+    aiTopTools: '工具排行', aiHypotheses: '改进假设', aiNoHypotheses: '本周期未生成改进假设。',
+    aiEvidence: '证据', aiChange: '建议改动', aiRisk: '风险',
+    aiMarkReviewed: '✔ 标记已审', aiDismiss: '✗ 驳回', aiPromptVer: '提示词版本',
+    emptyAi: '暂无 AI 周报。',
   },
 };
 
@@ -226,6 +260,15 @@ export default function Admin() {
   const [auditLogs, setAuditLogs]   = useState(null);
   const [rates, setRates]           = useState(null);    // 费率分布（admin_rates_summary）
   const [checkins, setCheckins]     = useState(null);    // 现场签到（含 GPS 围栏结果）
+  // ── Wave 2 三新面板状态（2026-07-24）────────────────────────────────────────
+  const [referrals, setReferrals]   = useState(null);    // 推荐归因列表（加载即触发后端读侧懒兑现）
+  const [bgChecks, setBgChecks]     = useState(null);    // 背调复核队列
+  const [bgStatus, setBgStatus]     = useState('requested'); // 背调状态筛选：requested|pending|passed|failed
+  const [bgDecideId, setBgDecideId] = useState(null);    // 正在复核的背调行 id（展开行内表单）
+  const [bgEvidence, setBgEvidence] = useState('');      // 复核证据 URL（可选）
+  const [bgNote, setBgNote]         = useState('');      // 复核备注（可选）
+  const [aiReports, setAiReports]   = useState(null);    // AI 周报列表（草稿→人审）
+  const [aiStatus, setAiStatus]     = useState('all');   // 周报状态筛选：all|draft|reviewed|dismissed
 
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
 
@@ -717,6 +760,81 @@ export default function Admin() {
     } catch { setCheckins([]); }
   }
 
+  // ── 🤝 Referral：推荐归因列表（契约见 /api/referral/admin-list）────────────────
+  // 后端在返回列表前会对该页的 attributed 行跑一次读侧懒兑现评估，
+  // 所以"刷新"按钮 = 简单重拉，就等于触发一轮兑现检查（不碰钱路径）。
+  async function loadReferrals() {
+    setReferrals(null);
+    try {
+      const res  = await fetch('/api/referral/admin-list?limit=50', { headers: authHeaders() });
+      const data = await res.json();
+      setReferrals(data.data || []);
+    } catch { setReferrals([]); }
+  }
+
+  // ── 🛡️ BG Checks：背调复核队列（契约见 /api/bgcheck/admin-*）─────────────────
+  async function loadBgChecks(status = 'requested') {
+    setBgChecks(null);
+    setBgStatus(status);
+    setBgDecideId(null); setBgEvidence(''); setBgNote('');
+    try {
+      const res  = await fetch(`/api/bgcheck/admin-list?status=${status}&limit=50`, { headers: authHeaders() });
+      const data = await res.json();
+      setBgChecks(data.data || []);
+    } catch { setBgChecks([]); }
+  }
+
+  // 复核决定：passed 后端会自动写 completed_at + 365 天有效期；failed 只写 completed_at。
+  // 成功后把该行从当前队列移除（requested/pending 队列语义：已决定即出队）。
+  async function decideBgCheck(id, decision) {
+    try {
+      const body = { decision };
+      if (bgEvidence.trim()) body.evidence_url = bgEvidence.trim();
+      if (bgNote.trim()) body.note = bgNote.trim();
+      const res  = await fetch(`/api/bgcheck/admin/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(true),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(decision === 'passed' ? '🛡️ Check passed.' : 'Check failed.');
+        setBgChecks(prev => (prev || []).filter(c => c.id !== id));
+        setBgDecideId(null); setBgEvidence(''); setBgNote('');
+      } else { toast.error(data.error || 'Failed.'); }
+    } catch { toast.error('Network error.'); }
+  }
+
+  // ── 🧠 AI Weekly：AI 自改进周报（契约见 /api/aiops/reports）──────────────────
+  // 注意响应是双层信封：{status:'ok', data:{reports:[...], total, page, limit}}，
+  // 列表在 data.data.reports 而不是 data.data —— 与其它面板不同。
+  async function loadAiReports(status = aiStatus) {
+    setAiReports(null);
+    setAiStatus(status);
+    try {
+      const qs   = status && status !== 'all' ? `&status=${status}` : '';
+      const res  = await fetch(`/api/aiops/reports?limit=20${qs}`, { headers: authHeaders() });
+      const data = await res.json();
+      setAiReports(data.data?.reports || []);
+    } catch { setAiReports([]); }
+  }
+
+  // 人审动作：reviewed（已审）/ dismissed（驳回）。成功后把更新行合并回列表。
+  async function reviewAiReport(id, status) {
+    try {
+      const res  = await fetch(`/api/aiops/reports/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(true),
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(status === 'reviewed' ? '✔ Report reviewed.' : 'Report dismissed.');
+        setAiReports(prev => (prev || []).map(r => (r.id === id ? data.data : r)));
+      } else { toast.error(data.error || 'Failed.'); }
+    } catch { toast.error('Network error.'); }
+  }
+
   // ── Newsletter 订阅 leads：分页读 newsletter_subscribers（契约见 /api/admin/subscribers）──
   // 后端按 created_at 倒序、支持 source/lang 过滤；这里只取第一页（limit=50），按来源筛选。
   async function loadSubscribers(source = subSource) {
@@ -802,6 +920,9 @@ export default function Admin() {
     { id: 'subscribers', icon: '📧', label: d.navSubscribers },
     { id: 'taxDocs',    icon: '🧾', label: d.navTaxDocs },
     { id: 'pipeline',   icon: '🤝', label: d.navPipeline },
+    { id: 'referral',   icon: '🤝', label: d.navReferral },
+    { id: 'bgChecks',   icon: '🛡️', label: d.navBgChecks },
+    { id: 'aiWeekly',   icon: '🧠', label: d.navAiWeekly },
     { id: 'analytics',  icon: '📊', label: d.navAnalytics },
     { id: 'checkins',   icon: '📍', label: d.navCheckins },
     { id: 'audit',      icon: '🗂️', label: d.navAudit },
@@ -820,6 +941,9 @@ export default function Admin() {
     subscribers: [d.navSubscribers, d.subSubscribers],
     taxDocs: [d.navTaxDocs, d.subTaxDocs],
     pipeline: [d.navPipeline, d.subPipeline],
+    referral: [d.navReferral, d.subReferral],
+    bgChecks: [d.navBgChecks, d.subBgChecks],
+    aiWeekly: [d.navAiWeekly, d.subAiWeekly],
     analytics: [d.navAnalytics, d.subAnalytics],
     checkins: [d.navCheckins, d.subCheckins],
     audit: [d.navAudit, d.subAudit],
@@ -836,6 +960,9 @@ export default function Admin() {
     if (id === 'subscribers') loadSubscribers();
     if (id === 'taxDocs') loadTaxDocs();
     if (id === 'pipeline') loadPipeline();
+    if (id === 'referral') loadReferrals();
+    if (id === 'bgChecks') loadBgChecks();
+    if (id === 'aiWeekly') loadAiReports();
     if (id === 'analytics') loadFunnel();
     if (id === 'checkins') loadCheckins();
     if (id === 'audit') loadAuditLogs();
@@ -1391,6 +1518,167 @@ export default function Admin() {
                       </div>
                     );
                   })()}
+                </div>
+              )}
+
+              {/* 🤝 Referral：推荐归因列表（刷新即触发后端读侧懒兑现）*/}
+              {activeTab === 'referral' && (
+                <div>
+                  <div style={{ display: 'flex', marginBottom: 16 }}>
+                    <button onClick={() => loadReferrals()} style={{ padding: '5px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.refreshList}</button>
+                  </div>
+                  <table className={styles.table}>
+                    <thead><tr><th>{d.thId}</th><th>{d.thReferrer}</th><th>{d.thReferred}</th><th>{d.thCode}</th><th>{d.thStatus}</th><th>{d.thVestedAt}</th><th>{d.thDate}</th></tr></thead>
+                    <tbody>
+                      {referrals === null
+                        ? <tr><td colSpan={7} className={styles.empty}>{d.loading}</td></tr>
+                        : referrals.length === 0
+                          ? <tr><td colSpan={7} className={styles.empty}>{d.emptyReferrals}</td></tr>
+                          : referrals.map(r => (
+                            <tr key={r.id}>
+                              <td>#{r.id}</td>
+                              <td style={{ fontSize: 12 }}>{r.referrer_email || `#${r.referrer_user_id}`}</td>
+                              <td style={{ fontSize: 12 }}>{r.referred_email || `#${r.referred_user_id}`}</td>
+                              <td><code style={{ fontSize: 12 }}>{r.code || '—'}</code></td>
+                              <td><span className={`${styles.badge} ${r.status === 'vested' ? styles.badgeGreen : styles.badgeGray}`}>{r.status}</span></td>
+                              <td className={styles.muted}>
+                                {r.vested_at ? new Date(r.vested_at).toLocaleDateString() : '—'}
+                                {/* 兑现证据：懒兑现命中的里程碑 id（人工处置奖励时的核对线索） */}
+                                {r.vest_evidence?.milestone_id != null && <span style={{ fontSize: 11, marginLeft: 4 }}>(ms #{r.vest_evidence.milestone_id})</span>}
+                              </td>
+                              <td className={styles.muted}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+                            </tr>
+                          ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* 🛡️ BG Checks：背调复核（requested 队列默认；passed/failed 决定 + 可选证据/备注）*/}
+              {activeTab === 'bgChecks' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {['requested', 'pending', 'passed', 'failed'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => loadBgChecks(s)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 12,
+                          border: '1px solid var(--border)',
+                          background: bgStatus === s ? 'var(--primary)' : 'var(--surface)',
+                          color: bgStatus === s ? '#fff' : 'var(--text)',
+                        }}
+                      >{s}</button>
+                    ))}
+                  </div>
+                  <table className={styles.table}>
+                    <thead><tr><th>{d.thId}</th><th>{d.thEngineer}</th><th>{d.thProvider}</th><th>{d.thStatus}</th><th>{d.thRequestedAt}</th><th>{d.thExpires}</th><th>{d.thAction}</th></tr></thead>
+                    <tbody>
+                      {bgChecks === null
+                        ? <tr><td colSpan={7} className={styles.empty}>{d.loading}</td></tr>
+                        : bgChecks.length === 0
+                          ? <tr><td colSpan={7} className={styles.empty}>{d.emptyBg}</td></tr>
+                          : bgChecks.map(c => (
+                            <tr key={c.id}>
+                              <td>#{c.id}</td>
+                              <td style={{ fontWeight: 600, fontSize: 13 }}>{c.talent_name || `#${c.talent_id}`}</td>
+                              <td><span className={`${styles.badge} ${styles.badgeGray}`}>{c.provider}</span></td>
+                              <td><span className={`${styles.badge} ${c.status === 'passed' ? styles.badgeGreen : styles.badgeGray}`}>{c.status}</span></td>
+                              <td className={styles.muted}>{c.requested_at ? new Date(c.requested_at).toLocaleDateString() : '—'}</td>
+                              <td className={styles.muted}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '—'}</td>
+                              <td>
+                                {/* 只有 requested/pending 可决定（后端条件更新做幂等闸，已决定行 404） */}
+                                {(c.status === 'requested' || c.status === 'pending') && (
+                                  bgDecideId === c.id ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 220 }}>
+                                      <input value={bgEvidence} onChange={e => setBgEvidence(e.target.value)} placeholder={d.bgEvidencePh} style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, boxSizing: 'border-box' }} />
+                                      <input value={bgNote} onChange={e => setBgNote(e.target.value)} placeholder={d.bgNotePh} style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, boxSizing: 'border-box' }} />
+                                      <div style={{ display: 'flex', gap: 6 }}>
+                                        <button onClick={() => decideBgCheck(c.id, 'passed')} style={{ background: 'var(--success)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.bgPass}</button>
+                                        <button onClick={() => decideBgCheck(c.id, 'failed')} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.bgFail}</button>
+                                        <button onClick={() => { setBgDecideId(null); setBgEvidence(''); setBgNote(''); }} style={{ background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>{d.bgCancel}</button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => { setBgDecideId(c.id); setBgEvidence(''); setBgNote(''); }} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>🛡️ {d.bgDecide}</button>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* 🧠 AI Weekly：AI 自改进周报（stats 摘要 + hypotheses 卡 + reviewed/dismissed 人审）*/}
+              {activeTab === 'aiWeekly' && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {['all', 'draft', 'reviewed', 'dismissed'].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => loadAiReports(s)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 12,
+                          border: '1px solid var(--border)',
+                          background: aiStatus === s ? 'var(--primary)' : 'var(--surface)',
+                          color: aiStatus === s ? '#fff' : 'var(--text)',
+                        }}
+                      >{s === 'all' ? d.filterAll : s}</button>
+                    ))}
+                  </div>
+                  {aiReports === null ? <p className={styles.empty}>{d.loading}</p>
+                    : aiReports.length === 0 ? <p className={styles.empty}>{d.emptyAi}</p>
+                    : aiReports.map(r => (
+                      <div key={r.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 16, marginBottom: 14, background: 'var(--surface)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+                          <div style={{ fontWeight: 700 }}>
+                            {d.aiPeriod}: {r.period_start} → {r.period_end}
+                            <span className={styles.muted} style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>{d.aiPromptVer} {r.prompt_version}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span className={`${styles.badge} ${r.status === 'reviewed' ? styles.badgeGreen : styles.badgeGray}`}>{r.status}</span>
+                            {/* 只有 draft 可人审；后端 zod 只收 reviewed|dismissed */}
+                            {r.status === 'draft' && (
+                              <>
+                                <button onClick={() => reviewAiReport(r.id, 'reviewed')} style={{ background: 'var(--success)', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.aiMarkReviewed}</button>
+                                <button onClick={() => reviewAiReport(r.id, 'dismissed')} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{d.aiDismiss}</button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {/* stats 摘要：事件总数 / 错误率 / 工具调用 / 工具排行 */}
+                        {r.stats && (
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10, fontSize: 13 }}>
+                            <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px' }}><strong>{r.stats.total_events ?? 0}</strong> <span style={{ color: 'var(--muted)' }}>{d.aiEvents}</span></div>
+                            <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px' }}><strong>{r.stats.error_rate != null ? `${(Number(r.stats.error_rate) * 100).toFixed(1)}%` : '—'}</strong> <span style={{ color: 'var(--muted)' }}>{d.aiErrorRate}</span></div>
+                            <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px' }}><strong>{r.stats.tool_calls?.total ?? 0}</strong> <span style={{ color: 'var(--muted)' }}>{d.aiToolCalls}</span></div>
+                            {Array.isArray(r.stats.top_tools) && r.stats.top_tools.length > 0 && (
+                              <div style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', color: 'var(--muted)' }}>
+                                {d.aiTopTools}: {r.stats.top_tools.slice(0, 3).map(t => `${t.tool} (${t.total})`).join(' · ')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {/* hypotheses 卡：AI 产出的改进假设，只进人审看板，绝无自主执行路径 */}
+                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{d.aiHypotheses}</div>
+                        {Array.isArray(r.hypotheses) && r.hypotheses.length > 0 ? (
+                          r.hypotheses.map((h, i) => (
+                            <div key={i} style={{ background: 'var(--secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 8, fontSize: 13 }}>
+                              <div style={{ fontWeight: 700, marginBottom: 4 }}>{h.title}</div>
+                              {h.evidence && <div style={{ color: 'var(--muted)', marginBottom: 4 }}>{d.aiEvidence}: {h.evidence}</div>}
+                              {h.proposed_change && <div style={{ marginBottom: 4 }}>💡 {d.aiChange}: {h.proposed_change}</div>}
+                              {h.risk && <div style={{ color: '#f59e0b', fontSize: 12 }}>⚠️ {d.aiRisk}: {h.risk}</div>}
+                            </div>
+                          ))
+                        ) : (
+                          <p className={styles.muted} style={{ fontSize: 13 }}>{d.aiNoHypotheses}</p>
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
 

@@ -20,6 +20,8 @@ Positioning — two parallel lines:
 - [Hire by specialty](https://talengineer.us/hire/plc): dedicated landing pages for PLC (/hire/plc), robotics (/hire/robotics), machine vision (/hire/vision), and electrical (/hire/electrical), each with regional rate ranges and certification details. Industry-specific pages: /hire/plc/automotive, /hire/plc/semiconductor, /hire/plc/food-beverage, /hire/plc/pharma, /hire/robotics/automotive, /hire/robotics/3c-electronics, /hire/vision/semiconductor, /hire/vision/packaging.
 - [Plant-buildout hiring guides](https://talengineer.us/guides/mexico): country guides for manufacturers building plants abroad — Mexico (/guides/mexico), Vietnam (/guides/vietnam), Thailand (/guides/thailand) — covering local automation-talent supply, cross-border hybrid staffing, and regional rates.
 - [Playbook](https://talengineer.us/playbook): guides on hiring and working with industrial automation talent, tagged by type (guide / market data / certification / case study), track, and audience.
+- [Coverage map](https://talengineer.us/coverage): real-time engineer coverage by region — engineer counts, availability, certification counts, TalScore tier distribution, and specialty breakdown, aggregated live from active profiles (no personal data). Also available as JSON: https://talengineer.us/api/coverage/summary
+- [Referral program](https://talengineer.us/referral): refer an employer or engineer with a personal referral code; rewards vest when the referred user's first escrowed milestone is released.
 
 ## For AI agents & developers
 
