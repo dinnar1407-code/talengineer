@@ -1,0 +1,133 @@
+/* /contact 页样式。颜色全部走全站语义 token（var(--…)），浅深两主题自动跟随。
+   版式骨架照 pages/hire/hire.module.css 房型模板（hero / container），
+   卡片风格与 /about 的方法论卡保持同一族视觉。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 56px;
+}
+
+/* ── 三张联系卡 ───────────────────────────────────────────────── */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 52px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.16s ease;
+}
+
+.card:hover {
+  border-color: var(--primary);
+}
+
+/* 卡片顶部 emoji 图标：纯装饰（JSX 里已加 aria-hidden） */
+.cardIcon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.cardBody {
+  font-size: 14.5px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0 0 14px;
+  flex: 1; /* 撑开高度，让底部 CTA 对齐 */
+}
+
+.cardCta {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 15px;
+  word-break: break-all; /* 邮箱地址在窄卡里可断行，不撑破卡片 */
+}
+
+.cardCta:hover {
+  text-decoration: underline;
+}
+
+/* ── 诚实预期块 ───────────────────────────────────────────────── */
+.expectBlock {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary); /* 左侧主色竖线：提示这是"平台的话" */
+  border-radius: 12px;
+  padding: 24px 28px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text-muted);
+  margin: 0;
+}

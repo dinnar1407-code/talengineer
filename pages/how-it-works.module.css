@@ -1,0 +1,337 @@
+/* 运作方式页（/how-it-works）样式。
+   颜色全部走全站语义 token（var(--bg)/var(--surface)/var(--text)…），
+   浅深色主题由 html[data-theme] 切换自动跟随——本文件零硬编码颜色。
+   基础骨架（hero/container/block/finalCta）照 pages/hire/hire.module.css 先例，
+   保持全站营销页视觉一致。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.heroBtns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.btnGhost {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.16s ease;
+}
+
+.btnGhost:hover {
+  border-color: var(--primary);
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.block {
+  margin-bottom: 52px;
+}
+
+/* 分区小标签（照 pricing/trust 的 tag 药丸样式） */
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  margin-bottom: 12px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.leadMuted {
+  color: var(--text-muted);
+}
+
+/* ── 步骤时间线（雇主 6 步 / 工程师 5 步 / 纠纷 4 步共用）───────────
+   竖排编号列表：左侧圆形编号 + 竖向连接线，右侧标题与描述。
+   用 <ol> 保语义（有序步骤），编号视觉由自绘圆圈承担。 */
+.stepList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.stepItem {
+  position: relative;
+  display: flex;
+  gap: 18px;
+  padding-bottom: 28px;
+}
+
+/* 连接线：除最后一步外，从编号圆圈底部画到下一步（伪元素，颜色走 border token） */
+.stepItem::before {
+  content: '';
+  position: absolute;
+  left: 17px; /* 圆圈宽 36px 的中线 - 2px 线宽的一半 */
+  top: 36px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.stepItem:last-child {
+  padding-bottom: 0;
+}
+
+.stepItem:last-child::before {
+  display: none;
+}
+
+.stepNum {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative; /* 盖在连接线之上 */
+  z-index: 1;
+}
+
+.stepBody {
+  min-width: 0; /* flex 子项允许收缩，长词不撑破布局 */
+  padding-top: 5px;
+}
+
+.stepTitle {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.stepDesc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── 质量三闸卡片 ─────────────────────────────────────────────── */
+.gateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.gateCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+}
+
+.gateIcon {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.gateTitle {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.gateDesc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  flex: 1; /* 描述撑开，链接沉底，三卡链接对齐 */
+}
+
+.gateLink {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.gateLink:hover {
+  text-decoration: underline;
+}
+
+/* ── 纠纷段注释与行内链接 ─────────────────────────────────────── */
+.note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 16px;
+}
+
+.inlineLink {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+/* ── FAQ ──────────────────────────────────────────────────────── */
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.faqItem {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.faqQ {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.faqA {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── 底部 CTA ─────────────────────────────────────────────────── */
+.finalCta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px;
+  text-align: center;
+}
+
+.finalCta h2 {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.finalCta p {
+  color: var(--text-muted);
+  font-size: 17px;
+  margin: 0 0 24px;
+}
+
+/* ── 移动端微调 ───────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .stepItem {
+    gap: 14px;
+  }
+
+  .stepNum {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .stepItem::before {
+    left: 15px;
+    top: 32px;
+  }
+}

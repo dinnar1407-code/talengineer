@@ -1,0 +1,224 @@
+/* /about 页样式。颜色全部走全站语义 token（var(--…)），浅深两主题自动跟随。
+   版式骨架照 pages/hire/hire.module.css 房型模板（hero / container / block / finalCta）。 */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── 使命 Hero ─────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 64px 20px 48px;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 12px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 19px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 内容区 ───────────────────────────────────────────────────── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.block {
+  margin-bottom: 52px;
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.leadMuted {
+  color: var(--text-muted);
+}
+
+/* 段落后的行内跳转链（→ 定价 / → 联系页） */
+.inlineLink {
+  display: inline-block;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+/* ── 方法论三卡 ───────────────────────────────────────────────── */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 卡片序号：等宽字体 + 主色，呼应全站 kicker 风格 */
+.cardStep {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.cardTitle {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.cardBody {
+  font-size: 14.5px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0 0 12px;
+  flex: 1; /* 撑开高度，让底部链接对齐 */
+}
+
+.cardLink {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cardLink:hover {
+  text-decoration: underline;
+}
+
+/* ── 联系块 ───────────────────────────────────────────────────── */
+.contactRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.contactLabel {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.contactEmail {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.contactEmail:hover {
+  text-decoration: underline;
+}
+
+/* ── 底部 CTA ─────────────────────────────────────────────────── */
+.finalCta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 20px;
+  text-align: center;
+}
+
+.finalCta h2 {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.finalCta p {
+  color: var(--text-muted);
+  font-size: 17px;
+  margin: 0 0 24px;
+}
+
+.ctaBtns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+  padding: 13px 28px;
+  border-radius: 10px;
+  transition: background 0.16s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover);
+}
+
+.btnGhost {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.16s ease;
+}
+
+.btnGhost:hover {
+  border-color: var(--primary);
+}
