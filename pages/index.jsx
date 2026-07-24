@@ -1,24 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import ChatBot from '../components/ChatBot';
+// 共享导航栏 + 页脚（方案 A2「首页收编」）：删除原私有内联 header/footer，
+// 与全站其余 28 页统一使用同一套组件；语言/主题切换均由 Navbar 内部提供。
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+// FOOTER_META：Organization JSON-LD 的 description 与页脚 tagline 同源（不重抄一份文案）
+import { FOOTER_META } from '../lib/navConfig';
 import { useLang } from '../hooks/useLang';
-import { useTheme } from '../hooks/useTheme';
 import styles from './index.module.css';
-
-// ── 语言列表（与全站 useLang / Navbar 共用 tal_lang，切换后其他页面同步）──────────
-// short 用于导航栏语言胶囊上的紧凑显示，label 是下拉里的完整名称。
-const LANGS = [
-  { code: 'en', flag: '🇺🇸', short: 'EN',   label: 'English' },
-  { code: 'zh', flag: '🇨🇳', short: '中文', label: '中文' },
-  { code: 'es', flag: '🇲🇽', short: 'ES',   label: 'Español' },
-  { code: 'vi', flag: '🇻🇳', short: 'VI',   label: 'Tiếng Việt' },
-  { code: 'hi', flag: '🇮🇳', short: 'HI',   label: 'हिन्दी' },
-  { code: 'fr', flag: '🇫🇷', short: 'FR',   label: 'Français' },
-  { code: 'de', flag: '🇩🇪', short: 'DE',   label: 'Deutsch' },
-  { code: 'ja', flag: '🇯🇵', short: 'JA',   label: '日本語' },
-  { code: 'ko', flag: '🇰🇷', short: 'KO',   label: '한국어' },
-];
 
 // ── 文案词典（设计稿英文为最终稿，全部走翻译 key）──────────────────────────────
 // 目前完整提供 en / zh 两种；其余 7 种语言按 key 回退到英文（沿用全站 DICT[lang]||DICT.en 模式）。
@@ -26,9 +17,6 @@ const LANGS = [
 // Featured engineers 改为从 /api/talent/list 拉取真实工程师数据，不再使用虚构占位人物。
 const DICT = {
   en: {
-    // Nav
-    navFind: 'Find Engineers', navRates: 'Rate Benchmarks', navPricing: 'Pricing', navHow: 'How It Works', navResources: 'Resources',
-    navSignIn: 'Sign In', navPost: 'Post a Project', themeDark: 'Dark', themeLight: 'Light',
     // Hero
     heroKicker: '// The global industrial automation talent marketplace',
     heroH1: 'Automation talent without borders. Verified by AI. Protected by escrow.',
@@ -132,43 +120,9 @@ const DICT = {
     ctaH2: 'Your next automation project starts here',
     ctaSub: 'Post a project in any language, or join our founding cohort of verified engineers.',
     ctaPost: 'Post a Project — Free', ctaApply: 'Apply as an Engineer',
-    // Footer
-    footerTagline: 'The global marketplace for AI-verified industrial automation talent.',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Hire', footerColEngineers: 'Engineers', footerColSpecialties: 'Specialties', footerColGuides: 'Hiring Guides', footerColCompany: 'Company',
-    footerHire: [
-      { label: 'Find Engineers', href: '/talent' }, { label: 'Post a Project', href: '/talent' },
-      { label: 'Rate Benchmarks', href: '/rates' }, { label: 'Enterprise API', href: '/enterprise' },
-      { label: 'Developer API', href: '/developers' },
-      { label: 'Pricing', href: '/pricing' }, { label: 'Cost Calculator', href: '/calculator' },
-      { label: 'Coverage Map', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'Apply to Join', href: '/talent' }, { label: 'AI Screener', href: '/talent' },
-      { label: 'Browse Projects', href: '/talent' }, { label: 'Payments & Escrow', href: '/finance' },
-      { label: 'Certification Exams', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLC Programming', href: '/hire/plc' }, { label: 'Machine Vision', href: '/hire/vision' },
-      { label: 'Robotics', href: '/hire/robotics' }, { label: 'Panel Design', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'Mexico', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
-      { label: 'Thailand', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'About', href: '/' }, { label: 'Resources', href: '#resources' },
-      { label: 'Contact', href: '/' }, { label: 'Privacy & Terms', href: '/' },
-      { label: 'Trust Center', href: '/trust' }, { label: 'Case Studies', href: '/case-studies' },
-      { label: 'Referral Program', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — Global Industrial Automation Talent Marketplace',
   },
 
   zh: {
-    // Nav
-    navFind: '寻找工程师', navRates: '费率基准', navPricing: '定价', navHow: '运作方式', navResources: '资源中心',
-    navSignIn: '登录', navPost: '发布项目', themeDark: '深色', themeLight: '浅色',
     // Hero
     heroKicker: '// 全球工业自动化人才市场',
     heroH1: '自动化人才，跨越国界。AI 认证，资金托管护航。',
@@ -272,43 +226,9 @@ const DICT = {
     ctaH2: '你的下一个自动化项目，从这里开始',
     ctaSub: '用任何语言发布项目，或加入我们的首批认证工程师。',
     ctaPost: '免费发布项目', ctaApply: '申请成为工程师',
-    // Footer
-    footerTagline: 'AI 认证工业自动化人才的全球市场。',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '招聘方', footerColEngineers: '工程师', footerColSpecialties: '专业领域', footerColGuides: '建厂用人指南', footerColCompany: '公司',
-    footerHire: [
-      { label: '寻找工程师', href: '/talent' }, { label: '发布项目', href: '/talent' },
-      { label: '费率基准', href: '/rates' }, { label: '企业 API', href: '/enterprise' },
-      { label: '开发者 API', href: '/developers' },
-      { label: '定价', href: '/pricing' }, { label: '成本计算器', href: '/calculator' },
-      { label: '覆盖地图', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: '申请加入', href: '/talent' }, { label: 'AI 筛选', href: '/talent' },
-      { label: '浏览项目', href: '/talent' }, { label: '支付与托管', href: '/finance' },
-      { label: '认证考试', href: '/certification' }, { label: 'TalScore 质量分', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLC 编程', href: '/hire/plc' }, { label: '机器视觉', href: '/hire/vision' },
-      { label: '机器人', href: '/hire/robotics' }, { label: '电柜设计', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: '墨西哥', href: '/guides/mexico' }, { label: '越南', href: '/guides/vietnam' },
-      { label: '泰国', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: '关于我们', href: '/' }, { label: '资源中心', href: '#resources' },
-      { label: '联系我们', href: '/' }, { label: '隐私与条款', href: '/' },
-      { label: '信任中心', href: '/trust' }, { label: '客户案例', href: '/case-studies' },
-      { label: '推荐计划', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — 全球工业自动化人才市场',
   },
 
   es: {
-    // Nav
-    navFind: 'Buscar ingenieros', navRates: 'Referencias de tarifas', navPricing: 'Precios', navHow: 'Cómo funciona', navResources: 'Recursos',
-    navSignIn: 'Iniciar sesión', navPost: 'Publicar un proyecto', themeDark: 'Oscuro', themeLight: 'Claro',
     // Hero
     heroKicker: '// La marketplace global de talento en automatización industrial',
     heroH1: 'Talento en automatización sin fronteras. Verificado por IA. Protegido con depósito en garantía.',
@@ -412,43 +332,9 @@ const DICT = {
     ctaH2: 'Tu próximo proyecto de automatización empieza aquí',
     ctaSub: 'Publica un proyecto en cualquier idioma, o únete a nuestro grupo fundador de ingenieros verificados.',
     ctaPost: 'Publicar un proyecto — Gratis', ctaApply: 'Postularme como ingeniero',
-    // Footer
-    footerTagline: 'La marketplace global de talento en automatización industrial verificado por IA.',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Contratar', footerColEngineers: 'Ingenieros', footerColSpecialties: 'Especialidades', footerColGuides: 'Guías de contratación', footerColCompany: 'Empresa',
-    footerHire: [
-      { label: 'Buscar ingenieros', href: '/talent' }, { label: 'Publicar un proyecto', href: '/talent' },
-      { label: 'Referencias de tarifas', href: '/rates' }, { label: 'API para empresas', href: '/enterprise' },
-      { label: 'API para desarrolladores', href: '/developers' },
-      { label: 'Precios', href: '/pricing' }, { label: 'Calculadora de costos', href: '/calculator' },
-      { label: 'Mapa de cobertura', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'Postularse', href: '/talent' }, { label: 'Evaluador de IA', href: '/talent' },
-      { label: 'Explorar proyectos', href: '/talent' }, { label: 'Pagos y depósito de garantía', href: '/finance' },
-      { label: 'Exámenes de certificación', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'Programación de PLC', href: '/hire/plc' }, { label: 'Visión artificial', href: '/hire/vision' },
-      { label: 'Robótica', href: '/hire/robotics' }, { label: 'Diseño de tableros', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'México', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
-      { label: 'Tailandia', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'Acerca de', href: '/' }, { label: 'Recursos', href: '#resources' },
-      { label: 'Contacto', href: '/' }, { label: 'Privacidad y términos', href: '/' },
-      { label: 'Centro de confianza', href: '/trust' }, { label: 'Casos de éxito', href: '/case-studies' },
-      { label: 'Programa de referidos', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — Mercado global de talento en automatización industrial',
   },
 
   vi: {
-    // Nav
-    navFind: 'Tìm kỹ sư', navRates: 'Chuẩn mức phí', navPricing: 'Bảng giá', navHow: 'Cách hoạt động', navResources: 'Tài nguyên',
-    navSignIn: 'Đăng nhập', navPost: 'Đăng dự án', themeDark: 'Tối', themeLight: 'Sáng',
     // Hero
     heroKicker: '// Sàn nhân lực tự động hóa công nghiệp toàn cầu',
     heroH1: 'Nhân tài tự động hóa không biên giới. Được AI xác minh. Được ký quỹ bảo vệ.',
@@ -552,43 +438,9 @@ const DICT = {
     ctaH2: 'Dự án tự động hóa tiếp theo của bạn bắt đầu tại đây',
     ctaSub: 'Đăng dự án bằng bất kỳ ngôn ngữ nào, hoặc gia nhập nhóm kỹ sư đã xác minh đầu tiên của chúng tôi.',
     ctaPost: 'Đăng dự án — Miễn phí', ctaApply: 'Ứng tuyển làm kỹ sư',
-    // Footer
-    footerTagline: 'Sàn nhân lực tự động hóa công nghiệp được AI xác minh trên toàn cầu.',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Tuyển dụng', footerColEngineers: 'Kỹ sư', footerColSpecialties: 'Chuyên môn', footerColGuides: 'Cẩm nang tuyển dụng', footerColCompany: 'Công ty',
-    footerHire: [
-      { label: 'Tìm kỹ sư', href: '/talent' }, { label: 'Đăng dự án', href: '/talent' },
-      { label: 'Chuẩn mức phí', href: '/rates' }, { label: 'API doanh nghiệp', href: '/enterprise' },
-      { label: 'API nhà phát triển', href: '/developers' },
-      { label: 'Bảng giá', href: '/pricing' }, { label: 'Máy tính chi phí', href: '/calculator' },
-      { label: 'Bản đồ phủ sóng', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'Ứng tuyển gia nhập', href: '/talent' }, { label: 'Sàng lọc AI', href: '/talent' },
-      { label: 'Duyệt dự án', href: '/talent' }, { label: 'Thanh toán & Ký quỹ', href: '/finance' },
-      { label: 'Thi chứng chỉ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'Lập trình PLC', href: '/hire/plc' }, { label: 'Thị giác máy', href: '/hire/vision' },
-      { label: 'Robot', href: '/hire/robotics' }, { label: 'Thiết kế tủ điện', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'Mexico', href: '/guides/mexico' }, { label: 'Việt Nam', href: '/guides/vietnam' },
-      { label: 'Thái Lan', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'Giới thiệu', href: '/' }, { label: 'Tài nguyên', href: '#resources' },
-      { label: 'Liên hệ', href: '/' }, { label: 'Quyền riêng tư & Điều khoản', href: '/' },
-      { label: 'Trung tâm tin cậy', href: '/trust' }, { label: 'Nghiên cứu điển hình', href: '/case-studies' },
-      { label: 'Chương trình giới thiệu', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — Sàn nhân lực tự động hóa công nghiệp toàn cầu',
   },
 
   hi: {
-    // Nav
-    navFind: 'इंजीनियर खोजें', navRates: 'दर मानक', navPricing: 'मूल्य निर्धारण', navHow: 'यह कैसे काम करता है', navResources: 'संसाधन',
-    navSignIn: 'साइन इन', navPost: 'प्रोजेक्ट पोस्ट करें', themeDark: 'डार्क', themeLight: 'लाइट',
     // Hero
     heroKicker: '// वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
     heroH1: 'बिना सीमाओं के स्वचालन प्रतिभा। AI द्वारा सत्यापित। एस्क्रो द्वारा सुरक्षित।',
@@ -692,43 +544,9 @@ const DICT = {
     ctaH2: 'आपका अगला स्वचालन प्रोजेक्ट यहीं से शुरू होता है',
     ctaSub: 'किसी भी भाषा में प्रोजेक्ट पोस्ट करें, या हमारे संस्थापक सत्यापित इंजीनियरों के समूह से जुड़ें।',
     ctaPost: 'प्रोजेक्ट पोस्ट करें — निःशुल्क', ctaApply: 'इंजीनियर के रूप में आवेदन करें',
-    // Footer
-    footerTagline: 'AI-सत्यापित औद्योगिक स्वचालन प्रतिभा का वैश्विक मंच।',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'नियुक्ति', footerColEngineers: 'इंजीनियर', footerColSpecialties: 'विशेषज्ञताएँ', footerColGuides: 'नियुक्ति गाइड', footerColCompany: 'कंपनी',
-    footerHire: [
-      { label: 'इंजीनियर खोजें', href: '/talent' }, { label: 'प्रोजेक्ट पोस्ट करें', href: '/talent' },
-      { label: 'दर मानक', href: '/rates' }, { label: 'एंटरप्राइज़ API', href: '/enterprise' },
-      { label: 'डेवलपर API', href: '/developers' },
-      { label: 'मूल्य निर्धारण', href: '/pricing' }, { label: 'लागत कैलकुलेटर', href: '/calculator' },
-      { label: 'कवरेज मैप', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'जुड़ने के लिए आवेदन करें', href: '/talent' }, { label: 'AI स्क्रीनर', href: '/talent' },
-      { label: 'प्रोजेक्ट ब्राउज़ करें', href: '/talent' }, { label: 'भुगतान और एस्क्रो', href: '/finance' },
-      { label: 'प्रमाणन परीक्षाएँ', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLC प्रोग्रामिंग', href: '/hire/plc' }, { label: 'मशीन विज़न', href: '/hire/vision' },
-      { label: 'रोबोटिक्स', href: '/hire/robotics' }, { label: 'पैनल डिज़ाइन', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'मेक्सिको', href: '/guides/mexico' }, { label: 'वियतनाम', href: '/guides/vietnam' },
-      { label: 'थाईलैंड', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'हमारे बारे में', href: '/' }, { label: 'संसाधन', href: '#resources' },
-      { label: 'संपर्क', href: '/' }, { label: 'गोपनीयता और शर्तें', href: '/' },
-      { label: 'ट्रस्ट सेंटर', href: '/trust' }, { label: 'केस स्टडी', href: '/case-studies' },
-      { label: 'रेफ़रल प्रोग्राम', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — वैश्विक औद्योगिक स्वचालन प्रतिभा मंच',
   },
 
   fr: {
-    // Nav
-    navFind: 'Trouver des ingénieurs', navRates: 'Références de tarifs', navPricing: 'Tarifs', navHow: 'Comment ça marche', navResources: 'Ressources',
-    navSignIn: 'Se connecter', navPost: 'Publier un projet', themeDark: 'Sombre', themeLight: 'Clair',
     // Hero
     heroKicker: "// La marketplace mondiale des talents en automatisation industrielle",
     heroH1: "Des talents en automatisation sans frontières. Vérifiés par IA. Protégés par séquestre.",
@@ -832,43 +650,9 @@ const DICT = {
     ctaH2: "Votre prochain projet d'automatisation commence ici",
     ctaSub: "Publiez un projet dans n'importe quelle langue, ou rejoignez notre première cohorte d'ingénieurs vérifiés.",
     ctaPost: 'Publier un projet — Gratuit', ctaApply: "Postuler en tant qu'ingénieur",
-    // Footer
-    footerTagline: "La marketplace mondiale des talents en automatisation industrielle vérifiés par IA.",
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Recruter', footerColEngineers: 'Ingénieurs', footerColSpecialties: 'Spécialités', footerColGuides: 'Guides de recrutement', footerColCompany: 'Entreprise',
-    footerHire: [
-      { label: 'Trouver des ingénieurs', href: '/talent' }, { label: 'Publier un projet', href: '/talent' },
-      { label: 'Références de tarifs', href: '/rates' }, { label: 'API entreprise', href: '/enterprise' },
-      { label: 'API développeur', href: '/developers' },
-      { label: 'Tarifs', href: '/pricing' }, { label: 'Calculateur de coûts', href: '/calculator' },
-      { label: 'Carte de couverture', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'Postuler', href: '/talent' }, { label: 'Évaluateur IA', href: '/talent' },
-      { label: 'Parcourir les projets', href: '/talent' }, { label: 'Paiements et séquestre', href: '/finance' },
-      { label: 'Examens de certification', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'Programmation PLC', href: '/hire/plc' }, { label: 'Vision industrielle', href: '/hire/vision' },
-      { label: 'Robotique', href: '/hire/robotics' }, { label: "Conception d'armoires", href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'Mexique', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
-      { label: 'Thaïlande', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'À propos', href: '/' }, { label: 'Ressources', href: '#resources' },
-      { label: 'Contact', href: '/' }, { label: 'Confidentialité et conditions', href: '/' },
-      { label: 'Centre de confiance', href: '/trust' }, { label: 'Études de cas', href: '/case-studies' },
-      { label: 'Programme de parrainage', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — Marketplace mondiale des talents en automatisation industrielle',
   },
 
   de: {
-    // Nav
-    navFind: 'Ingenieure finden', navRates: 'Tarif-Benchmarks', navPricing: 'Preise', navHow: 'So funktioniert es', navResources: 'Ressourcen',
-    navSignIn: 'Anmelden', navPost: 'Projekt ausschreiben', themeDark: 'Dunkel', themeLight: 'Hell',
     // Hero
     heroKicker: '// Der globale Marktplatz für Talente in der industriellen Automatisierung',
     heroH1: 'Automatisierungstalente ohne Grenzen. KI-verifiziert. Treuhänderisch abgesichert.',
@@ -972,43 +756,9 @@ const DICT = {
     ctaH2: 'Ihr nächstes Automatisierungsprojekt beginnt hier',
     ctaSub: 'Schreiben Sie ein Projekt in jeder Sprache aus, oder schließen Sie sich unserer Gründungsgruppe verifizierter Ingenieure an.',
     ctaPost: 'Projekt ausschreiben — kostenlos', ctaApply: 'Als Ingenieur bewerben',
-    // Footer
-    footerTagline: 'Der globale Marktplatz für KI-verifizierte Talente in der industriellen Automatisierung.',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: 'Einstellen', footerColEngineers: 'Ingenieure', footerColSpecialties: 'Fachgebiete', footerColGuides: 'Einstellungsleitfäden', footerColCompany: 'Unternehmen',
-    footerHire: [
-      { label: 'Ingenieure finden', href: '/talent' }, { label: 'Projekt ausschreiben', href: '/talent' },
-      { label: 'Tarif-Benchmarks', href: '/rates' }, { label: 'Enterprise-API', href: '/enterprise' },
-      { label: 'Entwickler-API', href: '/developers' },
-      { label: 'Preise', href: '/pricing' }, { label: 'Kostenrechner', href: '/calculator' },
-      { label: 'Abdeckungskarte', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: 'Jetzt bewerben', href: '/talent' }, { label: 'KI-Test', href: '/talent' },
-      { label: 'Projekte durchsuchen', href: '/talent' }, { label: 'Zahlungen & Treuhand', href: '/finance' },
-      { label: 'Zertifizierungsprüfungen', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLC-Programmierung', href: '/hire/plc' }, { label: 'Bildverarbeitung', href: '/hire/vision' },
-      { label: 'Robotik', href: '/hire/robotics' }, { label: 'Schaltschrankdesign', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'Mexiko', href: '/guides/mexico' }, { label: 'Vietnam', href: '/guides/vietnam' },
-      { label: 'Thailand', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: 'Über uns', href: '/' }, { label: 'Ressourcen', href: '#resources' },
-      { label: 'Kontakt', href: '/' }, { label: 'Datenschutz & AGB', href: '/' },
-      { label: 'Trust Center', href: '/trust' }, { label: 'Fallstudien', href: '/case-studies' },
-      { label: 'Empfehlungsprogramm', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — Globaler Marktplatz für industrielle Automatisierungstalente',
   },
 
   ja: {
-    // Nav
-    navFind: 'エンジニアを探す', navRates: '料金ベンチマーク', navPricing: '料金プラン', navHow: '仕組み', navResources: 'リソース',
-    navSignIn: 'ログイン', navPost: 'プロジェクトを投稿', themeDark: 'ダーク', themeLight: 'ライト',
     // Hero
     heroKicker: '// 世界の産業オートメーション人材マーケットプレイス',
     heroH1: '国境を越えるオートメーション人材。AIが検証。エスクローが保護。',
@@ -1112,43 +862,9 @@ const DICT = {
     ctaH2: '次のオートメーションプロジェクトはここから始まる',
     ctaSub: 'どの言語でもプロジェクトを投稿するか、私たちの最初の認証エンジニアグループに参加しましょう。',
     ctaPost: 'プロジェクトを投稿——無料', ctaApply: 'エンジニアとして応募',
-    // Footer
-    footerTagline: 'AI検証済みの産業オートメーション人材の世界的マーケットプレイス。',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '採用', footerColEngineers: 'エンジニア', footerColSpecialties: '専門分野', footerColGuides: '採用ガイド', footerColCompany: '会社',
-    footerHire: [
-      { label: 'エンジニアを探す', href: '/talent' }, { label: 'プロジェクトを投稿', href: '/talent' },
-      { label: '料金ベンチマーク', href: '/rates' }, { label: 'エンタープライズAPI', href: '/enterprise' },
-      { label: '開発者 API', href: '/developers' },
-      { label: '料金プラン', href: '/pricing' }, { label: 'コスト計算ツール', href: '/calculator' },
-      { label: 'カバレッジマップ', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: '参加を申し込む', href: '/talent' }, { label: 'AIスクリーナー', href: '/talent' },
-      { label: 'プロジェクトを探す', href: '/talent' }, { label: '支払いとエスクロー', href: '/finance' },
-      { label: '認定試験', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLCプログラミング', href: '/hire/plc' }, { label: 'マシンビジョン', href: '/hire/vision' },
-      { label: 'ロボティクス', href: '/hire/robotics' }, { label: '制御盤設計', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: 'メキシコ', href: '/guides/mexico' }, { label: 'ベトナム', href: '/guides/vietnam' },
-      { label: 'タイ', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: '会社概要', href: '/' }, { label: 'リソース', href: '#resources' },
-      { label: 'お問い合わせ', href: '/' }, { label: 'プライバシーと規約', href: '/' },
-      { label: 'トラストセンター', href: '/trust' }, { label: '導入事例', href: '/case-studies' },
-      { label: '紹介プログラム', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — 世界の産業オートメーション人材マーケットプレイス',
   },
 
   ko: {
-    // Nav
-    navFind: '엔지니어 찾기', navRates: '요율 벤치마크', navPricing: '요금 안내', navHow: '이용 방법', navResources: '리소스',
-    navSignIn: '로그인', navPost: '프로젝트 등록', themeDark: '다크', themeLight: '라이트',
     // Hero
     heroKicker: '// 글로벌 산업 자동화 인재 마켓플레이스',
     heroH1: '국경 없는 자동화 인재. AI가 검증하고, 에스크로가 보호합니다.',
@@ -1252,37 +968,6 @@ const DICT = {
     ctaH2: '당신의 다음 자동화 프로젝트가 여기서 시작됩니다',
     ctaSub: '어떤 언어로든 프로젝트를 등록하거나, 저희의 첫 검증된 엔지니어 그룹에 합류하세요.',
     ctaPost: '프로젝트 등록 — 무료', ctaApply: '엔지니어로 지원하기',
-    // Footer
-    footerTagline: 'AI로 검증된 산업 자동화 인재의 글로벌 마켓플레이스.',
-    footerLangs: '🌐 EN · 中文 · ES · VI · HI · FR · DE · 日本語 · 한국어',
-    footerColHire: '채용', footerColEngineers: '엔지니어', footerColSpecialties: '전문 분야', footerColGuides: '채용 가이드', footerColCompany: '회사',
-    footerHire: [
-      { label: '엔지니어 찾기', href: '/talent' }, { label: '프로젝트 등록', href: '/talent' },
-      { label: '요율 벤치마크', href: '/rates' }, { label: '엔터프라이즈 API', href: '/enterprise' },
-      { label: '개발자 API', href: '/developers' },
-      { label: '요금 안내', href: '/pricing' }, { label: '비용 계산기', href: '/calculator' },
-      { label: '커버리지 맵', href: '/coverage' },
-    ],
-    footerEngineers: [
-      { label: '가입 신청', href: '/talent' }, { label: 'AI 스크리너', href: '/talent' },
-      { label: '프로젝트 둘러보기', href: '/talent' }, { label: '결제 및 에스크로', href: '/finance' },
-      { label: '인증 시험', href: '/certification' }, { label: 'TalScore', href: '/talscore' },
-    ],
-    footerSpecialties: [
-      { label: 'PLC 프로그래밍', href: '/hire/plc' }, { label: '머신 비전', href: '/hire/vision' },
-      { label: '로보틱스', href: '/hire/robotics' }, { label: '패널 설계', href: '/hire/electrical' },
-    ],
-    footerGuides: [
-      { label: '멕시코', href: '/guides/mexico' }, { label: '베트남', href: '/guides/vietnam' },
-      { label: '태국', href: '/guides/thailand' },
-    ],
-    footerCompany: [
-      { label: '회사 소개', href: '/' }, { label: '리소스', href: '#resources' },
-      { label: '문의', href: '/' }, { label: '개인정보 및 약관', href: '/' },
-      { label: '신뢰 센터', href: '/trust' }, { label: '사례 연구', href: '/case-studies' },
-      { label: '추천 프로그램', href: '/referral' },
-    ],
-    copyright: '© 2026 Talengineer.us — 글로벌 산업 자동화 인재 마켓플레이스',
   },
 };
 
@@ -1306,20 +991,7 @@ function mapFeaturedEngineer(t) {
 
 export default function Home() {
   const [lang, setLang] = useLang();
-  const { theme, toggle: toggleTheme } = useTheme();  // 全站主题（真值在 <html data-theme>）
-  const [langOpen, setLangOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false); // 移动端汉堡菜单
   const [featuredEngineers, setFeaturedEngineers] = useState(null); // null → Featured 板块不渲染
-  const langRef = useRef(null);
-
-  // 点击语言下拉外部时关闭
-  useEffect(() => {
-    function onClickOutside(e) {
-      if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false);
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
 
   // Featured engineers：拉取公开的真实工程师数据；失败或空数组时整个板块不渲染，绝不回退到虚构人物
   useEffect(() => {
@@ -1337,19 +1009,12 @@ export default function Home() {
 
   // 逐 key 回退到英文：zh 提供全量，其余语言缺失的 key 用英文兜底
   const d = { ...DICT.en, ...(DICT[lang] || {}) };
-  const current = LANGS.find((l) => l.code === lang) || LANGS[0];
-  const dark = theme === 'dark';
 
   // Featured engineers：真实数据优先；/api/talent/list 为空或失败时回退到本地化演示卡（带「🧪」徽标）
   const engIsDemo = !(featuredEngineers && featuredEngineers.length > 0);
   const engList = engIsDemo ? (d.demoEngineers || []) : featuredEngineers;
   // 演示徽标样式（描边 chip，深浅色均可读，走全站 --accent token 并带琥珀色兜底）
   const demoBadgeStyle = { display: 'inline-block', marginLeft: 10, fontSize: 12, fontWeight: 700, color: 'var(--accent, #b26a00)', background: 'transparent', border: '1px solid var(--accent, #f5b301)', borderRadius: 999, padding: '2px 10px', verticalAlign: 'middle' };
-
-  function chooseLang(code) {
-    setLang(code);
-    setLangOpen(false);
-  }
 
   // FAQ 结构化数据（AEO）：始终用英文内容，SEO 友好且稳定
   const faqJsonLd = {
@@ -1367,7 +1032,8 @@ export default function Home() {
     name: 'Talengineer',
     url: 'https://talengineer.us',
     logo: 'https://talengineer.us/img/logo-macaw.svg',
-    description: DICT.en.footerTagline,
+    // 与页脚 tagline 同源（lib/navConfig FOOTER_META）；JSON-LD 固定英文，与全站约定一致
+    description: FOOTER_META.tagline.en,
   };
   const siteJsonLd = {
     '@context': 'https://schema.org',
@@ -1408,82 +1074,14 @@ export default function Home() {
       </Head>
 
       <div className={styles.page}>
-        {/* ── NAV ─────────────────────────────────────────────────────────── */}
-        <header className={styles.nav}>
-          <Link href="/" className={styles.brand}>
-            <img src="/img/logo-macaw.svg" alt="Talengineer" width={30} height={30} />
-            <span className={styles.wordmark}>Talengineer</span>
-          </Link>
-
-          <nav className={styles.navLinks}>
-            <Link href="/talent" className={styles.navLink}>{d.navFind}</Link>
-            <Link href="/rates" className={styles.navLink}>{d.navRates}</Link>
-            <Link href="/pricing" className={styles.navLink}>{d.navPricing}</Link>
-            <a href="#how-it-works" className={styles.navLink}>{d.navHow}</a>
-            <a href="#resources" className={styles.navLink}>{d.navResources}</a>
-          </nav>
-
-          <div className={styles.navRight}>
-            {/* 语言胶囊 */}
-            <div className={styles.langWrap} ref={langRef}>
-              <button
-                className={styles.langPill}
-                onClick={() => setLangOpen((v) => !v)}
-                aria-haspopup="listbox"
-                aria-expanded={langOpen}
-                aria-label="Select language"
-              >
-                🌐 {current.short} <span className={styles.caret}>▾</span>
-              </button>
-              {langOpen && (
-                <div className={styles.langMenu} role="listbox">
-                  {LANGS.map((l) => (
-                    <button
-                      key={l.code}
-                      className={`${styles.langItem} ${l.code === lang ? styles.langItemActive : ''}`}
-                      onClick={() => chooseLang(l.code)}
-                      role="option"
-                      aria-selected={l.code === lang}
-                    >
-                      <span>{l.flag}</span> {l.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 主题切换 */}
-            <button className={styles.themeToggle} onClick={toggleTheme} title="Toggle light / dark">
-              {dark ? `☀️ ${d.themeLight}` : `🌙 ${d.themeDark}`}
-            </button>
-
-            <Link href="/finance" className={styles.signIn}>{d.navSignIn}</Link>
-            <Link href="/talent" className={styles.postBtn}>{d.navPost}</Link>
-
-            {/* 移动端汉堡 */}
-            <button
-              className={styles.hamburger}
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen}
-            >
-              {menuOpen ? '✕' : '☰'}
-            </button>
-          </div>
-        </header>
-
-        {/* 移动端菜单抽屉 */}
-        {menuOpen && (
-          <div className={styles.mobileMenu}>
-            <Link href="/talent" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navFind}</Link>
-            <Link href="/rates" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navRates}</Link>
-            <Link href="/pricing" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navPricing}</Link>
-            <a href="#how-it-works" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navHow}</a>
-            <a href="#resources" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navResources}</a>
-            <Link href="/finance" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>{d.navSignIn}</Link>
-            <Link href="/talent" className={styles.mobilePost} onClick={() => setMenuOpen(false)}>{d.navPost}</Link>
-          </div>
-        )}
+        {/*
+          共享导航栏（方案 A2「首页收编」）：
+          - 原私有内联 header（品牌字标 + 扁平链接 + 语言胶囊 + 主题切换 + 汉堡抽屉）已删除，
+            全部能力由共享 Navbar 提供（下拉菜单/语言/主题/移动抽屉）；
+          - Post-a-Project CTA 已上移进 Navbar（navConfig CTA_POST_PROJECT，与页脚同源）；
+          - 两代 header 同为 64px sticky，hero 偏移不变。
+        */}
+        <Navbar lang={lang} onLangChange={setLang} />
 
         <main>
           {/* ── HERO ──────────────────────────────────────────────────────── */}
@@ -1746,34 +1344,12 @@ export default function Home() {
           </section>
         </main>
 
-        {/* ── FOOTER (fixed navy) ─────────────────────────────────────────── */}
-        <footer className={styles.footer}>
-          <div className={styles.footerInner}>
-            <div className={styles.footerBrandCol}>
-              <div className={styles.footerBrand}>
-                <img src="/img/logo-macaw.svg" alt="" width={26} height={26} />
-                <b>Talengineer</b>
-              </div>
-              <p className={styles.footerTagline}>{d.footerTagline}</p>
-              <div className={styles.footerLangs}>{d.footerLangs}</div>
-            </div>
-            {[
-              { title: d.footerColHire, links: d.footerHire },
-              { title: d.footerColEngineers, links: d.footerEngineers },
-              { title: d.footerColSpecialties, links: d.footerSpecialties },
-              { title: d.footerColGuides, links: d.footerGuides },
-              { title: d.footerColCompany, links: d.footerCompany },
-            ].map((col, i) => (
-              <div key={i} className={styles.footerCol}>
-                <b className={styles.footerColTitle}>{col.title}</b>
-                {col.links.map((l, j) => (
-                  <Link key={j} href={l.href} className={styles.footerLink}>{l.label}</Link>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className={styles.footerBottom}>{d.copyright}</div>
-        </footer>
+        {/*
+          共享页脚（components/Footer，数据来自 lib/navConfig FOOTER_COLUMNS/FOOTER_META）：
+          原内联豪华页脚已删除——其中 About/Contact/Privacy & Terms 曾是指向 '/' 的死链、
+          Resources 是 '#resources' 页内锚点，现统一走 navConfig 的真实落点（/about /contact /privacy /resources）。
+        */}
+        <Footer lang={lang} />
       </div>
 
       <ChatBot lang={lang} />

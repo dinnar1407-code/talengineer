@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
 import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import TalScoreBadge from '../../components/TalScoreBadge';
 import { useLang } from '../../hooks/useLang';
 import styles from './engineer.module.css';
@@ -432,6 +433,8 @@ export default function EngineerProfile({ initialEngineer = null, initialCerts =
           </a>
         </div>
       </div>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动 */}
+      <Footer lang={lang} />
     </>
   );
 }

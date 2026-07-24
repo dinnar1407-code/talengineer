@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import styles from './coverage.module.css';
 
@@ -308,9 +309,8 @@ export default function Coverage() {
         </div>
       </div>
 
-      <footer className={styles.footer}>
-        <p>© 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> · <Link href="/rates">Rate Benchmarks</Link> · <Link href="/coverage">Coverage Map</Link></p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }

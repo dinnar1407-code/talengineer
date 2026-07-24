@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { getWhitepaper } from '../lib/whitepaper';
 import styles from './whitepaper.module.css';
@@ -225,13 +226,8 @@ export default function Whitepaper({ papers }) {
         )}
       </div>
 
-      <footer className={styles.footer}>
-        <p>
-          © 2025 Talengineer.us · <Link href="/talent">Find Engineers</Link> ·{' '}
-          <Link href="/playbook">Playbook</Link> ·{' '}
-          <Link href="/calculator">Cost Calculator</Link>
-        </p>
-      </footer>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
+      <Footer lang={lang} />
     </div>
   );
 }

@@ -311,13 +311,4 @@
 .btnCta:hover { background: var(--primary-hover); }
 
 /* ── 页脚 ────────────────────────────────────────────────────────────────── */
-.footer {
-  text-align: center;
-  padding: 32px 24px;
-  font-size: 13px;
-  color: var(--text-muted);
-  border-top: 1px solid var(--border);
-}
 
-.footer a { color: var(--text-muted); }
-.footer a:hover { text-decoration: underline; }

@@ -272,7 +272,7 @@ export default function Pools() {
       {head}
       <ConsoleShell
         user={user}
-        active="find"
+        active="pools"
         title={d.title}
         subtitle={d.subtitle}
         lang={lang}

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../components/Toast';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 // 复用 onboarding 的向导样式（卡片/进度条/按钮），保证视觉一致，不重复造 CSS
 import styles from './onboarding.module.css';
@@ -784,6 +785,8 @@ export default function Training() {
 
         </div>
       </div>
+      {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动 */}
+      <Footer lang={lang} />
     </>
   );
 }

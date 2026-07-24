@@ -370,17 +370,6 @@
   line-height: 1.6;
 }
 
-.footer {
-  padding: 28px 20px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.footer a {
-  color: var(--primary);
-}
-
 /* ── 移动端：多列网格自动降为单列（grid auto-fit 已处理），此处收窄内边距 ── */
 @media (max-width: 560px) {
   .hero {

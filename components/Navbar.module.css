@@ -38,6 +38,70 @@
 
 .navLink:hover { color: var(--text, #111); }
 
+/* ===========================
+   桌面端下拉菜单（由 lib/navConfig 的 MENU 驱动）
+   - .menuBar：菜单条容器（navRef 挂这里，点击外部关闭）
+   - .navGroup：单个下拉分组，position:relative 让面板相对它定位
+   - .navGroupBtn：分组触发按钮（.navLink 的按钮版克隆）
+   - .navPanel：下拉面板（复用 .dropdown 的视觉配方；top:100% 与触发器
+     零间隙相接，hover 从按钮移入面板不会中途丢失悬停）
+   注意：不给 .header 加 overflow——面板必须能溢出 sticky header 显示
+=========================== */
+.menuBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navGroup { position: relative; }
+
+.navGroupBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 6px 0;               /* 纵向 padding 加大 hover 命中区，减少移向面板时脱靶 */
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  transition: color .15s;
+  white-space: nowrap;
+}
+
+.navGroupBtn:hover,
+.navGroupBtn[aria-expanded="true"] { color: var(--text, #111); }
+.navGroupBtn:focus-visible { outline: 2px solid var(--primary, #0056b3); outline-offset: 2px; }
+
+.navChevron { font-size: 9px; color: var(--muted, #9ca3af); }
+
+.navPanel {
+  position: absolute;
+  top: 100%;                    /* 与触发器零间隙相接（非 calc(100%+8px)），hover 不掉落 */
+  left: 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  min-width: 230px;
+  padding: 6px 0;
+  overflow: hidden;
+  z-index: 300;
+}
+
+.navPanelLink {
+  display: block;
+  padding: 9px 16px;
+  font-size: 14px;
+  color: var(--text, #111);
+  text-decoration: none;
+  transition: background .1s;
+  white-space: nowrap;
+}
+
+.navPanelLink:hover { background: var(--surface-2, #f1f5f9); }
+
 .btnSignIn {
   background: var(--primary, #0056b3);
   color: #fff;
@@ -396,8 +460,11 @@
   max-height: 0;
   overflow: hidden;
   opacity: 0;
+  /* visibility 延迟到收起动画结束才切换，收起状态下抽屉内的链接退出 tab 顺序与读屏输出
+     （无障碍修复：max-height:0/overflow:hidden 不会让内容失焦，链接此前仍可被 Tab 到）。 */
+  visibility: hidden;
   /* 过渡动画：展开/收起 */
-  transition: max-height 0.25s ease, opacity 0.2s ease;
+  transition: max-height 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
   /* 保证抽屉在 header 下方紧贴，z-index 略低于 header */
   position: sticky;
   top: 64px;
@@ -405,10 +472,81 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* 展开状态：加上 .mobileMenuOpen 类后过渡到此状态 */
+/* 展开状态：加上 .mobileMenuOpen 类后过渡到此状态。
+   改为视口高度上限 + 纵向滚动：抽屉现在装 6 个菜单分组（手风琴）+ 账号快捷项，
+   固定 400px 会截断内容。 */
 .mobileMenuOpen {
-  max-height: 400px;
+  max-height: calc(100vh - 64px);
   opacity: 1;
+  visibility: visible;
+  transition: max-height 0.25s ease, opacity 0.2s ease, visibility 0s;
+  overflow-y: auto;
+}
+
+/* ===========================
+   移动端手风琴（抽屉内的菜单分组）
+   - .mobileAccBtn：分组头按钮，aria-expanded 表达开合
+   - .mobileAccChevron：分组头右侧箭头，展开时旋转 180°
+   - .mobileAccPanel：分组面板，max-height 过渡（与 .mobileMenuOpen 同一手法）
+=========================== */
+.mobileAccBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text, #111);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobileAccBtn:hover { background: rgba(0, 86, 179, 0.04); }
+
+.mobileAccChevron {
+  font-size: 11px;
+  color: var(--muted, #9ca3af);
+  transition: transform 0.2s ease;
+}
+
+.mobileAccBtn[aria-expanded="true"] .mobileAccChevron { transform: rotate(180deg); }
+
+.mobileAccPanel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  /* 同 .mobileMenu：收起的手风琴面板也要退出 tab 顺序（无障碍修复，见上方注释） */
+  visibility: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  background: var(--surface-2, #f8fafc);
+}
+
+.mobileAccPanelOpen {
+  max-height: 500px;
+  opacity: 1;
+  visibility: visible;
+  transition: max-height 0.25s ease, opacity 0.2s ease, visibility 0s;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.mobileAccLink {
+  display: block;
+  padding: 11px 20px 11px 32px;   /* 左缩进表达「分组内子项」层级 */
+  font-size: 14px;
+  color: var(--muted, #6b7280);
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+}
+
+.mobileAccLink:hover,
+.mobileAccLink:active {
+  background: rgba(0, 86, 179, 0.04);
+  color: var(--primary, #0056b3);
 }
 
 /* 移动菜单内的每个链接项 */
@@ -436,10 +574,13 @@
 }
 
 /* ===========================
-   Mobile 断点 <768px
-   在此宽度显示汉堡按钮和抽屉，隐藏部分桌面端元素
+   Mobile 断点 <1140px（原 768px）
+   为什么上调：菜单条从 3 个扁平链接扩成 6 个分组（5 下拉 + Pricing）+
+   Sign In + 发布项目 CTA + 主题/语言控件，桌面全量宽度约 1000-1100px
+   （德语等长文案语言更宽）。低于 1140px 就切换到汉堡抽屉（手风琴承接全部分组），
+   避免 iPad 横屏（1024px）等中间宽度出现 header 横向溢出。
 =========================== */
-@media (max-width: 768px) {
+@media (max-width: 1140px) {
   /* 汉堡按钮在移动端显示为 flex，以便垂直居中图标 */
   .hamburgerBtn {
     display: flex;
@@ -448,6 +589,12 @@
   /* 抽屉容器在移动端切换为 flex 布局 */
   .mobileMenu {
     display: flex;
+  }
+
+  /* 桌面菜单条在移动端整体隐藏——菜单分组已由抽屉手风琴承接，
+     避免与汉堡抽屉出现两套菜单并存 */
+  .menuBar {
+    display: none;
   }
 }
 

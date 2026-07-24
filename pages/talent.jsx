@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import ChatBot from '../components/ChatBot';
 import ConsoleShell from '../components/ConsoleShell';
 import TalScoreBadge from '../components/TalScoreBadge';
@@ -725,6 +726,8 @@ export default function Talent() {
         <>
           <Navbar lang={lang} onLangChange={setLang} />
           {pageBody}
+          {/* 共享页脚：仅访客营销视图渲染（登录后走 ConsoleShell，工作台不带营销页脚） */}
+          <Footer lang={lang} />
         </>
       )}
 

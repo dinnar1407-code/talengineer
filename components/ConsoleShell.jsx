@@ -10,7 +10,7 @@ import styles from './ConsoleShell.module.css';
 //
 // props 契约（其他任务按此接入，勿改）：
 //   user      {email,name,role,token} 或 null（null 时不渲染外壳，由页面自行处理未登录）
-//   active    高亮菜单 key：dashboard|projects|escrow|messages|find|profile|learning|finance|admin
+//   active    高亮菜单 key：dashboard|projects|escrow|messages|find|pools|profile|learning|finance|admin
 //   title     顶栏标题
 //   lang/setLang/theme/setTheme  语言与主题受控值（外壳只做 zh/en 快速切换与深浅切换）
 // 可选扩展（console 专用，finance/talent 不传即回退默认行为）：
@@ -25,7 +25,7 @@ const DICT = {
   en: {
     workspace: 'Workspace', employer: 'Employer', engineer: 'Engineer', admin: 'Admin',
     navDashboard: 'Dashboard', navProjects: 'Projects', navEscrow: 'Escrow & Payments',
-    navMessages: 'Messages', navFinance: 'Finance', navFind: 'Find Engineers',
+    navMessages: 'Messages', navFinance: 'Finance', navFind: 'Find Engineers', navPools: 'Talent Pools',
     navProfile: 'Profile & Certification', navLearning: 'Training & Cert', navAdmin: 'Admin · All Data',
     searchPh: 'Search projects, engineers…',
     ctaPost: '＋ Post a Project', ctaBrowse: '＋ Browse Projects', ctaManage: '＋ Manage Platform',
@@ -36,7 +36,7 @@ const DICT = {
   zh: {
     workspace: '工作台', employer: '雇主', engineer: '工程师', admin: '管理员',
     navDashboard: '仪表盘', navProjects: '项目', navEscrow: '托管与支付',
-    navMessages: '消息', navFinance: '财务', navFind: '寻找工程师',
+    navMessages: '消息', navFinance: '财务', navFind: '寻找工程师', navPools: '人才池',
     navProfile: '档案与认证', navLearning: '学习与考核', navAdmin: '管理 · 全部数据',
     searchPh: '搜索项目、工程师…',
     ctaPost: '＋ 发布项目', ctaBrowse: '＋ 浏览项目', ctaManage: '＋ 平台管理',
@@ -47,7 +47,7 @@ const DICT = {
   es: {
     workspace: 'Espacio de trabajo', employer: 'Empleador', engineer: 'Ingeniero', admin: 'Administrador',
     navDashboard: 'Panel', navProjects: 'Proyectos', navEscrow: 'Garantía y Pagos',
-    navMessages: 'Mensajes', navFinance: 'Finanzas', navFind: 'Buscar Ingenieros',
+    navMessages: 'Mensajes', navFinance: 'Finanzas', navFind: 'Buscar Ingenieros', navPools: 'Grupos de Talento',
     navProfile: 'Perfil y Certificación', navLearning: 'Formación y Cert.', navAdmin: 'Admin · Todos los datos',
     searchPh: 'Buscar proyectos, ingenieros…',
     ctaPost: '＋ Publicar Proyecto', ctaBrowse: '＋ Ver Proyectos', ctaManage: '＋ Gestionar Plataforma',
@@ -58,7 +58,7 @@ const DICT = {
   vi: {
     workspace: 'Không gian làm việc', employer: 'Nhà tuyển dụng', engineer: 'Kỹ sư', admin: 'Quản trị viên',
     navDashboard: 'Bảng điều khiển', navProjects: 'Dự án', navEscrow: 'Ký quỹ & Thanh toán',
-    navMessages: 'Tin nhắn', navFinance: 'Tài chính', navFind: 'Tìm Kỹ Sư',
+    navMessages: 'Tin nhắn', navFinance: 'Tài chính', navFind: 'Tìm Kỹ Sư', navPools: 'Nhóm Nhân Tài',
     navProfile: 'Hồ sơ & Chứng chỉ', navLearning: 'Đào tạo & Chứng chỉ', navAdmin: 'Quản trị · Toàn bộ dữ liệu',
     searchPh: 'Tìm dự án, kỹ sư…',
     ctaPost: '＋ Đăng Dự Án', ctaBrowse: '＋ Xem Dự Án', ctaManage: '＋ Quản lý Nền tảng',
@@ -69,7 +69,7 @@ const DICT = {
   hi: {
     workspace: 'कार्यक्षेत्र', employer: 'नियोक्ता', engineer: 'इंजीनियर', admin: 'एडमिन',
     navDashboard: 'डैशबोर्ड', navProjects: 'प्रोजेक्ट', navEscrow: 'एस्क्रो और भुगतान',
-    navMessages: 'संदेश', navFinance: 'वित्त', navFind: 'इंजीनियर खोजें',
+    navMessages: 'संदेश', navFinance: 'वित्त', navFind: 'इंजीनियर खोजें', navPools: 'प्रतिभा पूल',
     navProfile: 'प्रोफ़ाइल और प्रमाणन', navLearning: 'प्रशिक्षण और प्रमाणन', navAdmin: 'एडमिन · सभी डेटा',
     searchPh: 'प्रोजेक्ट, इंजीनियर खोजें…',
     ctaPost: '＋ प्रोजेक्ट पोस्ट करें', ctaBrowse: '＋ प्रोजेक्ट देखें', ctaManage: '＋ प्लेटफ़ॉर्म प्रबंधन',
@@ -80,7 +80,7 @@ const DICT = {
   fr: {
     workspace: 'Espace de travail', employer: 'Employeur', engineer: 'Ingénieur', admin: 'Admin',
     navDashboard: 'Tableau de bord', navProjects: 'Projets', navEscrow: 'Séquestre et Paiements',
-    navMessages: 'Messages', navFinance: 'Finances', navFind: 'Trouver des Ingénieurs',
+    navMessages: 'Messages', navFinance: 'Finances', navFind: 'Trouver des Ingénieurs', navPools: 'Viviers de Talents',
     navProfile: 'Profil et Certification', navLearning: 'Formation & Cert.', navAdmin: 'Admin · Toutes les données',
     searchPh: 'Rechercher projets, ingénieurs…',
     ctaPost: '＋ Publier un Projet', ctaBrowse: '＋ Voir les Projets', ctaManage: '＋ Gérer la Plateforme',
@@ -91,7 +91,7 @@ const DICT = {
   de: {
     workspace: 'Arbeitsbereich', employer: 'Arbeitgeber', engineer: 'Ingenieur', admin: 'Admin',
     navDashboard: 'Dashboard', navProjects: 'Projekte', navEscrow: 'Treuhand & Zahlungen',
-    navMessages: 'Nachrichten', navFinance: 'Finanzen', navFind: 'Ingenieure finden',
+    navMessages: 'Nachrichten', navFinance: 'Finanzen', navFind: 'Ingenieure finden', navPools: 'Talent-Pools',
     navProfile: 'Profil & Zertifizierung', navLearning: 'Schulung & Zert.', navAdmin: 'Admin · Alle Daten',
     searchPh: 'Projekte, Ingenieure suchen…',
     ctaPost: '＋ Projekt veröffentlichen', ctaBrowse: '＋ Projekte ansehen', ctaManage: '＋ Plattform verwalten',
@@ -102,7 +102,7 @@ const DICT = {
   ja: {
     workspace: 'ワークスペース', employer: '発注者', engineer: 'エンジニア', admin: '管理者',
     navDashboard: 'ダッシュボード', navProjects: 'プロジェクト', navEscrow: 'エスクロー・支払い',
-    navMessages: 'メッセージ', navFinance: '財務', navFind: 'エンジニアを探す',
+    navMessages: 'メッセージ', navFinance: '財務', navFind: 'エンジニアを探す', navPools: '人材プール',
     navProfile: 'プロフィール・認定', navLearning: '研修・認定', navAdmin: '管理 · 全データ',
     searchPh: 'プロジェクト・エンジニアを検索…',
     ctaPost: '＋ プロジェクトを投稿', ctaBrowse: '＋ プロジェクトを見る', ctaManage: '＋ プラットフォーム管理',
@@ -113,7 +113,7 @@ const DICT = {
   ko: {
     workspace: '워크스페이스', employer: '고용주', engineer: '엔지니어', admin: '관리자',
     navDashboard: '대시보드', navProjects: '프로젝트', navEscrow: '에스크로 및 결제',
-    navMessages: '메시지', navFinance: '재무', navFind: '엔지니어 찾기',
+    navMessages: '메시지', navFinance: '재무', navFind: '엔지니어 찾기', navPools: '인재 풀',
     navProfile: '프로필 및 인증', navLearning: '교육 및 인증', navAdmin: '관리 · 전체 데이터',
     searchPh: '프로젝트, 엔지니어 검색…',
     ctaPost: '＋ 프로젝트 게시', ctaBrowse: '＋ 프로젝트 보기', ctaManage: '＋ 플랫폼 관리',
@@ -203,6 +203,8 @@ export default function ConsoleShell({
     { key: 'finance', icon: '🏦', label: d.navFinance, href: '/finance' },
   ];
   if (isEmployer) navItems.push({ key: 'find', icon: '🔍', label: d.navFind });
+  // 人才池：雇主自建认证工程师池（W2-3），登录态功能——入口放 app 侧栏而非营销导航
+  if (isEmployer) navItems.push({ key: 'pools', icon: '🗂️', label: d.navPools, href: '/pools' });
   if (isEngineer) navItems.push({ key: 'profile', icon: '👤', label: d.navProfile });
   if (isEngineer) navItems.push({ key: 'learning', icon: '🎓', label: d.navLearning, href: '/training' });
   if (isAdminView) navItems.push({ key: 'admin', icon: '🛡️', label: d.navAdmin });

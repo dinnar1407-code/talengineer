@@ -2,6 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import { useTheme } from '../hooks/useTheme';
+// 导航菜单结构的单一配置源（lib/navConfig.js，CJS 纯数据）：
+// - MENU：5 个下拉分组 + 1 个扁平 Pricing 链接（方案 A1 定稿结构）
+// - CTA_POST_PROJECT：右侧「发布项目」CTA（从首页私有 header 收编而来，与页脚同源）
+// - t：九语 label 取词函数（lang 未知时回退英文，与全站 `|| en` 约定一致）
+import { MENU, CTA_POST_PROJECT, t as navT } from '../lib/navConfig';
 import styles from './Navbar.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -22,98 +27,81 @@ const LANGS = [
   { code: 'ko', label: '🇰🇷 한국어' },
 ];
 
+// 内联 DICT 只保留「账号类」字串（登录/控制台/档案/认证中心/API 密钥/退出）——
+// 营销导航的九语 label 已全部迁入 lib/navConfig.js（一个文件给翻译、结构可测）。
+// 本次修复：certCenter 此前有 7 种语言缺翻译（会渲染 undefined），现已九语齐全。
 const DICT = {
   en: {
-    findEngineers:  'Find Engineers',
-    rateBenchmarks: 'Rate Benchmarks',
-    pricing:        'Pricing',
-    signIn:         'Sign In',
-    dashboard:      'Dashboard',
-    editProfile:    'My Profile',
-    certCenter:     'Certification Center',
-    apiKeys:        'API Keys',
-    signOut:        'Sign Out',
+    signIn:      'Sign In',
+    dashboard:   'Dashboard',
+    editProfile: 'My Profile',
+    certCenter:  'Certification Center',
+    apiKeys:     'API Keys',
+    signOut:     'Sign Out',
   },
   zh: {
-    findEngineers:  '寻找工程师',
-    rateBenchmarks: '费率基准',
-    pricing:        '定价',
-    signIn:         '登录',
-    dashboard:      '控制台',
-    editProfile:    '我的档案',
-    certCenter:     '认证中心',
-    apiKeys:        'API 密钥',
-    signOut:        '退出登录',
+    signIn:      '登录',
+    dashboard:   '控制台',
+    editProfile: '我的档案',
+    certCenter:  '认证中心',
+    apiKeys:     'API 密钥',
+    signOut:     '退出登录',
   },
   es: {
-    findEngineers:  'Buscar Ingenieros',
-    rateBenchmarks: 'Tarifas de Mercado',
-    pricing:        'Precios',
-    signIn:         'Iniciar sesión',
-    dashboard:      'Panel de control',
-    editProfile:    'Mi perfil',
-    apiKeys:        'Claves API',
-    signOut:        'Cerrar sesión',
+    signIn:      'Iniciar sesión',
+    dashboard:   'Panel de control',
+    editProfile: 'Mi perfil',
+    certCenter:  'Centro de certificación',
+    apiKeys:     'Claves API',
+    signOut:     'Cerrar sesión',
   },
   vi: {
-    findEngineers:  'Tìm Kỹ Sư',
-    rateBenchmarks: 'Thị Trường Giá',
-    pricing:        'Bảng giá',
-    signIn:         'Đăng nhập',
-    dashboard:      'Bảng điều khiển',
-    editProfile:    'Hồ sơ của tôi',
-    apiKeys:        'Khóa API',
-    signOut:        'Đăng xuất',
+    signIn:      'Đăng nhập',
+    dashboard:   'Bảng điều khiển',
+    editProfile: 'Hồ sơ của tôi',
+    certCenter:  'Trung tâm chứng nhận',
+    apiKeys:     'Khóa API',
+    signOut:     'Đăng xuất',
   },
   hi: {
-    findEngineers:  'इंजीनियर खोजें',
-    rateBenchmarks: 'बाज़ार दरें',
-    pricing:        'मूल्य निर्धारण',
-    signIn:         'साइन इन करें',
-    dashboard:      'डैशबोर्ड',
-    editProfile:    'मेरी प्रोफ़ाइल',
-    apiKeys:        'API कुंजियाँ',
-    signOut:        'साइन आउट',
+    signIn:      'साइन इन करें',
+    dashboard:   'डैशबोर्ड',
+    editProfile: 'मेरी प्रोफ़ाइल',
+    certCenter:  'प्रमाणन केंद्र',
+    apiKeys:     'API कुंजियाँ',
+    signOut:     'साइन आउट',
   },
   fr: {
-    findEngineers:  'Trouver des Ingénieurs',
-    rateBenchmarks: 'Tarifs du marché',
-    pricing:        'Tarifs',
-    signIn:         'Se connecter',
-    dashboard:      'Tableau de bord',
-    editProfile:    'Mon profil',
-    apiKeys:        'Clés API',
-    signOut:        'Se déconnecter',
+    signIn:      'Se connecter',
+    dashboard:   'Tableau de bord',
+    editProfile: 'Mon profil',
+    certCenter:  'Centre de certification',
+    apiKeys:     'Clés API',
+    signOut:     'Se déconnecter',
   },
   de: {
-    findEngineers:  'Ingenieure finden',
-    rateBenchmarks: 'Marktpreise',
-    pricing:        'Preise',
-    signIn:         'Anmelden',
-    dashboard:      'Dashboard',
-    editProfile:    'Mein Profil',
-    apiKeys:        'API-Schlüssel',
-    signOut:        'Abmelden',
+    signIn:      'Anmelden',
+    dashboard:   'Dashboard',
+    editProfile: 'Mein Profil',
+    certCenter:  'Zertifizierungszentrum',
+    apiKeys:     'API-Schlüssel',
+    signOut:     'Abmelden',
   },
   ja: {
-    findEngineers:  'エンジニアを探す',
-    rateBenchmarks: '市場レート',
-    pricing:        '料金プラン',
-    signIn:         'サインイン',
-    dashboard:      'ダッシュボード',
-    editProfile:    'マイプロフィール',
-    apiKeys:        'APIキー',
-    signOut:        'サインアウト',
+    signIn:      'サインイン',
+    dashboard:   'ダッシュボード',
+    editProfile: 'マイプロフィール',
+    certCenter:  '認定センター',
+    apiKeys:     'APIキー',
+    signOut:     'サインアウト',
   },
   ko: {
-    findEngineers:  '엔지니어 찾기',
-    rateBenchmarks: '시장 요율',
-    pricing:        '요금 안내',
-    signIn:         '로그인',
-    dashboard:      '대시보드',
-    editProfile:    '내 프로필',
-    apiKeys:        'API 키',
-    signOut:        '로그아웃',
+    signIn:      '로그인',
+    dashboard:   '대시보드',
+    editProfile: '내 프로필',
+    certCenter:  '인증 센터',
+    apiKeys:     'API 키',
+    signOut:     '로그아웃',
   },
 };
 
@@ -126,9 +114,16 @@ export default function Navbar({ lang: langProp, onLangChange }) {
   const [unreadCount, setUnreadCount]       = useState(0);
   const [notifs, setNotifs]                 = useState([]);
   const [bellOpen, setBellOpen]             = useState(false);
+  // 桌面端菜单下拉：openKey 记录当前展开的分组 key（同一时刻最多展开一个）。
+  // 面板条件渲染（照通知铃下拉先例）：SSR 首帧一律不渲染面板，零水合风险。
+  const [openKey, setOpenKey]               = useState(null);
+  // 移动端抽屉内的手风琴：mobileOpenKey 记录展开的分组（同一时刻最多一个）。
+  const [mobileOpenKey, setMobileOpenKey]   = useState(null);
   const menuRef       = useRef(null);        // 头像下拉菜单容器 ref（用于点击外部关闭）
   const bellRef       = useRef(null);        // 铃铛通知容器 ref（用于点击外部关闭）
   const mobileMenuRef = useRef(null);        // 汉堡菜单抽屉 ref（用于点击外部关闭）
+  const navRef        = useRef(null);        // 桌面菜单条容器 ref（点击外部关闭下拉分组）
+  const triggerRefs   = useRef({});          // 各下拉分组触发按钮的 ref 表（Esc 关闭后把焦点还给触发器）
 
   useEffect(() => {
     // Load user
@@ -156,6 +151,8 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       if (bellRef.current       && !bellRef.current.contains(e.target))       setBellOpen(false);
       // 点击汉堡菜单抽屉外部时自动收起（汉堡按钮本身通过 toggle 逻辑处理，不需要排除）
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
+      // 点击桌面菜单条外部时收起当前展开的下拉分组（复用同一 mousedown 监听模式）
+      if (navRef.current        && !navRef.current.contains(e.target))        setOpenKey(null);
     }
     document.addEventListener('mousedown', onClickOutside);
 
@@ -238,6 +235,21 @@ export default function Navbar({ lang: langProp, onLangChange }) {
     window.location.href = '/';
   }
 
+  // Esc 关闭当前下拉分组，并把焦点还给触发按钮（无障碍：用户不会「丢焦点」）。
+  // 挂在菜单条容器上冒泡处理，比每个面板单独挂监听简单。
+  function onMenuKeyDown(e) {
+    if (e.key !== 'Escape' || !openKey) return;
+    const trigger = triggerRefs.current[openKey];
+    setOpenKey(null);
+    if (trigger) trigger.focus();
+  }
+
+  // 关闭移动抽屉时顺带收起手风琴（下次打开回到全收起的干净状态）
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+    setMobileOpenKey(null);
+  }
+
   const d = DICT[lang] || DICT.en;
 
   const initials = user?.name
@@ -265,9 +277,57 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       </button>
 
       <nav className={styles.nav}>
-        <Link href="/talent" className={styles.navLink}>{d.findEngineers}</Link>
-        <Link href="/rates"  className={styles.navLink}>{d.rateBenchmarks}</Link>
-        <Link href="/pricing" className={styles.navLink}>{d.pricing}</Link>
+        {/*
+          桌面端菜单条：完全由 lib/navConfig.js 的 MENU 驱动（5 下拉分组 + 扁平 Pricing）。
+          交互约定（方案 A2 定稿）：
+          - hover 展开（onMouseEnter/Leave 挂在分组 wrapper 上）；
+          - click 只开不关：iPad 等触屏会先触发 mouseenter 再触发 click，
+            若 click 是 toggle 就会「开了又立刻关」（双触发 bug），所以 click 永远 setOpenKey(key)；
+          - 关闭途径 = 鼠标移出 / 点击外部(mousedown 监听 + navRef) / Esc(焦点还给触发器) / 点面板内链接。
+        */}
+        <div className={styles.menuBar} ref={navRef} onKeyDown={onMenuKeyDown}>
+          {MENU.map((g) => (
+            g.link ? (
+              /* 扁平项（Pricing）：有 link 无 items，渲染成普通链接 */
+              <Link key={g.key} href={g.link.href} className={styles.navLink}>
+                {navT(g.label, lang)}
+              </Link>
+            ) : (
+              <div
+                key={g.key}
+                className={styles.navGroup}
+                onMouseEnter={() => setOpenKey(g.key)}
+                onMouseLeave={() => setOpenKey(k => (k === g.key ? null : k))}
+              >
+                <button
+                  type="button"
+                  className={styles.navGroupBtn}
+                  ref={el => { triggerRefs.current[g.key] = el; }}
+                  aria-haspopup="true"
+                  aria-expanded={openKey === g.key}
+                  onClick={() => setOpenKey(g.key)}
+                >
+                  {navT(g.label, lang)} <span className={styles.navChevron}>▾</span>
+                </button>
+                {/* 面板条件渲染（照通知铃下拉先例）：SSR/首帧不输出，无水合风险 */}
+                {openKey === g.key && (
+                  <div className={styles.navPanel}>
+                    {g.items.map((l) => (
+                      <Link
+                        key={l.key}
+                        href={l.href}
+                        className={styles.navPanelLink}
+                        onClick={() => setOpenKey(null)}
+                      >
+                        {navT(l.label, lang)}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          ))}
+        </div>
 
         {user && (
           <Link href="/messages" className={styles.navLink} style={{ position: 'relative' }}>
@@ -361,9 +421,19 @@ export default function Navbar({ lang: langProp, onLangChange }) {
             )}
           </div>
         ) : (
-          <Link href="/finance" className={styles.btnSignIn}>
-            {d.signIn}
-          </Link>
+          /*
+            未登录右侧（方案 A1）：Sign In 文字链 + 「发布项目」主 CTA。
+            CTA 链接对象来自 navConfig 的 CTA_POST_PROJECT（首页私有 header 收编而来，
+            与菜单/页脚里的 postProject 同源，文案/落点永不漂移）。
+          */
+          <>
+            <Link href="/finance" className={styles.navLink}>
+              {d.signIn}
+            </Link>
+            <Link href={CTA_POST_PROJECT.href} className={styles.btnSignIn}>
+              {navT(CTA_POST_PROJECT.label, lang)}
+            </Link>
+          </>
         )}
 
         <button
@@ -393,6 +463,8 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       - 只在窄屏可见（通过 CSS 控制）
       - mobileMenuOpen 为 true 时用 .mobileMenuOpen 类展开
       - ref 用于检测点击外部区域后收起
+      - 菜单分组渲染成手风琴（accordion）：分组头是 aria-expanded 按钮，
+        面板用 max-height 过渡展开/收起（与抽屉本身 .mobileMenuOpen 同一动画手法）
     */}
     <div
       id="mobile-nav-menu"
@@ -401,53 +473,77 @@ export default function Navbar({ lang: langProp, onLangChange }) {
       role="navigation"
       aria-label="Mobile navigation"
     >
-      {/* 主导航链接：寻找工程师 */}
-      <Link
-        href="/talent"
-        className={styles.mobileNavLink}
-        onClick={() => setMobileMenuOpen(false)}
-      >
-        🔍 {d.findEngineers}
-      </Link>
-
-      {/* 主导航链接：费率基准 */}
-      <Link
-        href="/rates"
-        className={styles.mobileNavLink}
-        onClick={() => setMobileMenuOpen(false)}
-      >
-        📈 {d.rateBenchmarks}
-      </Link>
-
-      {/* 主导航链接：定价 */}
-      <Link
-        href="/pricing"
-        className={styles.mobileNavLink}
-        onClick={() => setMobileMenuOpen(false)}
-      >
-        💲 {d.pricing}
-      </Link>
+      {MENU.map((g) => (
+        g.link ? (
+          /* 扁平项（Pricing）：直接是链接，点击后关闭抽屉 */
+          <Link
+            key={g.key}
+            href={g.link.href}
+            className={styles.mobileNavLink}
+            onClick={closeMobileMenu}
+          >
+            {navT(g.label, lang)}
+          </Link>
+        ) : (
+          <div key={g.key}>
+            {/* 手风琴分组头：toggle 展开状态（同一时刻只展开一个分组） */}
+            <button
+              type="button"
+              className={styles.mobileAccBtn}
+              aria-expanded={mobileOpenKey === g.key}
+              onClick={() => setMobileOpenKey(k => (k === g.key ? null : g.key))}
+            >
+              <span>{navT(g.label, lang)}</span>
+              <span className={styles.mobileAccChevron} aria-hidden="true">▾</span>
+            </button>
+            {/* 手风琴面板：max-height 过渡（与 .mobileMenuOpen 同一动画手法） */}
+            <div
+              className={`${styles.mobileAccPanel} ${mobileOpenKey === g.key ? styles.mobileAccPanelOpen : ''}`}
+            >
+              {g.items.map((l) => (
+                <Link
+                  key={l.key}
+                  href={l.href}
+                  className={styles.mobileAccLink}
+                  onClick={closeMobileMenu}
+                >
+                  {navT(l.label, lang)}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )
+      ))}
 
       {/* 登录用户才显示消息入口 */}
       {user && (
         <Link
           href="/messages"
           className={styles.mobileNavLink}
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
         >
           💬 Messages
         </Link>
       )}
 
-      {/* 未登录时显示登录按钮 */}
+      {/* 未登录时显示登录 + 发布项目 CTA（与桌面端右侧一致） */}
       {!user && (
         <Link
           href="/finance"
           className={styles.mobileNavLink}
-          onClick={() => setMobileMenuOpen(false)}
-          style={{ color: 'var(--primary, #0056b3)', fontWeight: 700 }}
+          onClick={closeMobileMenu}
         >
           {d.signIn}
+        </Link>
+      )}
+      {!user && (
+        <Link
+          href={CTA_POST_PROJECT.href}
+          className={styles.mobileNavLink}
+          onClick={closeMobileMenu}
+          style={{ color: 'var(--primary, #0056b3)', fontWeight: 700 }}
+        >
+          {navT(CTA_POST_PROJECT.label, lang)}
         </Link>
       )}
 
@@ -456,7 +552,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
         <Link
           href="/console"
           className={styles.mobileNavLink}
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
         >
           📊 {d.dashboard}
         </Link>

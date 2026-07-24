@@ -3,6 +3,8 @@
 import { getAllPlaybookMeta } from '../lib/playbook';
 import { getMatrixPaths } from '../lib/hireMatrix';
 import { getGuidePaths } from '../lib/regionGuides';
+import { getOccupationPaths } from '../lib/occupations';
+import { getLegalDoc } from '../lib/legal';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
@@ -58,6 +60,27 @@ export async function getServerSideProps({ res }) {
     // 注：/whitepaper 草稿期带 noindex 不进 sitemap；/pools 是登录态控制台页也不进。
     { url: '/coverage', priority: '0.7', changefreq: 'daily' },
     { url: '/referral', priority: '0.6', changefreq: 'monthly' },
+    // 菜单改版新页（2026-07-24 §B6）：叙事/枢纽/索引页。
+    // /hire 与 /guides 索引页修复了此前的 404 裸路径，与其子页同批收录。
+    { url: '/how-it-works', priority: '0.8', changefreq: 'monthly' },
+    { url: '/hire',         priority: '0.8', changefreq: 'monthly' },
+    { url: '/resources',    priority: '0.7', changefreq: 'weekly' },
+    { url: '/guides',       priority: '0.7', changefreq: 'monthly' },
+    { url: '/occupations',  priority: '0.7', changefreq: 'monthly' },
+    { url: '/about',        priority: '0.6', changefreq: 'monthly' },
+    { url: '/contact',      priority: '0.5', changefreq: 'monthly' },
+    // 职业页矩阵（/occupations/[role]×6）：路由枚举复用页面同一数据源 lib/occupations.js，防漂移。
+    ...getOccupationPaths().map(({ params }) => ({
+      url: `/occupations/${params.role}`, priority: '0.7', changefreq: 'monthly',
+    })),
+    // 注：/privacy /terms 草稿期带 noindex 不进 sitemap（照 /whitepaper 同一守卫口径）；
+    // Terry 法务终审后把 content/legal/*.md 的 draft 翻 false，这里自动收录。
+    ...['privacy', 'terms']
+      .filter((doc) => {
+        const d = getLegalDoc(doc, 'en');
+        return d && !d.draft;
+      })
+      .map((doc) => ({ url: `/${doc}`, priority: '0.4', changefreq: 'yearly' })),
   ];
 
   // 内容引擎文章页：以 frontmatter 的 date 作为 lastmod。

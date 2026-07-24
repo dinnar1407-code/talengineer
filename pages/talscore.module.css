@@ -388,17 +388,6 @@
   margin: 0 auto 24px;
 }
 
-.footer {
-  padding: 28px 20px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.footer a {
-  color: var(--primary);
-}
-
 /* 移动端：公式条与卡片自然单列（grid 已 auto-fit），仅缩间距 */
 @media (max-width: 560px) {
   .hero { padding: 48px 18px 36px; }

@@ -40,74 +40,9 @@
   --tk-bg: #0d1c30;     --tk-num: #4d9fff;
 }
 
-/* ── NAV ───────────────────────────────────────────────────────────────── */
-.nav {
-  position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center; gap: 28px;
-  padding: 0 40px; height: 64px;
-  background: var(--t-bg); border-bottom: 1px solid var(--t-line);
-}
-.brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex: none; }
-.wordmark { font-family: var(--font-head); font-weight: 800; font-size: 19px; color: var(--t-ink); letter-spacing: -.02em; }
-.navLinks { display: flex; gap: 24px; font-size: 14px; font-weight: 500; }
-.navLink { color: var(--t-nav); text-decoration: none; transition: color .15s; }
-.navLink:hover { color: var(--t-accent); }
-.navRight { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-
-.langWrap { position: relative; }
-.langPill {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--t-nav); background: transparent;
-  border: 1px solid var(--t-line); border-radius: 999px; padding: 5px 12px;
-  cursor: pointer; font-family: var(--font-body);
-}
-.caret { font-size: 10px; color: var(--t-sub); }
-.langMenu {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
-  background: var(--t-card); border: 1px solid var(--t-line); border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(11,37,69,.16); padding: 6px; min-width: 168px;
-  display: flex; flex-direction: column;
-}
-.langItem {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; font-size: 13px; color: var(--t-nav);
-  background: transparent; border: none; border-radius: 8px;
-  cursor: pointer; text-align: left; font-family: var(--font-body);
-}
-.langItem:hover { background: var(--t-chip); }
-.langItemActive { color: var(--t-accent); font-weight: 600; }
-
-.themeToggle {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: var(--t-nav);
-  background: var(--t-chip); border: 1px solid var(--t-line); border-radius: 999px;
-  padding: 6px 13px; cursor: pointer; font-family: var(--font-body); white-space: nowrap;
-}
-.signIn { font-size: 14px; font-weight: 600; color: var(--t-accent); text-decoration: none; white-space: nowrap; }
-.postBtn {
-  font-size: 14px; font-weight: 600; color: var(--t-btn-ink); background: var(--t-btn);
-  border-radius: 8px; padding: 9px 18px; text-decoration: none; white-space: nowrap;
-}
-.hamburger {
-  display: none; background: transparent; border: none;
-  font-size: 20px; color: var(--t-nav); cursor: pointer; padding: 2px 6px; line-height: 1;
-}
-
-/* 移动端下拉菜单 */
-.mobileMenu {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 20px 18px; background: var(--t-bg); border-bottom: 1px solid var(--t-line);
-}
-.mobileLink {
-  padding: 12px 6px; font-size: 15px; font-weight: 500; color: var(--t-nav);
-  text-decoration: none; border-bottom: 1px solid var(--t-line);
-}
-.mobilePost {
-  margin-top: 10px; text-align: center; padding: 12px; font-size: 15px; font-weight: 600;
-  color: var(--t-btn-ink); background: var(--t-btn); border-radius: 8px; text-decoration: none;
-}
-
 /* ── HERO ──────────────────────────────────────────────────────────────── */
+/* 注：私有 NAV 的样式（.nav/.navLinks/.langPill/.themeToggle/.mobileMenu 等）已随
+   内联 header 一并删除——导航现由共享 components/Navbar 提供（64px sticky 不变）。 */
 .hero {
   position: relative; padding: 76px 40px 0;
   background-color: var(--h-bg);
@@ -285,41 +220,20 @@
 .ctaPost { font-size: 16px; font-weight: 600; color: #0056b3; background: #fff; border-radius: 10px; padding: 14px 28px; text-decoration: none; }
 .ctaApply { font-size: 16px; font-weight: 600; color: #fff; border: 1.5px solid rgba(255,255,255,.6); border-radius: 10px; padding: 14px 28px; text-decoration: none; }
 
-/* ── FOOTER（固定深蓝）─────────────────────────────────────────────────── */
-.footer { background: #0b2545; padding: 52px 40px 32px; color: #a8bdd6; }
-.footerInner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr; gap: 32px; }
-.footerBrandCol { display: flex; flex-direction: column; gap: 12px; }
-.footerBrand { display: flex; align-items: center; gap: 8px; }
-.footerBrand b { font-family: var(--font-head); font-size: 17px; color: #fff; }
-.footerTagline { font-size: 13px; line-height: 1.6; margin: 0; }
-.footerLangs { font-size: 12px; color: #7d93b5; }
-.footerCol { display: flex; flex-direction: column; gap: 9px; font-size: 13px; }
-.footerColTitle { color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
-.footerLink { color: #a8bdd6; text-decoration: none; }
-.footerLink:hover { color: #fff; text-decoration: underline; }
-.footerBottom { max-width: 1120px; margin: 32px auto 0; border-top: 1px solid #1b3d6d; padding-top: 20px; font-size: 12px; color: #7d93b5; }
+/* 注：固定深蓝 FOOTER 的样式（.footer/.footerInner/.footerCol 等）已随内联页脚删除——
+   页脚现由共享 components/Footer 提供（同款深海军蓝 #0b2545，主题无关是刻意的）。 */
 
 /* ══════════════════════ RESPONSIVE ══════════════════════ */
 @media (max-width: 960px) {
-  .nav { gap: 14px; padding: 0 20px; }
-  .navLinks, .signIn, .postBtn { display: none; }
-  .hamburger { display: flex; }
-
   .hero { padding: 56px 20px 0; }
   .heroH1 { font-size: 40px; }
   .heroCards { grid-template-columns: 1fr; transform: none; margin-top: 8px; }
   .heroSpacer { height: 24px; }
 
-  .section, .ticker, .rateBand, .finalCta, .footer { padding-left: 20px; padding-right: 20px; }
+  .section, .ticker, .rateBand, .finalCta { padding-left: 20px; padding-right: 20px; }
   .catGrid, .trustGrid { grid-template-columns: repeat(2, 1fr); }
   .engGrid, .testiGrid, .resGrid, .howGrid { grid-template-columns: 1fr; }
   .rateInner { grid-template-columns: 1fr; gap: 28px; }
-  .footerInner { grid-template-columns: 1fr 1fr; }
-}
-
-@media (min-width: 961px) {
-  /* 桌面端不显示移动菜单（即使 state 残留）*/
-  .mobileMenu { display: none; }
 }
 
 @media (max-width: 560px) {
@@ -327,7 +241,6 @@
   .heroSub { font-size: 15px; }
   .h2 { font-size: 26px; }
   .ctaH2 { font-size: 28px; }
-  .catGrid, .trustGrid, .footerInner { grid-template-columns: 1fr; }
+  .catGrid, .trustGrid { grid-template-columns: 1fr; }
   .sectionHead { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .themeToggle { padding: 6px 10px; }
 }
