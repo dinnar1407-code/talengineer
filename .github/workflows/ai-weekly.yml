@@ -1,0 +1,46 @@
+name: AI Weekly Self-Improvement Report
+
+# 目的：Phase 4 自优化闭环的定时触发器——每周一让服务端聚合近 7 天 ai_events、
+#       由 Gemini 起草改进假设，落 ai_improvement_reports（status=draft，永远人审）。
+# 原理：仓库没有进程内定时器（与 keepalive.yml 同一模式），用 GH Actions cron 打生产端点。
+# 鉴权：Authorization: Bearer ${{ secrets.AIOPS_CRON_SECRET }}；
+#       服务端 sha256+timingSafeEqual 恒时比较，env 未配置时 503 fail-closed。
+# Terry 外部待办：GH secret AIOPS_CRON_SECRET 与 Railway 环境变量各设一份（同值），
+#       两边都没配之前，本 workflow 会失败（这是预期的 fail-closed，不是 bug）。
+
+on:
+  schedule:
+    # cron 用 UTC。周一 03:47 UTC ≈ 北京时间周一 11:47。
+    # 故意错开整点：GitHub 整点附近负载高、定时任务常被延迟甚至丢弃（同 keepalive.yml）。
+    - cron: '47 3 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  run-weekly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly AI analysis on production
+        env:
+          AIOPS_CRON_SECRET: ${{ secrets.AIOPS_CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${AIOPS_CRON_SECRET:-}" ]; then
+            echo "❌ GitHub secret AIOPS_CRON_SECRET 未配置——请在仓库 Settings → Secrets 添加"
+            exit 1
+          fi
+          URL="https://talengineer.us/api/aiops/run-weekly"
+          # 重试 3 次：单次网络抖动不算失败，连续 3 次失败才报错（照 keepalive.yml）
+          last=""
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 \
+              -X POST -H "Authorization: Bearer ${AIOPS_CRON_SECRET}" "$URL" || echo "000")
+            echo "Attempt $i: HTTP $code"
+            last="$code"
+            if [ "$code" = "200" ]; then
+              echo "✅ 周度 AI 报告已生成（draft，等待人审看板复核）"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "❌ 周度 AI 报告触发失败（最后一次 HTTP $last）——检查 Railway 的 AIOPS_CRON_SECRET 与服务状态"
+          exit 1

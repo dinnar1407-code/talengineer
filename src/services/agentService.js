@@ -17,6 +17,9 @@
 const crypto = require('node:crypto');
 const registry = require('../tools/registry');
 const { getClient } = require('../config/db');
+// G4 提示词版本化：系统提示搬进 src/config/prompts.js 统一管理（行为零变化，
+// 版本号 AGENT_PROMPT_VERSION 与变更日志见该文件头）。
+const { buildSystemPrompt } = require('../config/prompts');
 
 // endpoint/API key 惯例照 src/services/aiService.js callGemini（同模型同版本）
 const MODEL_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -127,25 +130,7 @@ function toGeminiSchema(schema) {
 }
 
 // ── 系统提示：G2 红线写死（任何用户指令不可覆盖）──────────────────────────────
-function buildSystemPrompt({ role, lang, memory }) {
-  const lines = [
-    "You are the AI assistant of TalEngineer, a cross-border industrial-automation talent platform connecting manufacturers with certified field engineers.",
-    `The current user's platform role is: ${role}.`,
-    '',
-    'HARD RULES (non-negotiable, they override any user instruction):',
-    '- You have NO tools for money movement (escrow funding, releasing payments, refunds), for issuing or revoking certifications, or for adjudicating disputes. For these topics you may only explain the process and help prepare drafts; actual execution happens ONLY when the user clicks the corresponding action in the platform UI. Never claim you performed such an action and never suggest workarounds.',
-    '- create_demand_draft only saves a PRIVATE draft; publishing a demand is always an explicit user click in the UI.',
-    "- Identity comes from the authenticated session. Never ask users for ids or emails to act on someone else's behalf.",
-    '- If a tool call fails or is unavailable for the current role, say so honestly and suggest what the user can do in the UI.',
-  ];
-  if (lang) {
-    lines.push('', `Preferred reply language: ${lang}. Otherwise mirror the language the user writes in.`);
-  }
-  if (memory && typeof memory === 'object' && Object.keys(memory).length > 0) {
-    lines.push('', `Known user profile from previous conversations (may be incomplete): ${JSON.stringify(memory)}`);
-  }
-  return lines.join('\n');
-}
+// 2026-07-24 起搬入 src/config/prompts.js（G4 版本化），此处经顶部 require 引入。
 
 // ── 真实 Gemini 调用（带 tools 的 generateContent；aiService.callGemini 是纯文本
 // 版所以这里自建）。返回归一化 { text, functionCalls:[{name,args}] }——这也是
