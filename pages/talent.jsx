@@ -23,7 +23,9 @@ const DICT = {
     formTitleTalent: 'Create Engineer Profile',
     submitJobBtn: 'Confirm & Post Project', submitProfileBtn: 'Publish Profile',
     feeLabel: 'Platform service fee', feeTakeHome: 'You receive',
+    bgBadge: 'Background Checked', bgFilter: 'Background checked',
     aInvTitle: 'Auto-Invite (optional)', aInvHint: 'Let the platform invite qualified certified engineers to apply.', aInvEnable: 'Enable auto-invite', aInvMinScore: 'Min TalScore', aInvTopN: 'Invite count (≤5)', aInvMaxRate: 'Max rate ($/hr)', aInvTracks: 'Required certifications',
+    referralLabel: 'Referral code (optional)', referralPh: 'e.g. ABCD2345',
   },
   zh: {
     hubTitle: '全球工业自动化服务大厅',
@@ -35,7 +37,9 @@ const DICT = {
     formTitleTalent: '创建工程师档案',
     submitJobBtn: '确认发布项目', submitProfileBtn: '发布档案 (接受 AI 审核)',
     feeLabel: '平台服务费', feeTakeHome: '你到手',
+    bgBadge: '已背调', bgFilter: '已背调',
     aInvTitle: '自动邀请（可选）', aInvHint: '让平台自动邀请符合条件的持证工程师前来申请。', aInvEnable: '开启自动邀请', aInvMinScore: '最低 TalScore', aInvTopN: '邀请人数（≤5）', aInvMaxRate: '费率上限（$/时）', aInvTracks: '要求的认证方向',
+    referralLabel: '推荐码（选填）', referralPh: '例如 ABCD2345',
   },
   es: {
     feeLabel: 'Tarifa de la plataforma', feeTakeHome: 'Recibes',
@@ -149,6 +153,8 @@ export default function Talent() {
   const [filterScore,        setFilterScore]        = useState('');
   const [filterAvailability, setFilterAvailability] = useState('all');
   const [filterVerifiedOnly, setFilterVerifiedOnly] = useState(false);
+  // 「已背调」筛选（W2-5）：勾选后只看持有效背调的工程师（后端 bg_checked=true 过滤）
+  const [filterBgChecked,    setFilterBgChecked]    = useState(false);
   const [filterSort,         setFilterSort]         = useState('score');
 
   // Pagination
@@ -179,7 +185,7 @@ export default function Talent() {
   const [autoInvite, setAutoInvite] = useState({ enabled: false, min_score: '', top_n: 3, max_rate: '', tracks: [] });
 
   // Engineer profile form
-  const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '', referralCode: '' });
   const [postingProfile, setPostingProfile] = useState(false);
 
   useEffect(() => {
@@ -218,7 +224,7 @@ export default function Talent() {
     } catch { setDemands([]); }
   }
 
-  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore, page = 0, avail = filterAvailability, verified = filterVerifiedOnly, sort = filterSort) {
+  async function loadTalent(region = filterRegion, skills = filterSkills, score = filterScore, page = 0, avail = filterAvailability, verified = filterVerifiedOnly, sort = filterSort, bg = filterBgChecked) {
     setTalents(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE), sort });
@@ -227,6 +233,7 @@ export default function Talent() {
       if (score) params.set('min_score', score);
       if (avail && avail !== 'all') params.set('availability', avail);
       if (verified) params.set('verified_only', 'true');
+      if (bg) params.set('bg_checked', 'true'); // 已背调过滤（W2-5）
       const res  = await fetch('/api/talent/list?' + params.toString());
       const data = await res.json();
       setTalents(data.data || []);
@@ -260,7 +267,7 @@ export default function Talent() {
 
   function applyFilters(e) {
     e.preventDefault();
-    loadTalent(filterRegion, filterSkills, filterScore, 0, filterAvailability, filterVerifiedOnly, filterSort);
+    loadTalent(filterRegion, filterSkills, filterScore, 0, filterAvailability, filterVerifiedOnly, filterSort, filterBgChecked);
   }
 
   function switchTab(tab) {
@@ -362,11 +369,11 @@ export default function Talent() {
       toast.success(`Tech Screen Passed! Score: ${vData.score} — ${vData.feedback}`);
 
       // 分数改为凭服务端签名的 score_token 落库（防抓包自报高分），不再直接回传 verified_score
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', score_token: vData.score_token, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio }) });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', score_token: vData.score_token, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio, referral_code: profileForm.referralCode.trim() || undefined }) });
       const result = await res.json();
       if (res.ok) {
         toast.success('Profile published! Nexus Verified score added.');
-        setProfileForm({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '' });
+        setProfileForm({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '', referralCode: '' });
         loadTalent();
       } else {
         toast.error('Error: ' + result.error);
@@ -567,8 +574,13 @@ export default function Talent() {
                   <input type="checkbox" checked={filterVerifiedOnly} onChange={e => setFilterVerifiedOnly(e.target.checked)} />
                   Verified only
                 </label>
+                {/* 「已背调」筛选（W2-5）：勾选后只显示持有效背调的工程师；文案走 en/zh dict（?? en 兜底） */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={filterBgChecked} onChange={e => setFilterBgChecked(e.target.checked)} />
+                  🛡️ {d?.bgFilter ?? DICT.en.bgFilter}
+                </label>
                 <button type="submit" className={styles.btnAction}>Search</button>
-                <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); setFilterAvailability('all'); setFilterVerifiedOnly(false); setFilterSort('score'); loadTalent('all', '', '', 0, 'all', false, 'score'); }}>Clear</button>
+                <button type="button" className={styles.btnClear} onClick={() => { setFilterRegion('all'); setFilterSkills(''); setFilterScore(''); setFilterAvailability('all'); setFilterVerifiedOnly(false); setFilterBgChecked(false); setFilterSort('score'); loadTalent('all', '', '', 0, 'all', false, 'score', false); }}>Clear</button>
               </form>
 
               {/* Pagination info */}
@@ -592,6 +604,13 @@ export default function Talent() {
                           )}
                           {/* TalScore 综合质量分徽章：列表 API 已返回 t.tal_score（此前前端丢弃）；未打分时组件自身返回 null */}
                           <TalScoreBadge score={t.tal_score} />
+                          {/* 🛡️ 已背调徽章（W2-5）：仅 bg_checked===true 才渲染（字段缺失/false 都不显示）。
+                              半透明 rgba 底 + 实色字，照 TalScoreBadge 的手法，深浅两主题下都清晰可读 */}
+                          {t.bg_checked === true && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 10px', borderRadius: 999 }}>
+                              🛡️ {d?.bgBadge ?? DICT.en.bgBadge}
+                            </span>
+                          )}
                         </div>
                         <span style={{ fontSize: 14, color: 'var(--primary)' }}>{t.rate}</span>
                       </div>
@@ -662,6 +681,7 @@ export default function Talent() {
                   </select>
                 </FormGroup>
                 <FormGroup label="Short Bio"><textarea rows={4} value={profileForm.bio} onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} placeholder="Briefly describe your experience and availability..." required /></FormGroup>
+                <FormGroup label={d?.referralLabel ?? DICT.en.referralLabel}><input value={profileForm.referralCode} onChange={e => setProfileForm(f => ({ ...f, referralCode: e.target.value }))} placeholder={d?.referralPh ?? DICT.en.referralPh} maxLength={32} /></FormGroup>
                 <button type="submit" className={styles.btnSubmit} disabled={postingProfile}>{postingProfile ? '🤖 AI Tech Interviewing...' : d.submitProfileBtn}</button>
               </form>
             </div>

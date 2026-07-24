@@ -5,6 +5,7 @@ const { getClient } = require('../config/db');
 const { parseDemand, generateTechQuestion, gradeTechAnswer } = require('../services/aiService');
 const { clampPagination } = require('../utils/pagination'); // 分页钳制逻辑抽成可测的纯函数
 const { recomputeTalScore } = require('../services/talScore'); // TalScore 综合质量分（读档案时按需补算）
+const { batchStatus: bgBatchStatus, listValidTalentIds } = require('../services/bgcheckService'); // 背调状态（W2-5：列表徽章 + 过滤）
 
 // 签名分数 token 用的密钥：与登录 JWT 同一密钥（部署上已存在，无需新增配置）。
 // 用途见下方 /screen_verify：把 AI 筛选分签名后发给前端，注册时凭 token 落库，
@@ -84,7 +85,7 @@ router.get('/list', async (req, res) => {
     const supabase = getClient();
     const {
       region, skills, min_score,
-      availability, verified_only, sort,
+      availability, verified_only, sort, bg_checked,
       page = '0', limit: limitParam = '12',
     } = req.query;
 
@@ -117,6 +118,18 @@ router.get('/list', async (req, res) => {
     if (min_score)                     query = query.gte('verified_score', parseInt(min_score));
     if (availability && availability !== 'all') query = query.eq('availability', availability);
     if (verified_only === 'true')      query = query.gt('verified_score', 0);
+
+    // ── 已背调过滤（W2-5）────────────────────────────────────────────────────
+    // 先取"当前持有有效背调"的 talent_id 集合，再用 DB 侧 .in('id', ids) 塞进主查询——
+    // 过滤必须发生在数据库侧才能与分页/count 共存（若在 JS 里过滤，本页会"缺行"且 total 失真）。
+    // 集合为空时短路返回空页（.in('id', []) 的 PostgREST 行为不值得依赖）。
+    if (bg_checked === 'true') {
+      const validIds = await listValidTalentIds(supabase);
+      if (!validIds.length) {
+        return res.json({ status: 'ok', data: [], total: 0, page: pageNum, pageSize });
+      }
+      query = query.in('id', validIds);
+    }
 
     const { data, error, count } = await query;
     // page 越界时 PostgREST 返回 PGRST103(range not satisfiable) 错误，而非空结果。
@@ -170,6 +183,16 @@ router.get('/list', async (req, res) => {
         }));
       } catch (e) {
         console.error('[talent] cert summary batch failed:', e);
+      }
+
+      // ── 背调徽章富化（W2-5，best-effort）────────────────────────────────────
+      // 与认证摘要同纪律：一次 .in() 批量查本页工程师的有效背调（禁 N+1），
+      // 附成 bg_checked:boolean。失败仅记日志、静默省略该字段（卡片不显示徽章），绝不 500。
+      try {
+        const bgMap = await bgBatchStatus(supabase, ids);
+        sorted = sorted.map((t) => ({ ...t, bg_checked: bgMap.get(t.id) === true }));
+      } catch (e) {
+        console.error('[talent] bg check summary batch failed:', e);
       }
     }
 
