@@ -36,6 +36,7 @@ Skills listed by engineers on the platform this month:
 
 - **Source.** All figures are aggregated live from the public Talengineer API (`/api/talent/rate-benchmarks`) at the snapshot time above. Rates are self-reported by engineers; profiles with a published rate are counted.
 - **Sample size.** We show the engineer count per region on purpose. Where the count is 1, the median, min, max and average are the same number — that is what a founding cohort looks like, and we would rather show it than hide it.
+- **Regions are self-described.** Engineers describe their own region in free text; overlapping labels (e.g. “Texas USA” alongside “United States (US)”) are shown exactly as reported rather than merged by us.
 - **No third-party data.** This report contains no external market statistics. When we cannot source a number from our own platform, we leave it out.
 - **What this is for.** Use these bands as a live reference point when budgeting a project, alongside the [cost calculator](/calculator) and the regional guides.
 

@@ -47,7 +47,7 @@ The durable answer, on the projects we see, is a hybrid:
 
 Cross-border hiring collapses without trust in skills. Talengineer layers three mechanisms:
 
-- **Practical AI screening.** Every engineer passes a practical, scenario-based technical screen before they can be matched — not a keyword scan of a resume.
+- **Practical AI screening.** Engineers take a practical, scenario-based technical screen — not a keyword scan of a resume. The result is a verified score shown on the profile, so you can see who has proven what before you shortlist anyone.
 - **Platform certification.** Four tracks — PLC & controls, robotics, machine vision, electrical — each with three levels (L1–L3). Certification is exam-based, AI-assessed with human admin review before any certificate is issued, and only certified engineers can be assigned to matched projects.
 - **TalScore.** A composite quality score computed from verified signals on the platform. Engineers who have not yet been scored are shown as unrated — an unrated engineer is not a low-quality engineer, and we do not pretend otherwise.
 
@@ -55,7 +55,7 @@ Cross-border hiring collapses without trust in skills. Talengineer layers three 
 
 Cross-border projects fail on payment risk in both directions: buyers do not want to prepay a stranger in another country, and engineers do not want to work against the promise of a wire that may never come.
 
-Milestone escrow removes both fears. The buyer funds a milestone; the platform holds the funds; the engineer works; the buyer accepts the deliverable; funds release. Stage by stage, until the line runs. The platform fee for this protection is 15%, reduced to 5% for founding customers.
+Milestone escrow removes both fears. The buyer funds a milestone; the platform holds the funds; the engineer works; the buyer accepts the deliverable; funds release. Stage by stage, until the line runs. The platform fee for this protection is 15% — founding clients pay 5% on their first 5 orders.
 
 ## 6. What the engineering actually costs
 

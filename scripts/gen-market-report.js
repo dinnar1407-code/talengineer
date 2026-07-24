@@ -94,7 +94,7 @@ function buildMarkdown({ lang, month, today, benchmarks, skills, coverage }) {
   lines.push(
     en
       ? `This is a monthly snapshot of live data on Talengineer, taken on ${today}. Every number below is a real aggregate from active engineer profiles on the platform — nothing is modeled, extrapolated or borrowed from third-party reports. We are a founding-stage marketplace: the sample is small and we publish it anyway, because a small real number beats a large invented one.`
-      : `这是 Talengineer 平台实时数据的月度快照，取数时间 ${today}。下面每一个数字都是平台上活跃工程师档案的真实聚合值——没有建模、没有外推、没有借用任何第三方报告。我们是 founding 阶段的市场：样本很小，但我们照样发布，因为一个真实的小数字胜过一个编造的大数字。`
+      : `这是 Talengineer 平台实时数据的月度快照，取数时间 ${today}。下面每一个数字都是平台上活跃工程师档案的真实聚合值——没有建模、没有外推、没有借用任何第三方报告。我们是创始（founding）阶段的市场：样本很小，但我们照样发布，因为一个真实的小数字胜过一个编造的大数字。`
   );
   lines.push('');
 
@@ -162,12 +162,14 @@ function buildMarkdown({ lang, month, today, benchmarks, skills, coverage }) {
       ? [
           '- **Source.** All figures are aggregated live from the public Talengineer API (`/api/talent/rate-benchmarks`) at the snapshot time above. Rates are self-reported by engineers; profiles with a published rate are counted.',
           '- **Sample size.** We show the engineer count per region on purpose. Where the count is 1, the median, min, max and average are the same number — that is what a founding cohort looks like, and we would rather show it than hide it.',
+          '- **Regions are self-described.** Engineers describe their own region in free text; overlapping labels (e.g. “Texas USA” alongside “United States (US)”) are shown exactly as reported rather than merged by us.',
           '- **No third-party data.** This report contains no external market statistics. When we cannot source a number from our own platform, we leave it out.',
           '- **What this is for.** Use these bands as a live reference point when budgeting a project, alongside the [cost calculator](/calculator) and the regional guides.',
         ].join('\n')
       : [
           '- **数据来源。** 全部数字在上述快照时间从 Talengineer 公开 API（`/api/talent/rate-benchmarks`）实时聚合。费率为工程师自报，统计所有已填写费率的档案。',
-          '- **样本量。** 我们刻意展示每个地区的工程师数。当数量为 1 时，中位数、最小值、最大值和平均值是同一个数——founding 阶段的样子就是这样，我们宁可展示也不掩饰。',
+          '- **样本量。** 我们刻意展示每个地区的工程师数。当数量为 1 时，中位数、最小值、最大值和平均值是同一个数——创始阶段的样子就是这样，我们宁可展示也不掩饰。',
+          '- **地区为工程师自述。** 地区是工程师自由填写的文本；出现重叠标签时（如 “Texas USA” 与 “United States (US)” 并列），我们按原样展示，不代为合并。',
           '- **不含第三方数据。** 本报告不包含任何外部市场统计。凡是无法从我们自己平台取到的数字，一律不写。',
           '- **用途。** 做项目预算时，把这些区间当作实时参考点，配合[成本计算器](/calculator)与分国别建厂指南使用。',
         ].join('\n')
