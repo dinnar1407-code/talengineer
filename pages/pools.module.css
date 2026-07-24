@@ -1,0 +1,253 @@
+/* ── /pools 企业认证人才池 页面样式 ──────────────────────────────────────────
+   颜色一律用 styles/globals.css 的语义 token（var(--bg/--surface/--text/...)），
+   深浅主题自动跟随 html[data-theme]，禁止硬编码 hex（会破坏其中一个主题）。 */
+
+/* SSR / 未登录加载态：极简占位（登录态恢复后由 ConsoleShell 接管整页布局） */
+.ssrLoading {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--bg);
+  font-size: 15px;
+}
+
+/* 主布局：左（池列表+新建）/ 右（详情）双栏，窄屏折单列 */
+.layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.panel .sectionTitle:not(:first-child) { margin-top: 24px; }
+
+.subTitle {
+  margin: 20px 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.muted { color: var(--text-muted); font-size: 13px; }
+
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+/* ── 池列表 ── */
+.poolList { display: grid; gap: 8px; margin-bottom: 8px; }
+.poolItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+}
+.poolItem:hover { border-color: var(--primary); }
+.poolItemActive { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
+.poolName { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.poolMeta { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+/* ── 新建表单 ── */
+.form { display: grid; gap: 6px; }
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.input:focus { outline: none; border-color: var(--primary); }
+
+.chipRow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.chipActive {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+}
+
+.btnPrimary {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--primary);
+  color: var(--primary-ink);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btnPrimary:hover { background: var(--primary-hover); }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btnPrimarySmall {
+  padding: 5px 12px;
+  background: var(--primary);
+  color: var(--primary-ink);
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btnPrimarySmall:hover { background: var(--primary-hover); }
+.btnPrimarySmall:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btnGhost {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.btnGhost:hover { border-color: var(--primary); color: var(--text); }
+.btnGhost:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* 危险操作（删池）：语义 token 没有专门的 danger 色，用半透明底 + 实色字，
+   rgba 在深浅两主题下都清晰可读（与 components/TalScoreBadge.jsx 同手法） */
+.btnDanger {
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnDanger:hover { background: rgba(239, 68, 68, 0.2); }
+
+/* ── 详情区 ── */
+.detailHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.detailTitle { margin: 0; font-size: 18px; font-weight: 800; color: var(--text); }
+
+.critChips { display: flex; flex-wrap: wrap; gap: 8px; }
+.critChip {
+  padding: 4px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* ── 成员表 ── */
+.tableWrap { overflow-x: auto; }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+
+/* ── 候选卡片 ── */
+.candList { display: grid; gap: 10px; }
+.candidateCard {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.candTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.candName { font-weight: 700; font-size: 14px; color: var(--text); }
+.candMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.candSkills {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text);
+}

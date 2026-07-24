@@ -135,4 +135,93 @@ router.get('/demands/:id/milestones', requireApiKey, async (req, res) => {
   }
 });
 
+// ── GET /pools：本企业的认证人才池列表（只读；W2-3 企业人才池）─────────────────────
+// 池的增删改只在站内 /api/pools（JWT 登录态）做；企业 API v1 只读，供客户系统同步展示。
+// 归属：employer_id = req.apiKeyUserId（API key 绑定的企业用户），只能看到自己的池。
+router.get('/pools', requireApiKey, async (req, res) => {
+  try {
+    const supabase = getClient();
+    const { page, limit, from, to } = clampPage(req.query.page, req.query.limit);
+    const { data, error, count } = await supabase
+      .from('talent_pools')
+      .select('id, name, criteria, created_at, updated_at', { count: 'exact' })
+      .eq('employer_id', req.apiKeyUserId)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (error) {
+      // 翻过最后一页时 PostgREST 返回 PGRST103，按空结果处理而非 500（与 /demands 同）
+      if (error.code === 'PGRST103') return res.json({ status: 'ok', data: [], total: count || 0, page, pageSize: limit });
+      throw error;
+    }
+
+    // member_count 批量补（一次 .in()，禁 N+1）；失败仅记录，计数回退 0，列表照常返回
+    const pools = data || [];
+    const countBy = {};
+    const ids = pools.map((p) => p.id);
+    if (ids.length) {
+      try {
+        const { data: memberRows, error: memErr } = await supabase
+          .from('talent_pool_members')
+          .select('pool_id')
+          .in('pool_id', ids);
+        if (memErr) throw memErr;
+        (memberRows || []).forEach((m) => { countBy[m.pool_id] = (countBy[m.pool_id] || 0) + 1; });
+      } catch (e) {
+        console.error('[entV1] pool member count batch failed:', e);
+      }
+    }
+    res.json({
+      status: 'ok',
+      data: pools.map((p) => ({ ...p, member_count: countBy[p.id] || 0 })),
+      total: count || 0, page, pageSize: limit,
+    });
+  } catch (err) {
+    console.error('[entV1]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// ── GET /pools/:id：单个池详情（含成员；成员数据走 PII 白名单）──────────────────────
+router.get('/pools/:id', requireApiKey, async (req, res) => {
+  try {
+    const supabase = getClient();
+    // 归属校验：不属于本企业（或不存在）一律 404——不区分二者，防枚举探测他人池 id
+    //（与上面 /demands/:id/milestones 完全同一手法）。
+    const { data: pool, error: poolErr } = await supabase
+      .from('talent_pools')
+      .select('id, employer_id, name, criteria, created_at, updated_at')
+      .eq('id', req.params.id)
+      .single();
+    if (poolErr || !pool || pool.employer_id !== req.apiKeyUserId) {
+      return res.status(404).json({ error: 'Pool not found' });
+    }
+
+    const { data: memberRows, error: memErr } = await supabase
+      .from('talent_pool_members')
+      .select('talent_id, snapshot, added_at')
+      .eq('pool_id', pool.id)
+      .order('added_at', { ascending: true });
+    if (memErr) throw memErr;
+
+    // 成员的工程师当前档案：一次 .in() 批量拉（禁 N+1），只查白名单列，排除 PII
+    const talentIds = (memberRows || []).map((m) => m.talent_id);
+    const byId = new Map();
+    if (talentIds.length) {
+      const { data: talentRows, error: tErr } = await supabase
+        .from('talents')
+        .select(PUBLIC_TALENT_FIELDS)
+        .in('id', talentIds);
+      if (tErr) throw tErr;
+      (talentRows || []).forEach((t) => byId.set(t.id, t));
+    }
+    const members = (memberRows || []).map((m) => ({ ...m, talent: byId.get(m.talent_id) || null }));
+    // employer_id 不回传：调用方就是属主本人，回传徒增一个内部主键暴露面
+    const { employer_id, ...publicPool } = pool;
+    res.json({ status: 'ok', data: { ...publicPool, members } });
+  } catch (err) {
+    console.error('[entV1]', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
 module.exports = router;
