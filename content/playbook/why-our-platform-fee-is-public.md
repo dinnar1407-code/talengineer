@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: both
 slug: why-our-platform-fee-is-public
+group: why-our-platform-fee-is-public
 ---
 
 # Why Our 15% Platform Fee Is Public

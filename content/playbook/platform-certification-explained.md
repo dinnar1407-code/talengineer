@@ -7,6 +7,7 @@ type: certification
 track: general
 audience: both
 slug: platform-certification-explained
+group: platform-certification-explained
 ---
 
 # What TalEngineer Platform Certification Means

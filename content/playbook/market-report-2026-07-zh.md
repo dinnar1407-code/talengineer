@@ -7,6 +7,7 @@ type: market-data
 track: general
 audience: employer
 slug: market-report-2026-07-zh
+group: market-report-2026-07
 draft: true
 ---
 

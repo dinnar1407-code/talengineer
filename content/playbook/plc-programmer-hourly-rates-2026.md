@@ -7,6 +7,7 @@ type: market-data
 track: plc
 audience: employer
 slug: plc-programmer-hourly-rates-2026
+group: plc-programmer-hourly-rates-2026
 ---
 
 # PLC Programmer Hourly Rates in 2026: A Regional Breakdown

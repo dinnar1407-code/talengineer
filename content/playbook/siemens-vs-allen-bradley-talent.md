@@ -7,6 +7,7 @@ type: market-data
 track: plc
 audience: employer
 slug: siemens-vs-allen-bradley-talent
+group: siemens-vs-allen-bradley-talent
 ---
 
 # Siemens vs. Allen-Bradley: Talent Availability in 2026

@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: employer
 slug: offshore-factory-remote-onsite-hybrid
+group: offshore-factory-remote-onsite-hybrid
 ---
 
 # 出海工厂"远程+驻场"混合用人模式
@@ -42,7 +43,7 @@ slug: offshore-factory-remote-onsite-hybrid
 
 把工时拆成三档来算账，预算会清晰很多：
 
-1. **远程开发工时**：用区域中位费率，占总工时的大头。出海工厂常见的纳沙尔/离岸费率区间，比本土 75–140 美元/小时低不少（如墨西哥 35–65、越南 30–55 美元/小时）。
+1. **远程开发工时**：用区域中位费率，占总工时的大头。出海工厂常见的纳沙尔/离岸费率区间，比本土 $75–140/小时低不少（如墨西哥 $35–65、越南 $30–55/小时）。
 2. **驻场工时**：在开发费率基础上加溢价，再加差旅与食宿。占比小但单价高。
 3. **应急工时**：按次计价的兜底，尽量不用，但要预留。
 

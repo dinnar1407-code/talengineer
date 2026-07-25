@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: engineer
 slug: how-talscore-is-computed
+group: how-talscore-is-computed
 ---
 
 # How TalScore Is Computed

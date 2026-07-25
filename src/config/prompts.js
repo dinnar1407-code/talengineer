@@ -11,13 +11,40 @@
 //                 - 新增 buildWeeklyAnalysisPrompt（Phase 4 周度自优化分析提示）。
 //                 - aiService.js 的各内联提示（parseDemand / 考卷生成 / 课程生成等）本版
 //                   尚未搬入——待搬清单登记在 docs/ai/level1-charter.md。
+//   2026-07-24.2  九语术语注入：buildSystemPrompt 在 lang 分支追加一行紧凑的术语对照
+//                 （取自 lib/i18n/glossary.js 的 TERMS 锁定表，~8 个核心词，仅当
+//                 lang 非空且非 'en' 时注入），让 ChatBot 回复用词与站内九语文案一致；
+//                 无 lang 时不注入（agentService 现有调用行为零变化）。
 //
 // 使用纪律：
 //   - ai_improvement_reports.prompt_version 落库时记录本版本号（迁移 024 的列注释即指向这里）；
 //   - 提示词内容属于「配置」，Level 1 脚手架下对提示词的任何修改都必须走人审提交，
 //     本仓库不存在任何自主改提示词的代码路径（见 docs/ai/level1-charter.md）。
 
-const AGENT_PROMPT_VERSION = '2026-07-24.1';
+const AGENT_PROMPT_VERSION = '2026-07-24.2';
+
+// 术语表：ChatBot 回复用词与站内九语文案对齐的唯一来源（module load 时 require，
+// 与术语表模块本身的"CJS 纯数据、node --test 可直接 require"约定一致）。
+const { TERMS } = require('../../lib/i18n/glossary');
+
+// 注入的核心词精选（~8 个）：覆盖用户最常问到的托管/费率/纠纷/角色场景，
+// 刻意不注入全部 TERMS——保持提示词精简（G4 红线：提示词是配置，改动要可读可审）。
+const CORE_TERM_KEYS = [
+  'escrow', 'milestone', 'certification', 'dispute',
+  'evidenceWindow', 'platformFee', 'employer', 'engineer',
+];
+
+// 为 lang 生成一行紧凑的术语对照（"en 词=该语言译法"），译法逐字取自术语表锁定值，
+// 不重新翻译。lang 缺失/为 'en'/不在术语表九语之列时返回 null（不注入，保持提示词精简）。
+function buildTerminologyLine(lang) {
+  if (!lang || lang === 'en') return null;
+  const pairs = CORE_TERM_KEYS
+    .map((key) => TERMS[key])
+    .filter((term) => term && typeof term[lang] === 'string' && term[lang])
+    .map((term) => `${term.en}=${term[lang]}`);
+  if (pairs.length === 0) return null;
+  return `Site terminology for ${lang} (use these exact translations): ${pairs.join(', ')}.`;
+}
 
 // ── Agent 系统提示：G2 红线写死（任何用户指令不可覆盖）──────────────────────────
 // 从 agentService.js 原样搬入（2026-07-24.1），逻辑与文案零改动。
@@ -34,6 +61,8 @@ function buildSystemPrompt({ role, lang, memory }) {
   ];
   if (lang) {
     lines.push('', `Preferred reply language: ${lang}. Otherwise mirror the language the user writes in.`);
+    const termLine = buildTerminologyLine(lang);
+    if (termLine) lines.push(termLine);
   }
   if (memory && typeof memory === 'object' && Object.keys(memory).length > 0) {
     lines.push('', `Known user profile from previous conversations (may be incomplete): ${JSON.stringify(memory)}`);

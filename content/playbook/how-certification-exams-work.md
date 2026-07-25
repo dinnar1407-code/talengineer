@@ -7,6 +7,7 @@ type: certification
 track: general
 audience: engineer
 slug: how-certification-exams-work
+group: how-certification-exams-work
 ---
 
 # How Certification Exams Work on TalEngineer

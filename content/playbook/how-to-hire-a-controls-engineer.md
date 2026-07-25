@@ -7,6 +7,7 @@ type: guide
 track: plc
 audience: employer
 slug: how-to-hire-a-controls-engineer
+group: how-to-hire-a-controls-engineer
 ---
 
 # How to Hire a Controls Engineer (Without Getting Burned)

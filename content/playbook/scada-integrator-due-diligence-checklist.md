@@ -7,6 +7,7 @@ type: guide
 track: plc
 audience: employer
 slug: scada-integrator-due-diligence-checklist
+group: scada-integrator-due-diligence-checklist
 ---
 
 # The SCADA Integrator Due-Diligence Checklist

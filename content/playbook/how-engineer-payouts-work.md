@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: engineer
 slug: how-engineer-payouts-work
+group: how-engineer-payouts-work
 ---
 
 # How Engineer Payouts Work on TalEngineer

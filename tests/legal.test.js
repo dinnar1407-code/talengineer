@@ -1,8 +1,9 @@
 // ── 法务内容数据层测试（lib/legal.js，IA 改版 §B1 /privacy + /terms）────────────
 // 守护两条红线：
-//   1. 完整性：privacy/terms 两份文档 × en/zh 两种语言都能加载，标题/正文/日期齐全
-//      （页面 getStaticProps 依赖这一点，缺任何一份构建都会出问题）。
-//   2. 发布门控：四份文档当前必须全部 draft === true——法务页在 Terry 终审前
+//   1. 完整性：privacy/terms 两份文档 × 九种站点语言都能加载，标题/正文/日期齐全
+//      （2026-07-24 九语铺开：补齐 es/vi/hi/fr/de/ja/ko；页面 getStaticProps 依赖
+//      这一点，缺任何一份构建都会出问题）。
+//   2. 发布门控：十八份文档当前必须全部 draft === true——法务页在 Terry 终审前
 //      只能以"noindex + 草稿横幅"的草稿形态存在。终审通过翻 draft:false 时，
 //      这条断言会红，逼迫发布者有意识地同步更新本测试——"翻发布"永远是个显式动作。
 //
@@ -11,13 +12,13 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-// 法务文档与语言的全集（与 lib/legal.js 的白名单同口径）。
+// 法务文档与语言的全集（与 lib/legal.js 的白名单同口径，2026-07-24 九语铺开）。
 const DOCS = ['privacy', 'terms'];
-const LANGS = ['en', 'zh'];
+const LANGS = ['en', 'zh', 'es', 'vi', 'hi', 'fr', 'de', 'ja', 'ko'];
 
 describe('lib/legal —— 法务文档加载器', () => {
 
-  it('两份文档 × 两种语言都能加载，且元数据/正文齐全', async () => {
+  it('两份文档 × 九种语言都能加载，且元数据/正文齐全', async () => {
     const { getLegalDoc } = await import('../lib/legal.js');
 
     for (const docName of DOCS) {
@@ -38,7 +39,7 @@ describe('lib/legal —— 法务文档加载器', () => {
     }
   });
 
-  it('发布门控：四份文档当前全部 draft === true（翻发布必须有意识地改这条断言）', async () => {
+  it('发布门控：十八份文档当前全部 draft === true（翻发布必须有意识地改这条断言）', async () => {
     const { getLegalDoc } = await import('../lib/legal.js');
 
     for (const docName of DOCS) {
@@ -56,7 +57,8 @@ describe('lib/legal —— 法务文档加载器', () => {
     const { getLegalDoc } = await import('../lib/legal.js');
 
     assert.equal(getLegalDoc('cookie-policy', 'en'), null);
-    assert.equal(getLegalDoc('privacy', 'fr'), null);
+    // 'fr' 现已是九语白名单内的合法语言（2026-07-24 铺开），改用真正不在白名单内的语言码。
+    assert.equal(getLegalDoc('privacy', 'pt'), null);
     // 路径穿越类输入必须被白名单直接拦下（防御性纪律，与 lib/whitepaper.js 同源）。
     assert.equal(getLegalDoc('../playbook/china-plc-rates', 'en'), null);
   });

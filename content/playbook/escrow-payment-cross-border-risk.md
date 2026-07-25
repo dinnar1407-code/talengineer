@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: employer
 slug: escrow-payment-cross-border-risk
+group: escrow-payment-cross-border-risk
 ---
 
 # 托管付款如何降低跨境用人风险

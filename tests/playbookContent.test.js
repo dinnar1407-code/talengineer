@@ -67,6 +67,83 @@ describe('lib/playbook —— draft 发布门控（默认过滤草稿）', () =>
   });
 });
 
+describe('playbook 翻译组机制 —— group 解析 + 索引页按组挑选（i18n 全站铺开 2026-07-24）', () => {
+
+  it('parseFrontmatter：解析 group 字段（字符串原样返回）', async () => {
+    const { parseFrontmatter } = await import('../lib/playbook.js');
+    const { data } = parseFrontmatter(
+      '---\ntitle: T\nslug: my-article-zh\ngroup: my-article\n---\nbody'
+    );
+    assert.equal(data.group, 'my-article');
+  });
+
+  it('getAllPlaybookMeta：每条 meta 都带非空 group；无 group 时回退 slug', async () => {
+    const { getAllPlaybookMeta } = await import('../lib/playbook.js');
+    const metas = getAllPlaybookMeta();
+    assert.ok(metas.length > 0);
+    for (const m of metas) {
+      assert.ok(typeof m.group === 'string' && m.group.length > 0, `${m.slug} 缺 group`);
+    }
+    // 恒定样本：独立文章 group = 自身 slug（今天各 en/zh 文互相独立、各成一组）。
+    const published = metas.find((m) => m.slug === PUBLISHED_SLUG);
+    assert.equal(published.group, PUBLISHED_SLUG);
+  });
+
+  it('getPlaybookBySlug：草稿月报 en/zh 共享 group market-report-2026-07', async () => {
+    const { getPlaybookBySlug } = await import('../lib/playbook.js');
+    // 草稿不进 meta 列表（发布门控），用单篇 loader 验证翻译组标注。
+    for (const slug of DRAFT_SLUGS) {
+      const article = getPlaybookBySlug(slug);
+      assert.ok(article, `${slug} 应能被单篇 loader 读到`);
+      assert.equal(article.group, 'market-report-2026-07');
+    }
+  });
+
+  it('selectGroupVariants：lang=en 时每组恰好一张卡（真实 meta，索引页 SSR 首帧口径）', async () => {
+    const { getAllPlaybookMeta } = await import('../lib/playbook.js');
+    const { selectGroupVariants } = await import('../lib/playbookGroups.js');
+    const metas = getAllPlaybookMeta();
+    const selected = selectGroupVariants(metas, 'en');
+
+    // 每组恰好一张卡：选出条数 = 去重后的组数，且组键无重复。
+    const uniqueGroups = new Set(metas.map((m) => m.group));
+    assert.equal(selected.length, uniqueGroups.size);
+    assert.equal(new Set(selected.map((s) => s.group)).size, selected.length);
+
+    // 有 en 变体的组必须选 en 变体（当前每组只有单语，等价于 en 文全被选中）。
+    const groupsWithEn = new Set(metas.filter((m) => m.lang === 'en').map((m) => m.group));
+    for (const s of selected) {
+      if (groupsWithEn.has(s.group)) assert.equal(s.lang, 'en');
+    }
+  });
+
+  it('selectGroupVariants：语言优先 → en 回退 → 组内兜底，otherLangs 列出其余语言（合成数据）', async () => {
+    const { selectGroupVariants } = await import('../lib/playbookGroups.js');
+    // 合成三组：a = en+zh 双语组；b = 仅 zh；c = 仅 en。
+    const metas = [
+      { slug: 'a', group: 'a', lang: 'en' },
+      { slug: 'a-zh', group: 'a', lang: 'zh' },
+      { slug: 'b-only-zh', group: 'b-only-zh', lang: 'zh' },
+      { slug: 'c', group: 'c', lang: 'en' },
+    ];
+
+    // zh 用户：a 组选 zh 变体，其余照常存在（b 是 zh、c 回退 en）。
+    const forZh = selectGroupVariants(metas, 'zh');
+    assert.equal(forZh.length, 3);
+    const aZh = forZh.find((s) => s.group === 'a');
+    assert.equal(aZh.slug, 'a-zh');
+    assert.deepEqual(aZh.otherLangs, ['en']);
+
+    // fr 用户（无 fr 变体）：a/c 回退 en；b 组连 en 都没有 → 兜底取组内现存的 zh。
+    const forFr = selectGroupVariants(metas, 'fr');
+    assert.equal(forFr.find((s) => s.group === 'a').slug, 'a');
+    assert.deepEqual(forFr.find((s) => s.group === 'a').otherLangs, ['zh']);
+    assert.equal(forFr.find((s) => s.group === 'b-only-zh').lang, 'zh');
+    // 单语组没有其他语言，徽章不该出现。
+    assert.deepEqual(forFr.find((s) => s.group === 'c').otherLangs, []);
+  });
+});
+
 describe('lib/whitepaper —— loader 形状（与 playbook 共享 frontmatter 实现的薄测）', () => {
 
   it('getWhitepaper(en/zh)：返回完整形状，草稿期 draft=true，正文已渲染成 HTML', async () => {

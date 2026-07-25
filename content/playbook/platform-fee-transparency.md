@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: both
 slug: platform-fee-transparency
+group: platform-fee-transparency
 ---
 
 # 为什么我们把 15% 平台费摆在明面上

@@ -7,6 +7,7 @@ type: guide
 track: robotics
 audience: both
 slug: robot-cell-commissioning-guide
+group: robot-cell-commissioning-guide
 ---
 
 # Robot Cell Commissioning: What to Expect

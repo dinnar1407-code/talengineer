@@ -7,6 +7,7 @@ type: guide
 track: general
 audience: engineer
 slug: getting-matched-on-talengineer
+group: getting-matched-on-talengineer
 ---
 
 # Getting Matched on TalEngineer — What Actually Determines Who Gets the Work
