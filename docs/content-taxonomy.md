@@ -1,14 +1,35 @@
 # Playbook 内容 Taxonomy 与生产节奏（竞对改善 W1-2，2026-07-18；分类激活状态 2026-07-24 更新）
 
-## Taxonomy（frontmatter 三字段，`lib/playbook.js` 解析，未标注有回退默认）
+## Taxonomy（frontmatter 字段，`lib/playbook.js` 解析，未标注有回退默认）
 
 | 字段 | 取值 | 说明 |
 |---|---|---|
 | `type` | `guide` 指南 / `market-data` 市场数据 / `certification` 认证解读 / `case` 案例 | 列表页 chip 筛选 + 卡片徽章 |
 | `track` | `plc` / `robotics` / `vision` / `electrical` / `general` | 技术方向（与认证四方向同口径） |
 | `audience` | `employer` / `engineer` / `both` | 受众 |
+| `group` | 翻译组键（默认 = 自身 slug） | 同一文章的各语言版本共享同一 group（i18n 全站铺开 2026-07-24，见下） |
 
-默认回退：`guide` / `general` / `both`（旧文未标注时兜底，现存 18 篇已全部标注）。
+默认回退：`guide` / `general` / `both` / `group=slug`（旧文未标注时兜底，现存 18 篇已全部标注）。
+
+## 翻译组机制（`group` 字段 + slug 约定，2026-07-24）
+
+**机制**：同一篇文章的不同语言版本（各自独立的 .md 文件、各自独立的 slug）通过共享同一个
+`group` 值关联成"翻译组"。`lib/playbook.js` 把 `group` 带进 meta（缺省回退自身 slug——
+独立文章天然各成一组）；`lib/playbookGroups.js` 的 `selectGroupVariants` 是索引页的挑选逻辑。
+
+- **索引页 `/playbook`**：不再按语言分区——每组只出一张卡：当前 UI 语言的变体优先，
+  缺译回退 en，连 en 都没有就取组内现存的那篇。组内有其他语言时卡片带「也提供: EN/中文/…」徽章。
+  SSR 首帧恒为 en 行为（useLang 首帧 'en'，完整 en 集合）。
+- **文章页 `/playbook/<slug>`**：同组存在其他已发布语言版本时，文首出「Read in: English / 中文 / …」
+  切换带，链到兄弟 slug。草稿（draft: true）不会出现在切换带里（沿用发布门控）。
+
+**未来译文的 slug 约定**：非 en 变体 slug = **`<group>-<lang>`**（如 `how-talscore-is-computed-zh`），
+除非该语言有更自然的 slug（自然 slug 优先，SEO 友好）；**en 变体保留裸 group 作为 slug**（不加 `-en` 后缀）。
+历史例外：月报对 `market-report-2026-07-en` / `-zh` 的 en 侧带 `-en` 后缀（生成脚本沿用既有命名），
+它们共享 `group: market-report-2026-07`；新文一律按上述约定走。
+
+**现状（2026-07-24）**：18 篇里唯一的多语言组是草稿月报对（group `market-report-2026-07`）；
+其余 16 篇各成一组（group = 自身 slug）——en/zh 各文今天是独立文章而非互译对照，不合并组。
 
 ## 各维度激活状态（2026-07-24）
 

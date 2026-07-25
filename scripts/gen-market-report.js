@@ -79,6 +79,9 @@ function buildMarkdown({ lang, month, today, benchmarks, skills, coverage }) {
   lines.push('track: general');
   lines.push('audience: employer');
   lines.push(`slug: ${slug}`);
+  // 翻译组键（docs/content-taxonomy.md）：en/zh 月报对共享同一 group，
+  // /playbook 索引按组去重、文章页出语言切换带都靠它。
+  lines.push(`group: market-report-${month}`);
   // 发布门控：draft: true。Terry 终审后翻成 false 才会被 /playbook 索引与 sitemap 收录。
   lines.push('draft: true');
   lines.push('---');
