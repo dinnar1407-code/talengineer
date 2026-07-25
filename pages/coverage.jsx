@@ -23,7 +23,7 @@ const TRACK_LABELS = {
   plc: { en: 'PLC Programming', zh: 'PLC 编程', es: 'Programación de PLC', vi: 'Lập trình PLC', hi: 'PLC प्रोग्रामिंग', fr: 'Programmation PLC', de: 'PLC-Programmierung', ja: 'PLCプログラミング', ko: 'PLC 프로그래밍' },
   robotics: { en: 'Robotics', zh: '机器人', es: 'Robótica', vi: 'Robot công nghiệp', hi: 'रोबोटिक्स', fr: 'Robotique', de: 'Robotik', ja: 'ロボティクス', ko: '로보틱스' },
   vision: { en: 'Machine Vision', zh: '机器视觉', es: 'Visión artificial', vi: 'Thị giác máy', hi: 'मशीन विज़न', fr: 'Vision industrielle', de: 'Bildverarbeitung', ja: 'マシンビジョン', ko: '머신 비전' },
-  electrical: { en: 'Electrical', zh: '电气', es: 'Eléctrica', vi: 'Điện', hi: 'इलेक्ट्रिकल', fr: 'Électrique', de: 'Elektrotechnik', ja: '電気', ko: '전기' },
+  electrical: { en: 'Electrical', zh: '电气', es: 'Eléctrica', vi: 'Điện', hi: 'इलेक्ट्रिकल', fr: 'Électricité', de: 'Elektrotechnik', ja: '電気', ko: '전기' },
 };
 
 // 档位配色：半透明底 + 实色字，明暗主题下都清晰（照 TalScoreBadge 的金属色系手法；
@@ -84,17 +84,17 @@ export default function Coverage() {
   return (
     <div className={styles.page}>
       <Head>
-        <title>Engineer Coverage Map | Talengineer</title>
-        <meta name="description" content="Live regional coverage of industrial automation engineers — counts, availability, TalScore tiers and specialties (PLC, robotics, vision, electrical) by region." />
+        <title>{d.metaTitle} | Talengineer</title>
+        <meta name="description" content={d.metaDescription} />
         <link rel="canonical" href={`${SITE}/coverage`} />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Engineer Coverage Map | Talengineer" />
-        <meta property="og:description" content="Live regional coverage of industrial automation engineers — counts, availability, TalScore tiers and specialties by region." />
+        <meta property="og:title" content={`${d.metaTitle} | Talengineer`} />
+        <meta property="og:description" content={d.metaDescription} />
         <meta property="og:url" content={`${SITE}/coverage`} />
         <meta property="og:image" content={`${SITE}/og.png`} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Engineer Coverage Map | Talengineer" />
-        <meta name="twitter:description" content="Live regional coverage of industrial automation engineers by region and specialty." />
+        <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
+        <meta name="twitter:description" content={d.metaDescription} />
         <meta name="twitter:image" content={`${SITE}/og.png`} />
         <script
           type="application/ld+json"
@@ -163,8 +163,8 @@ export default function Coverage() {
                   <span> {r.engineers === 1 ? d.engineer : d.engineers}</span>
                 </div>
                 <div className={styles.cardMeta}>
-                  <span className={styles.metaAvailable}>{r.available} {d.availableNow}</span>
-                  <span className={styles.metaCertified}>🎓 {r.certified} {d.certifiedLabel}</span>
+                  <span className={styles.metaAvailable}>{r.available} {r.available === 1 ? d.availableNow : d.availableNowPlural}</span>
+                  <span className={styles.metaCertified}>🎓 {r.certified} {r.certified === 1 ? d.certifiedLabel : d.certifiedLabelPlural}</span>
                 </div>
 
                 {/* 档位分布条：宽度按占比，颜色照 TalScoreBadge 金属色系 */}

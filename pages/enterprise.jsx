@@ -109,8 +109,13 @@ export default function Enterprise() {
   return (
     <>
       <Head>
-        <title>Enterprise API | Talengineer</title>
-        <meta name="description" content="Talengineer Enterprise API — bulk post projects, access rate benchmarks, and manage engineers programmatically." />
+        <title>{`${d.metaTitle} | Talengineer`}</title>
+        <meta name="description" content={d.metaDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={`${d.metaTitle} | Talengineer`} />
+        <meta property="og:description" content={d.metaDescription} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

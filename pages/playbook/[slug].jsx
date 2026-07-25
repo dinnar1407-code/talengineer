@@ -110,6 +110,13 @@ export default function PlaybookArticle({ article, related, variants }) {
   const canonical = `${SITE}/playbook/${article.slug}`;
   const ogImage = `${SITE}/og.png`;
 
+  // hreflang alternates：同翻译组（getStaticProps 里按 article.group 挑出的 variants）
+  // 互相声明语言版本，帮搜索引擎把同一篇文章的九语变体识别为彼此的翻译而非重复内容。
+  // x-default 优先指向组内的 en 变体；组内没有 en（如仅 zh 的独立文章）就回退本文自身，
+  // 因为总要有一个 x-default 目标，且本文是那种情况下唯一能确定存在的页面。
+  const hreflangSiblings = [{ slug: article.slug, lang: article.lang }, ...variants];
+  const xDefaultSlug = hreflangSiblings.find((v) => v.lang === 'en')?.slug || article.slug;
+
   // Article 结构化数据，帮助搜索引擎理解这是一篇文章。
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -134,6 +141,10 @@ export default function PlaybookArticle({ article, related, variants }) {
         <title>{`${article.title} | Talengineer`}</title>
         <meta name="description" content={article.description} />
         <link rel="canonical" href={canonical} />
+        {hreflangSiblings.map((v) => (
+          <link key={v.lang} rel="alternate" hrefLang={v.lang} href={`${SITE}/playbook/${v.slug}`} />
+        ))}
+        <link rel="alternate" hrefLang="x-default" href={`${SITE}/playbook/${xDefaultSlug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.description} />

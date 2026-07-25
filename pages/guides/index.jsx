@@ -95,17 +95,17 @@ export default function GuidesIndex({ guides }) {
   return (
     <div className={styles.page}>
       <Head>
-        <title>{`${UI.en.title} | Talengineer`}</title>
-        <meta name="description" content={UI.en.sub} />
+        <title>{`${(UI[lang] || UI.en).title} | Talengineer`}</title>
+        <meta name="description" content={(UI[lang] || UI.en).sub} />
         <link rel="canonical" href={canonical} />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content={UI.en.title} />
-        <meta property="og:description" content={UI.en.sub} />
+        <meta property="og:title" content={(UI[lang] || UI.en).title} />
+        <meta property="og:description" content={(UI[lang] || UI.en).sub} />
         <meta property="og:url" content={canonical} />
         <meta property="og:image" content={ogImage} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={UI.en.title} />
-        <meta name="twitter:description" content={UI.en.sub} />
+        <meta name="twitter:title" content={(UI[lang] || UI.en).title} />
+        <meta name="twitter:description" content={(UI[lang] || UI.en).sub} />
         <meta name="twitter:image" content={ogImage} />
         <script
           type="application/ld+json"

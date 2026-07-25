@@ -26,7 +26,7 @@ const TRACKS = [
   { key: 'plc',        en: 'PLC & Controls', zh: 'PLC 与控制', es: 'PLC y control',        vi: 'PLC & Điều khiển',  hi: 'PLC और कंट्रोल',    fr: 'PLC et contrôle-commande',  de: 'PLC & Steuerungstechnik', ja: 'PLC・制御',   ko: 'PLC 및 제어' },
   { key: 'robotics',   en: 'Robotics',       zh: '机器人',      es: 'Robótica',              vi: 'Robot công nghiệp', hi: 'रोबोटिक्स',        fr: 'Robotique',                  de: 'Robotik',                  ja: 'ロボティクス', ko: '로보틱스' },
   { key: 'vision',     en: 'Machine Vision', zh: '机器视觉',    es: 'Visión artificial',     vi: 'Thị giác máy',      hi: 'मशीन विज़न',        fr: 'Vision industrielle',        de: 'Bildverarbeitung',         ja: 'マシンビジョン', ko: '머신 비전' },
-  { key: 'electrical', en: 'Electrical',     zh: '电气',        es: 'Eléctrica',             vi: 'Điện',              hi: 'इलेक्ट्रिकल',      fr: 'Électrique',                 de: 'Elektrotechnik',                 ja: '電気',        ko: '전기' },
+  { key: 'electrical', en: 'Electrical',     zh: '电气',        es: 'Eléctrica',             vi: 'Điện',              hi: 'इलेक्ट्रिकल',      fr: 'Électricité',                 de: 'Elektrotechnik',                 ja: '電気',        ko: '전기' },
 ];
 
 export default function Pools() {
@@ -200,8 +200,8 @@ export default function Pools() {
 
   const head = (
     <Head>
-      <title>Certified Talent Pools | Talengineer</title>
-      <meta name="description" content="Build private pools of platform-certified industrial automation engineers." />
+      <title>{d.metaTitle} | Talengineer</title>
+      <meta name="description" content={d.metaDescription} />
       {/* 登录态控制台页：不进 sitemap/llms.txt，也不让搜索引擎收录 */}
       <meta name="robots" content="noindex" />
     </Head>

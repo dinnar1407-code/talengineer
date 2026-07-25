@@ -581,17 +581,17 @@ export default function Talent() {
   return (
     <>
       <Head>
-        <title>Talent & Projects | Talengineer</title>
-        <meta name="description" content="Browse and hire AI-verified industrial automation engineers — PLC, robotics, machine vision, and electrical. Post a project and match with certified talent under milestone escrow." />
+        <title>{`${d.metaTitle} | Talengineer`}</title>
+        <meta name="description" content={d.metaDescription} />
         <link rel="canonical" href="https://talengineer.us/talent" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Find Automation Engineers | Talengineer" />
-        <meta property="og:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers. Milestone escrow protects both sides." />
+        <meta property="og:title" content={`${d.metaTitle} | Talengineer`} />
+        <meta property="og:description" content={d.metaDescription} />
         <meta property="og:url" content="https://talengineer.us/talent" />
         <meta property="og:image" content="https://talengineer.us/og.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Find Automation Engineers | Talengineer" />
-        <meta name="twitter:description" content="Browse and hire AI-verified PLC, robotics, machine vision, and electrical engineers." />
+        <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
+        <meta name="twitter:description" content={d.metaDescription} />
         <meta name="twitter:image" content="https://talengineer.us/og.png" />
       </Head>
       <ChatBot lang={lang} />

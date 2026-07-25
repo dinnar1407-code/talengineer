@@ -88,21 +88,21 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Talengineer | AI-Verified Industrial Automation Talent, Without Borders</title>
+        <title>{`Talengineer | ${d.metaTitle}`}</title>
         <meta
           name="description"
-          content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers — screened with a practical AI assessment and certified through platform exams. Milestone escrow protects both sides; an AI project manager works in nine languages."
+          content={d.metaDescription}
         />
         {/* 规范链接 + Open Graph / Twitter 分享卡（og.png 由 scripts/gen-og.js 生成）*/}
         <link rel="canonical" href="https://talengineer.us/" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Talengineer | AI-Verified Industrial Automation Talent, Without Borders" />
-        <meta property="og:description" content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers. Milestone escrow protects both sides; an AI project manager works in nine languages." />
+        <meta property="og:title" content={`Talengineer | ${d.metaTitle}`} />
+        <meta property="og:description" content={d.metaDescription} />
         <meta property="og:url" content="https://talengineer.us/" />
         <meta property="og:image" content="https://talengineer.us/og.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Talengineer | AI-Verified Industrial Automation Talent" />
-        <meta name="twitter:description" content="Hire AI-verified PLC, SCADA, robotics, and electrical automation engineers. Milestone escrow protects both sides." />
+        <meta name="twitter:title" content={`Talengineer | ${d.metaTitle}`} />
+        <meta name="twitter:description" content={d.metaDescription} />
         <meta name="twitter:image" content="https://talengineer.us/og.png" />
         {/* 品牌字体：Archivo（标题/字标）、IBM Plex Sans（正文）、IBM Plex Mono（数字/kicker）*/}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
