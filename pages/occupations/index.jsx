@@ -3,37 +3,13 @@ import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
+import { DICT as UI } from '../../lib/i18n/occupations-index';
 import styles from './occupations.module.css';
 
 // 站点根 URL：canonical / OG 用（与 /hire/[track] 同一约定）。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// 索引页文案（en/zh 两套，其余 7 语回退英文）。
-// 诚实红线：本页只做导览（职业按方向分组 + 一句话说明），不写任何统计数字。
-const UI = {
-  en: {
-    kicker: 'Occupations',
-    title: 'Hire by Role Title',
-    sub: 'Browse the industrial automation roles you can hire on TalEngineer — grouped by certification track, each with a dedicated page covering duties, skills, regional rates and the certification path behind the title.',
-    lead:
-      'Job titles and certification tracks are not the same thing. A title like "SCADA engineer" tells you what someone does day to day; a track tells you how the platform screens and certifies them. These pages map the common titles onto our four tracks — PLC & Controls, Robotics, Machine Vision and Electrical — so you can start from the role you are actually hiring for.',
-    viewRole: 'View role',
-    ctaHeading: 'Ready to hire?',
-    ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
-    ctaBtn: 'Post a Project — Free',
-  },
-  zh: {
-    kicker: '职业目录',
-    title: '按职位名招聘',
-    sub: '浏览可以在 TalEngineer 上招到的工业自动化职位——按认证方向分组，每个职位都有专页，覆盖职责、技能、地区费率与这个头衔背后的认证路径。',
-    lead:
-      '职位名和认证方向不是一回事。"SCADA 工程师"这样的头衔说的是一个人每天做什么；认证方向说的是平台如何筛选并认证他。这些页面把常见职位名映射到我们的四条方向——PLC 与控制、机器人、机器视觉、电气——让你从真正要招的那个职位出发。',
-    viewRole: '查看职位',
-    ctaHeading: '准备好招募了吗？',
-    ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
-    ctaBtn: '免费发布项目',
-  },
-};
+// UI 字典已迁至 lib/i18n/occupations-index.js（2026-07-24 架构 B）。
 
 export default function OccupationsIndex({ groups }) {
   const [lang, setLang] = useLang();

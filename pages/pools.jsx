@@ -13,71 +13,21 @@ import TalScoreBadge from '../components/TalScoreBadge';
 import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
+// 页内文案字典：已迁至 lib/i18n/pools.js（2026-07-24 机械搬移）
+import { DICT } from '../lib/i18n/pools';
 import styles from './pools.module.css';
 
 const LS_USER_KEY = 'tal_user';
 
 // 四个认证方向（cert_tracks 种子 key，口径与 pages/certification.jsx / src/config/training.js 一致）
+// 九语标签：术语取自 lib/i18n/glossary.js TERMS.controls/robotics/machineVision（PLC 保持
+// KEEP_ENGLISH），electrical 沿用本页 en/zh 既有的短称口径（非 glossary 的长称"电气柜设计"）。
 const TRACKS = [
-  { key: 'plc',        en: 'PLC & Controls', zh: 'PLC 与控制' },
-  { key: 'robotics',   en: 'Robotics',       zh: '机器人' },
-  { key: 'vision',     en: 'Machine Vision', zh: '机器视觉' },
-  { key: 'electrical', en: 'Electrical',     zh: '电气' },
+  { key: 'plc',        en: 'PLC & Controls', zh: 'PLC 与控制', es: 'PLC y control',        vi: 'PLC & Điều khiển',  hi: 'PLC और कंट्रोल',    fr: 'PLC et contrôle-commande',  de: 'PLC & Steuerungstechnik', ja: 'PLC・制御',   ko: 'PLC 및 제어' },
+  { key: 'robotics',   en: 'Robotics',       zh: '机器人',      es: 'Robótica',              vi: 'Robot công nghiệp', hi: 'रोबोटिक्स',        fr: 'Robotique',                  de: 'Robotik',                  ja: 'ロボティクス', ko: '로보틱스' },
+  { key: 'vision',     en: 'Machine Vision', zh: '机器视觉',    es: 'Visión artificial',     vi: 'Thị giác máy',      hi: 'मशीन विज़न',        fr: 'Vision industrielle',        de: 'Bildverarbeitung',         ja: 'マシンビジョン', ko: '머신 비전' },
+  { key: 'electrical', en: 'Electrical',     zh: '电气',        es: 'Eléctrica',             vi: 'Điện',              hi: 'इलेक्ट्रिकल',      fr: 'Électrique',                 de: 'Elektrotechnik',                 ja: '電気',        ko: '전기' },
 ];
-
-// 页内文案：en/zh，其余语言回退英文（页面正文两语即可，9 语只在壳组件）
-const DICT = {
-  en: {
-    title: 'Certified Talent Pools',
-    subtitle: 'Build private pools of pre-vetted, platform-certified engineers for repeat projects.',
-    myPools: 'My Pools', newPool: 'New Pool',
-    poolName: 'Pool name', poolNamePh: 'e.g. Line-3 retrofit crew',
-    tracksLabel: 'Certification tracks (any of the selected)',
-    minLevelLabel: 'Minimum certification level', anyLevel: 'Any level',
-    minScoreLabel: 'Minimum TalScore (0-100, optional)', minScorePh: 'e.g. 60',
-    regionsLabel: 'Regions (comma separated, optional)', regionsPh: 'e.g. US, MX',
-    createBtn: 'Create pool', creating: 'Creating…',
-    emptyPools: 'No pools yet.', emptyPoolsHint: 'Create your first pool with the form below.',
-    membersTitle: 'Members', candidatesTitle: 'Matching candidates',
-    criteriaTitle: 'Criteria', noCriteria: 'No criteria — every engineer qualifies.',
-    critLevel: 'L{n}+', critScore: 'TalScore ≥ {n}', critRegion: 'Region: {r}',
-    addBtn: '+ Add', removeBtn: 'Remove', deletePool: 'Delete pool',
-    confirmDelete: 'Delete this pool and all its members?',
-    loading: 'Loading…', membersCount: 'members',
-    emptyCandidates: 'No matching engineers right now. Loosen the criteria or check back later.',
-    emptyMembers: 'No members yet. Add engineers from the candidate list.',
-    thEngineer: 'Engineer', thSnapshot: 'Snapshot at join', thAdded: 'Added', thAction: 'Action',
-    selectPool: 'Select a pool on the left to see its members and matching candidates.',
-    createdOk: 'Pool created.', addedOk: 'Engineer added to pool.',
-    removedOk: 'Engineer removed.', deletedOk: 'Pool deleted.',
-    errGeneric: 'Something went wrong. Please try again.',
-  },
-  zh: {
-    title: '企业认证人才池',
-    subtitle: '按条件圈选预审过、持平台认证的工程师，组成你的私有人才池，复购不必重新筛。',
-    myPools: '我的人才池', newPool: '新建人才池',
-    poolName: '池名称', poolNamePh: '例如：3 号线改造班组',
-    tracksLabel: '认证方向（命中所选任一即可）',
-    minLevelLabel: '最低认证等级', anyLevel: '不限等级',
-    minScoreLabel: '最低 TalScore（0-100，可选）', minScorePh: '例如 60',
-    regionsLabel: '地区（逗号分隔，可选）', regionsPh: '例如 US, MX',
-    createBtn: '创建人才池', creating: '创建中…',
-    emptyPools: '还没有人才池。', emptyPoolsHint: '用下方表单创建第一个。',
-    membersTitle: '池内成员', candidatesTitle: '符合条件的候选人',
-    criteriaTitle: '圈选条件', noCriteria: '未设条件——所有工程师都符合。',
-    critLevel: 'L{n}+', critScore: 'TalScore ≥ {n}', critRegion: '地区：{r}',
-    addBtn: '＋ 加入', removeBtn: '移出', deletePool: '删除此池',
-    confirmDelete: '确认删除此池及全部成员？',
-    loading: '加载中…', membersCount: '名成员',
-    emptyCandidates: '暂无符合条件的工程师。可放宽条件或稍后再看。',
-    emptyMembers: '还没有成员。从候选列表把工程师加进来。',
-    thEngineer: '工程师', thSnapshot: '加入时快照', thAdded: '加入时间', thAction: '操作',
-    selectPool: '在左侧选择一个池，查看成员与匹配候选人。',
-    createdOk: '人才池已创建。', addedOk: '已加入池。',
-    removedOk: '已移出。', deletedOk: '池已删除。',
-    errGeneric: '出错了，请重试。',
-  },
-};
 
 export default function Pools() {
   const router = useRouter();
@@ -224,7 +174,7 @@ export default function Pools() {
   // ── 渲染小件 ─────────────────────────────────────────────────────────────────
   const trackLabel = (key) => {
     const t = TRACKS.find((x) => x.key === key);
-    return t ? (lang === 'zh' ? t.zh : t.en) : key;
+    return t ? (t[lang] || t.en) : key;
   };
 
   // criteria 摘要 chips（无条件时给"未设条件"说明）
@@ -320,7 +270,7 @@ export default function Pools() {
                     className={`${styles.chip} ${selTracks.includes(t.key) ? styles.chipActive : ''}`}
                     onClick={() => setSelTracks((prev) => (prev.includes(t.key) ? prev.filter((k) => k !== t.key) : [...prev, t.key]))}
                   >
-                    {lang === 'zh' ? t.zh : t.en}
+                    {t[lang] || t.en}
                   </button>
                 ))}
               </div>

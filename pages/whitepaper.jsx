@@ -5,55 +5,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { getWhitepaper } from '../lib/whitepaper';
+// 页面外壳文案（en/zh）字典：已迁至 lib/i18n/whitepaper.js（2026-07-24 机械搬移）
+import { DICT as UI } from '../lib/i18n/whitepaper';
 import styles from './whitepaper.module.css';
 
 // 站点根 URL：canonical / OG 用。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
-
-// 页面外壳文案（en/zh）。白皮书正文本身来自 content/whitepaper/{en,zh}.md，
-// 这里只放门控卡、目录、草稿横幅等 UI 文案。
-//
-// ⚠️ 诚实软门（critic 裁定的红线）：全文本来就在静态 HTML 源码里，
-// 邮箱门只是 lead capture、不是访问控制——文案绝不暗示更强的保护，
-// 也绝不谎称"已发邮件"（本站目前不发任何 newsletter 邮件）。
-const UI = {
-  en: {
-    kicker: 'Whitepaper',
-    draftBanner: 'Draft — AI-drafted, pending final review. Not for external distribution.',
-    tocTitle: 'What is inside',
-    gateTitle: 'Read the full whitepaper',
-    gateBody:
-      'Enter your email to unlock the full text right here on this page, and to hear from us when we publish new guides. No spam, unsubscribe anytime.',
-    gatePlaceholder: 'you@company.com',
-    gateBtn: 'Unlock full text',
-    gateBtnSending: 'Unlocking…',
-    gateOk: 'Thanks — the full text is unlocked below.',
-    gateAlready: 'Welcome back — the full text is unlocked below.',
-    gateErr: 'Something went wrong. Please check the email and try again.',
-    gateInvalid: 'Please enter a valid email address.',
-    ctaTitle: 'Ready to solve your overseas staffing?',
-    ctaBody: 'Post a project and match with pre-screened, certified engineers under milestone escrow.',
-    ctaBtn: 'Browse Engineers →',
-  },
-  zh: {
-    kicker: '白皮书',
-    draftBanner: '草稿 — AI 起草，待终审。请勿对外分发。',
-    tocTitle: '本文目录',
-    gateTitle: '阅读白皮书全文',
-    gateBody:
-      '输入邮箱即可在本页解锁全文，并在我们发布新指南时收到消息。不发垃圾邮件，随时可退订。',
-    gatePlaceholder: 'you@company.com',
-    gateBtn: '解锁全文',
-    gateBtnSending: '解锁中…',
-    gateOk: '谢谢——全文已在下方解锁。',
-    gateAlready: '欢迎回来——全文已在下方解锁。',
-    gateErr: '出了点问题，请检查邮箱后重试。',
-    gateInvalid: '请输入有效的邮箱地址。',
-    ctaTitle: '准备好解决海外用人问题了吗？',
-    ctaBody: '发布项目，在里程碑托管下与经过预审、持证的工程师匹配。',
-    ctaBtn: '浏览工程师 →',
-  },
-};
 
 // 邮箱基础校验（前端只做轻校验，真正的权威校验在后端 zod）。
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

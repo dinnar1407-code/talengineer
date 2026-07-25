@@ -3,81 +3,24 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
+import { DICT } from '../lib/i18n/developers';
 import styles from './developers.module.css';
 
-// 页面文案（中英双套）。代码块/端点路径/事件名是语言无关的常量，放在 DICT 之外。
-const DICT = {
-  en: {
-    heroBadge: 'Developers',
-    heroTitle: 'Talengineer API v1',
-    heroSub: 'A stable, versioned REST API for enterprise integration. Post demands, browse the engineer directory, track milestones, and receive signed webhooks.',
-    authTitle: 'Authentication',
-    authDesc: 'All v1 endpoints require an API key. Create one on the Enterprise page, then send it as a Bearer token. Keys are only issued to employer / enterprise accounts.',
-    baseUrlLabel: 'Base URL',
-    authHeaderLabel: 'Auth header',
-    endpointsTitle: 'Endpoints',
-    colMethod: 'Method',
-    colPath: 'Path',
-    colDesc: 'Description',
-    webhooksTitle: 'Webhooks',
-    webhooksDesc: 'Configure a webhook URL per API key on the Enterprise page. When you save it, we generate a signing secret (shown once). We POST a signed JSON body to your URL on these events:',
-    colEvent: 'Event',
-    payloadTitle: 'Payload',
-    payloadDesc: 'Every delivery is a JSON body with this shape. The signature is computed over the exact bytes of this body.',
-    sigTitle: 'Signature verification',
-    sigDesc: 'Each request carries an X-TalEngineer-Signature header: the hex HMAC-SHA256 of the raw body, keyed by your webhook secret. Recompute it and compare in constant time:',
-    manageBtn: 'Manage API keys & webhooks',
-    mcpTitle: 'MCP — Connect Your AI Agent',
-    mcpSell: 'Talengineer is the first industrial-automation talent platform that AI agents can call directly.',
-    mcpDesc: 'POST /api/mcp is a stateless JSON-RPC 2.0 endpoint implementing the Model Context Protocol (MCP): initialize, tools/list and tools/call. Point Claude Desktop, an IDE agent, or any MCP-compatible client at it, and your agent can search engineers, check rate benchmarks, and prepare demand drafts for you.',
-    mcpAuthDesc: 'Authentication reuses your v1 API key — send it as a Bearer token, exactly like the REST endpoints above.',
-    mcpSafety: 'Every tool is read-only except create_demand_draft, which only saves a private draft (status = draft). Drafts are never listed publicly, and publishing always requires a human click in the UI.',
-    mcpExampleTitle: 'Example: tools/call',
-    colTool: 'Tool',
-  },
-  zh: {
-    heroBadge: '开发者',
-    heroTitle: 'Talengineer API v1',
-    heroSub: '面向企业对接的稳定、带版本的 REST API。发布需求、浏览工程师目录、跟踪里程碑，并接收带签名的 webhook。',
-    authTitle: '鉴权',
-    authDesc: '所有 v1 端点都需要 API key。在企业版页面创建后，以 Bearer token 方式发送。API key 仅向雇主 / 企业账号发放。',
-    baseUrlLabel: '基础 URL',
-    authHeaderLabel: '鉴权头',
-    endpointsTitle: '端点',
-    colMethod: '方法',
-    colPath: '路径',
-    colDesc: '说明',
-    webhooksTitle: 'Webhooks',
-    webhooksDesc: '在企业版页面为每个 API key 配置 webhook 地址。保存时我们会生成签名密钥（仅显示一次）。以下事件发生时，我们会向你的地址 POST 一个带签名的 JSON：',
-    colEvent: '事件',
-    payloadTitle: '负载',
-    payloadDesc: '每次投递都是如下结构的 JSON。签名基于这份 body 的原始字节计算。',
-    sigTitle: '验签',
-    sigDesc: '每个请求带 X-TalEngineer-Signature 头：用你的 webhook secret 对原始 body 做 HMAC-SHA256 的十六进制值。用同一算法复算并做常量时间比对：',
-    manageBtn: '管理 API 密钥与 Webhook',
-    mcpTitle: 'MCP — 接入你的 AI Agent',
-    mcpSell: 'Talengineer 是第一个 AI Agent 可直接调用的工业自动化人才平台。',
-    mcpDesc: 'POST /api/mcp 是无状态的 JSON-RPC 2.0 端点，实现 Model Context Protocol（MCP）：initialize、tools/list、tools/call。把 Claude Desktop、IDE 智能体或任何兼容 MCP 的客户端指向它，你的 Agent 就能替你搜索工程师、查费率基准、准备需求草稿。',
-    mcpAuthDesc: '鉴权复用 v1 API key——与上文 REST 端点一样以 Bearer token 发送。',
-    mcpSafety: '所有工具均为只读，唯一例外 create_demand_draft 也只保存私有草稿（status = draft）。草稿绝不进入公开列表，发布永远需要人在 UI 里点击确认。',
-    mcpExampleTitle: '示例：tools/call',
-    colTool: '工具',
-  },
-};
-
+// 页面文案（中英双套）已迁至 lib/i18n/developers.js（2026-07-24，架构 B 迁移）。
+// 代码块/端点路径/事件名是语言无关的常量，仍内联在 DICT 之外。
 // 端点表（路径语言无关，描述双语）。与 src/routes/entV1.js 的实现一一对应。
 const ENDPOINTS = [
-  { method: 'GET',  path: '/api/v1/ent/demands',                desc: { en: 'List your enterprise demands (paginated: page, limit).', zh: '列出本企业发布的需求（分页参数：page、limit）。' } },
-  { method: 'POST', path: '/api/v1/ent/demands',                desc: { en: 'Create a demand. Body: title, description, budget, region.', zh: '创建需求。请求体：title、description、budget、region。' } },
-  { method: 'GET',  path: '/api/v1/ent/talents',                desc: { en: 'Browse the public engineer directory (no PII). Query: region, skills, page, limit.', zh: '浏览公开工程师目录（无 PII）。查询参数：region、skills、page、limit。' } },
-  { method: 'GET',  path: '/api/v1/ent/demands/:id/milestones', desc: { en: 'List milestones for a demand you own.', zh: '列出本企业某需求的里程碑。' } },
+  { method: 'GET',  path: '/api/v1/ent/demands',                desc: { en: 'List your enterprise demands (paginated: page, limit).', zh: '列出本企业发布的需求（分页参数：page、limit）。', es: 'Liste las demandas de su empresa (paginado: page, limit).', vi: 'Liệt kê các nhu cầu của doanh nghiệp bạn (phân trang: page, limit).', hi: 'अपनी एंटरप्राइज़ डिमांड लिस्ट करें (पेजिनेटेड: page, limit)।', fr: 'Listez les demandes de votre entreprise (pagination : page, limit).', de: 'Listet die Anfragen Ihres Unternehmens auf (paginiert: page, limit).', ja: '自社の需要一覧を取得します(ページネーション:page、limit)。', ko: '귀사의 수요 목록을 조회합니다(페이지네이션: page, limit).' } },
+  { method: 'POST', path: '/api/v1/ent/demands',                desc: { en: 'Create a demand. Body: title, description, budget, region.', zh: '创建需求。请求体：title、description、budget、region。', es: 'Cree una demanda. Cuerpo: title, description, budget, region.', vi: 'Tạo một nhu cầu. Body: title, description, budget, region.', hi: 'एक डिमांड बनाएं। Body: title, description, budget, region।', fr: 'Créez une demande. Corps : title, description, budget, region.', de: 'Erstellt eine Anfrage. Body: title, description, budget, region.', ja: '需要を作成します。Body:title、description、budget、region。', ko: '수요를 생성합니다. Body: title, description, budget, region.' } },
+  { method: 'GET',  path: '/api/v1/ent/talents',                desc: { en: 'Browse the public engineer directory (no PII). Query: region, skills, page, limit.', zh: '浏览公开工程师目录（无 PII）。查询参数：region、skills、page、limit。', es: 'Explore el directorio público de ingenieros (sin PII). Query: region, skills, page, limit.', vi: 'Duyệt danh bạ kỹ sư công khai (không có PII). Query: region, skills, page, limit.', hi: 'पब्लिक इंजीनियर डायरेक्टरी ब्राउज़ करें (कोई PII नहीं)। Query: region, skills, page, limit।', fr: 'Parcourez l’annuaire public des ingénieurs (sans PII). Query : region, skills, page, limit.', de: 'Durchsuchen Sie das öffentliche Ingenieurverzeichnis (keine PII). Query: region, skills, page, limit.', ja: '公開エンジニアディレクトリを閲覧します(PIIなし)。Query:region、skills、page、limit。', ko: '공개 엔지니어 디렉터리를 조회합니다(PII 없음). Query: region, skills, page, limit.' } },
+  { method: 'GET',  path: '/api/v1/ent/demands/:id/milestones', desc: { en: 'List milestones for a demand you own.', zh: '列出本企业某需求的里程碑。', es: 'Liste los hitos de una demanda que le pertenece.', vi: 'Liệt kê các cột mốc của một nhu cầu bạn sở hữu.', hi: 'आपके स्वामित्व वाली डिमांड के माइलस्टोन लिस्ट करें।', fr: 'Listez les jalons d’une demande que vous possédez.', de: 'Listet die Meilensteine einer Ihnen gehörenden Anfrage auf.', ja: '自社が保有する需要のマイルストーンを一覧表示します。', ko: '귀사가 소유한 수요의 마일스톤을 조회합니다.' } },
 ];
 
 // Webhook 事件（与 payment.js / workorder.js / demand.js 触发点一致）。
 const EVENTS = [
-  { name: 'milestone.funded',   desc: { en: 'An employer funded a milestone into escrow.', zh: '雇主已将某里程碑款项托管。' } },
-  { name: 'milestone.released', desc: { en: 'Escrowed funds were released to the engineer.', zh: '托管款项已放款给工程师。' } },
-  { name: 'demand.assigned',    desc: { en: 'An engineer was assigned to your demand.', zh: '某工程师已被指派到你的需求。' } },
+  { name: 'milestone.funded',   desc: { en: 'An employer funded a milestone into escrow.', zh: '雇主已将某里程碑款项托管。', es: 'Un empleador depositó un hito en garantía.', vi: 'Một nhà tuyển dụng đã nạp tiền một cột mốc vào ký quỹ.', hi: 'एक नियोक्ता ने माइलस्टोन की राशि एस्क्रो में जमा की।', fr: 'Un employeur a provisionné un jalon sous séquestre.', de: 'Ein Auftraggeber hat einen Meilenstein in die Treuhand eingezahlt.', ja: '雇用者がマイルストーンの資金をエスクローに預けました。', ko: '고용주가 마일스톤 자금을 에스크로에 예치했습니다.' } },
+  { name: 'milestone.released', desc: { en: 'Escrowed funds were released to the engineer.', zh: '托管款项已放款给工程师。', es: 'Los fondos en garantía fueron liberados al ingeniero.', vi: 'Tiền ký quỹ đã được giải ngân cho kỹ sư.', hi: 'एस्क्रो में जमा राशि इंजीनियर को रिलीज़ कर दी गई।', fr: 'Les fonds sous séquestre ont été débloqués vers l’ingénieur.', de: 'Die treuhänderisch verwahrten Gelder wurden an den Ingenieur freigegeben.', ja: 'エスクローの資金がエンジニアにリリースされました。', ko: '에스크로 자금이 엔지니어에게 지급되었습니다.' } },
+  { name: 'demand.assigned',    desc: { en: 'An engineer was assigned to your demand.', zh: '某工程师已被指派到你的需求。', es: 'Se asignó un ingeniero a su demanda.', vi: 'Một kỹ sư đã được phân công cho nhu cầu của bạn.', hi: 'आपकी डिमांड पर एक इंजीनियर असाइन कर दिया गया।', fr: 'Un ingénieur a été affecté à votre demande.', de: 'Ein Ingenieur wurde Ihrer Anfrage zugewiesen.', ja: 'あなたの需要にエンジニアがアサインされました。', ko: '귀사의 수요에 엔지니어가 배정되었습니다.' } },
 ];
 
 const PAYLOAD_EXAMPLE = `{
@@ -111,13 +54,13 @@ function verifyTalengineerWebhook(rawBody, headerSignature, webhookSecret) {
 // MCP 工具清单（与 src/routes/mcp.js 的显式白名单一一对应：public 4 读工具 +
 // get_my_projects / get_milestone_status / create_demand_draft，共 7 个）。
 const MCP_TOOLS = [
-  { name: 'search_engineers',       desc: { en: 'Search the public engineer directory (no PII). Filters: track, region, skill, maxRate, limit.', zh: '搜索公开工程师目录（无 PII）。过滤参数：track、region、skill、maxRate、limit。' } },
-  { name: 'get_rates',              desc: { en: 'Regional rate benchmarks, optionally filtered by region / specialty.', zh: '区域费率基准，可按 region / specialty 过滤。' } },
-  { name: 'get_certification_info', desc: { en: 'The certification system: 4 tracks × levels L1–L3, exam rules and validity.', zh: '平台认证体系：4 方向 × L1–L3 等级、考核规则与有效期。' } },
-  { name: 'parse_demand',           desc: { en: 'Parse a free-form project need (any language) into a structured demand draft. Nothing is saved.', zh: '把任意语言的大白话需求解析成结构化草稿，不落库。' } },
-  { name: 'get_my_projects',        desc: { en: 'List the projects owned by the API key account.', zh: '列出 API key 所属账号的项目。' } },
-  { name: 'get_milestone_status',   desc: { en: 'Milestone / escrow status for a project you participate in.', zh: '查询你参与项目的里程碑 / 托管状态。' } },
-  { name: 'create_demand_draft',    desc: { en: 'Save a demand as a private draft (status = draft) — never auto-published.', zh: '把需求存为私有草稿（status = draft）——绝不自动发布。' } },
+  { name: 'search_engineers',       desc: { en: 'Search the public engineer directory (no PII). Filters: track, region, skill, maxRate, limit.', zh: '搜索公开工程师目录（无 PII）。过滤参数：track、region、skill、maxRate、limit。', es: 'Busque en el directorio público de ingenieros (sin PII). Filtros: track, region, skill, maxRate, limit.', vi: 'Tìm kiếm trong danh bạ kỹ sư công khai (không có PII). Bộ lọc: track, region, skill, maxRate, limit.', hi: 'पब्लिक इंजीनियर डायरेक्टरी सर्च करें (कोई PII नहीं)। फ़िल्टर: track, region, skill, maxRate, limit।', fr: 'Recherchez dans l’annuaire public des ingénieurs (sans PII). Filtres : track, region, skill, maxRate, limit.', de: 'Durchsucht das öffentliche Ingenieurverzeichnis (keine PII). Filter: track, region, skill, maxRate, limit.', ja: '公開エンジニアディレクトリを検索します(PIIなし)。フィルター:track、region、skill、maxRate、limit。', ko: '공개 엔지니어 디렉터리를 검색합니다(PII 없음). 필터: track, region, skill, maxRate, limit.' } },
+  { name: 'get_rates',              desc: { en: 'Regional rate benchmarks, optionally filtered by region / specialty.', zh: '区域费率基准，可按 region / specialty 过滤。', es: 'Tarifas de referencia regionales, opcionalmente filtradas por region / specialty.', vi: 'Mức phí tham chiếu theo khu vực, có thể lọc theo region / specialty.', hi: 'क्षेत्रीय दर बेंचमार्क, वैकल्पिक रूप से region / specialty से फ़िल्टर किए गए।', fr: 'Tarifs de référence régionaux, filtrables en option par region / specialty.', de: 'Regionale Vergleichssätze, optional gefiltert nach region / specialty.', ja: '地域別の料金相場。region / specialty で絞り込み可能(任意)。', ko: '지역별 요율 벤치마크. region / specialty로 선택적 필터링이 가능합니다.' } },
+  { name: 'get_certification_info', desc: { en: 'The certification system: 4 tracks × levels L1–L3, exam rules and validity.', zh: '平台认证体系：4 方向 × L1–L3 等级、考核规则与有效期。', es: 'El sistema de certificación: 4 especialidades × niveles L1–L3, reglas de examen y vigencia.', vi: 'Hệ thống chứng chỉ: 4 chuyên môn × cấp độ L1–L3, quy tắc thi và thời hạn hiệu lực.', hi: 'प्रमाणन सिस्टम: 4 डायरेक्शन × L1–L3 लेवल, परीक्षा नियम और वैधता।', fr: 'Le système de certification : 4 spécialités × niveaux L1–L3, règles d’examen et validité.', de: 'Das Zertifizierungssystem: 4 Fachrichtungen × Stufen L1–L3, Prüfungsregeln und Gültigkeit.', ja: '認定制度:4方向×レベルL1–L3、試験ルールと有効期限。', ko: '인증 체계: 4개 트랙 × L1–L3 레벨, 시험 규칙 및 유효 기간.' } },
+  { name: 'parse_demand',           desc: { en: 'Parse a free-form project need (any language) into a structured demand draft. Nothing is saved.', zh: '把任意语言的大白话需求解析成结构化草稿，不落库。', es: 'Analice una necesidad de proyecto en texto libre (en cualquier idioma) y conviértala en un borrador de demanda estructurado. No se guarda nada.', vi: 'Phân tích một nhu cầu dự án dạng văn bản tự do (bất kỳ ngôn ngữ nào) thành bản nháp nhu cầu có cấu trúc. Không lưu gì cả.', hi: 'किसी भी भाषा में लिखी फ़्री-फ़ॉर्म प्रोजेक्ट ज़रूरत को एक स्ट्रक्चर्ड डिमांड ड्राफ़्ट में पार्स करें। कुछ भी सेव नहीं होता।', fr: 'Analysez un besoin de projet en texte libre (dans n’importe quelle langue) pour le transformer en brouillon de demande structuré. Rien n’est enregistré.', de: 'Wandelt einen frei formulierten Projektbedarf (in beliebiger Sprache) in einen strukturierten Anfrageentwurf um. Es wird nichts gespeichert.', ja: '自由記述のプロジェクトニーズ(どの言語でも可)を構造化された需要の下書きに変換します。何も保存されません。', ko: '자유 형식의 프로젝트 요구 사항(어떤 언어든)을 구조화된 수요 초안으로 변환합니다. 아무것도 저장되지 않습니다.' } },
+  { name: 'get_my_projects',        desc: { en: 'List the projects owned by the API key account.', zh: '列出 API key 所属账号的项目。', es: 'Liste los proyectos que pertenecen a la cuenta de la API key.', vi: 'Liệt kê các dự án thuộc sở hữu của tài khoản API key.', hi: 'API key वाले अकाउंट के प्रोजेक्ट लिस्ट करें।', fr: 'Listez les projets appartenant au compte de la clé API.', de: 'Listet die Projekte des zum API-Schlüssel gehörenden Kontos auf.', ja: 'APIキーが属するアカウントのプロジェクトを一覧表示します。', ko: 'API 키가 속한 계정의 프로젝트를 조회합니다.' } },
+  { name: 'get_milestone_status',   desc: { en: 'Milestone / escrow status for a project you participate in.', zh: '查询你参与项目的里程碑 / 托管状态。', es: 'Estado de hito / depósito en garantía de un proyecto en el que usted participa.', vi: 'Trạng thái cột mốc / ký quỹ của một dự án bạn tham gia.', hi: 'आपके किसी प्रोजेक्ट का माइलस्टोन / एस्क्रो स्टेटस।', fr: 'Statut du jalon / séquestre pour un projet auquel vous participez.', de: 'Meilenstein-/Treuhandstatus für ein Projekt, an dem Sie beteiligt sind.', ja: 'あなたが参加しているプロジェクトのマイルストーン/エスクロー状況。', ko: '참여 중인 프로젝트의 마일스톤/에스크로 상태.' } },
+  { name: 'create_demand_draft',    desc: { en: 'Save a demand as a private draft (status = draft) — never auto-published.', zh: '把需求存为私有草稿（status = draft）——绝不自动发布。', es: 'Guarde una demanda como borrador privado (status = draft) — nunca se publica automáticamente.', vi: 'Lưu một nhu cầu dưới dạng bản nháp riêng tư (status = draft) — không bao giờ tự động đăng.', hi: 'डिमांड को प्राइवेट ड्राफ़्ट के रूप में सेव करें (status = draft) — कभी अपने आप पब्लिश नहीं होता।', fr: 'Enregistrez une demande comme brouillon privé (status = draft) — jamais publié automatiquement.', de: 'Speichert eine Anfrage als privaten Entwurf (status = draft) — wird nie automatisch veröffentlicht.', ja: '需要をプライベートな下書き(status = draft)として保存します——自動的に公開されることはありません。', ko: '수요를 비공개 초안(status = draft)으로 저장합니다 — 자동으로 게시되지 않습니다.' } },
 ];
 
 // JSON-RPC 2.0 调用示例（curl；语言无关，放 DICT 之外）。

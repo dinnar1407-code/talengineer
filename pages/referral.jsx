@@ -11,78 +11,12 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
+import { DICT as UI } from '../lib/i18n/referral';
 import styles from './referral.module.css';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// en/zh 文案字典（页面正文 en/zh 两套即可；9 语只在 Navbar 等外壳组件）
-const UI = {
-  en: {
-    kicker: 'Referral Program',
-    title: 'Refer a friend to Talengineer',
-    sub: 'Know an automation engineer looking for global projects — or a factory that needs one? Share your personal code and get credit when they succeed on the platform.',
-    comingSoon: 'The referral program is launching soon. You can already claim your code below — every sign-up you refer from today counts toward your rewards.',
-    live: 'The referral program is live. Share your code and start referring.',
-    howTitle: 'How it works',
-    step1t: '1 · Get your code',
-    step1b: 'Sign in and claim your personal referral code on this page.',
-    step2t: '2 · Share it',
-    step2b: 'Your friend enters the code when creating their Talengineer account.',
-    step3t: '3 · It vests',
-    step3b: 'When the person you referred completes their first released milestone — as an employer or an engineer — the referral vests.',
-    rewardTitle: 'Reward',
-    myTitle: 'My referral code',
-    loginLead: 'Sign in to claim your referral code. Referrals are attributed from the day your friend signs up.',
-    loginCta: 'Sign in to get your code',
-    copy: 'Copy',
-    copied: 'Copied!',
-    loadError: 'Could not load your referral info. Please try again later.',
-    listTitle: 'People you referred',
-    colWho: 'Referred',
-    colStatus: 'Status',
-    colDate: 'Date',
-    empty: 'No referrals yet — share your code to get started.',
-    stAttributed: 'Attributed',
-    stVested: 'Vested',
-    stVoid: 'Void',
-    ruleNote:
-      'Vesting rule: a referral vests when the referred user completes their first released milestone on the platform. Reward details will be announced at launch. Self-referrals are not eligible.',
-    loading: 'Loading…',
-  },
-  zh: {
-    kicker: '推荐计划',
-    title: '把朋友推荐到 Talengineer',
-    sub: '认识正在找全球项目的自动化工程师，或需要工程师的工厂？分享你的专属推荐码，他们在平台上做成事，你就能获得奖励。',
-    comingSoon: '推荐计划即将上线。你现在就可以在下方领取推荐码——从今天起你推荐的每个注册都会计入奖励归因。',
-    live: '推荐计划已上线。分享你的推荐码，开始推荐吧。',
-    howTitle: '如何运作',
-    step1t: '1 · 领取推荐码',
-    step1b: '登录后在本页领取你的专属推荐码。',
-    step2t: '2 · 分享出去',
-    step2b: '朋友注册 Talengineer 账号时填入你的推荐码。',
-    step3t: '3 · 达成兑现',
-    step3b: '当你推荐的人完成平台上第一个放款（released）里程碑——无论作为雇主还是工程师——这条推荐即告兑现。',
-    rewardTitle: '奖励',
-    myTitle: '我的推荐码',
-    loginLead: '登录后即可领取推荐码。推荐归因从朋友注册当天开始计算。',
-    loginCta: '登录领取推荐码',
-    copy: '复制',
-    copied: '已复制！',
-    loadError: '推荐信息加载失败，请稍后重试。',
-    listTitle: '我推荐的人',
-    colWho: '被推荐人',
-    colStatus: '状态',
-    colDate: '日期',
-    empty: '还没有推荐记录——分享你的码，从第一个开始。',
-    stAttributed: '已归因',
-    stVested: '已兑现',
-    stVoid: '已作废',
-    ruleNote:
-      '兑现规则：被推荐用户在平台上完成第一个放款（released）里程碑时，该条推荐即告兑现。具体奖励将在正式上线时公布。自己推荐自己不计入。',
-    loading: '加载中…',
-  },
-};
-
+// en/zh 文案字典已迁至 lib/i18n/referral.js（2026-07-24，架构 B 迁移）
 // 状态 → 徽章样式类名映射（未知状态兜底为 void 样式）
 const BADGE_CLASS = {
   attributed: 'badgeAttributed',

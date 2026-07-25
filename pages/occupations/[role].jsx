@@ -3,117 +3,13 @@ import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
+import { DICT as UI } from '../../lib/i18n/occupations-role';
 import styles from './occupations.module.css';
 
 // 站点根 URL：canonical / OG 用（与 /hire/[track] 同一约定）。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// UI 标签（章节标题、按钮、流程步骤等），en/zh 两套；其余 7 语按全站规则回退英文。
-// 诚实红线备注：
-// - ratesNote 不在本文件手抄，走 data.ratesNote（单一来源 lib/hireMatrix.js RATES_NOTE，
-//   与 /hire/[track] 等 4 个消费页共用同一份文案，杜绝多处漂移）。
-//   15%/5% 数字单一来源 = src/config/fees.js，职业页不另立口径、不发明职业级费率差异。
-// - certIntro 的考试机制描述与 src/config/training.js 同口径，但刻意不复写
-//   具体题数/时长/及格分/冷却天数——那些数字的展示位留给 /certification 与
-//   /how-it-works（各页数字单一来源原则，防漂移），这里只写结构性机制。
-const UI = {
-  en: {
-    heroApply: 'Apply as an Engineer',
-    heroPost: 'Post a Project — Free',
-    dutiesTitle: 'What this role delivers',
-    skillsTitle: 'Skills we screen for',
-    trackSkillsCaption: 'Track fundamentals',
-    roleSkillsCaption: 'Role-specific',
-    ratesTitle: 'Rate ranges by region',
-    regionCol: 'Region',
-    rateCol: 'Hourly (USD)',
-    certTitle: 'Certification path',
-    certIntro:
-      'Every engineer passes a practical AI technical screener before they can be matched at all. Beyond that, they can earn certification in this track at three sequential levels — each higher level requires holding the one below it. Exams mix auto-graded multiple-choice with AI-scored scenario and analysis questions; results are reviewed by a platform admin before any certificate is issued, failed attempts carry a cooldown before retake, and only certified engineers can be assigned to your project.',
-    certLink: 'Explore the Certification Center →',
-    scadaNote:
-      'A note on SCADA: TalEngineer runs four certification tracks — PLC & Controls, Robotics, Machine Vision and Electrical. There is no separate SCADA certificate; SCADA engineers are screened and certified within the PLC & Controls track, where supervisory work technically belongs.',
-    l1: 'L1 — Fundamentals',
-    l2: 'L2 — Independent',
-    l3: 'L3 — Expert',
-    hiwTitle: 'How hiring works',
-    steps: [
-      {
-        t: 'Post your project',
-        d: 'Scope the work and break it into milestones — our AI intake helps structure the brief before any engineer sees it.',
-      },
-      {
-        t: 'Match with certified engineers',
-        d: 'You are matched with pre-screened engineers certified in this track — filter by platform depth and certification level.',
-      },
-      {
-        t: 'Fund milestone escrow',
-        d: 'Funds for each milestone are held in escrow before work starts — the engineer knows the budget is real; you keep control of release.',
-      },
-      {
-        t: 'Accept and release',
-        d: 'Review each milestone deliverable and release payment on acceptance. If something is contested, a defined evidence-based dispute path protects both sides.',
-      },
-    ],
-    hiwLink: 'See the full hiring process →',
-    linksTitle: 'Keep exploring',
-    linksTrack: 'Specialty page',
-    linksIndustries: 'By industry',
-    linksSiblings: 'Related roles',
-    linksPlaybook: 'From the Playbook',
-    faqTitle: 'Frequently asked questions',
-    ctaHeading: 'Ready to hire?',
-    ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
-  },
-  zh: {
-    heroApply: '以工程师身份申请',
-    heroPost: '免费发布项目',
-    dutiesTitle: '这个职位交付什么',
-    skillsTitle: '我们筛选的技能',
-    trackSkillsCaption: '方向基本功',
-    roleSkillsCaption: '职位专属',
-    ratesTitle: '各地区费率区间',
-    regionCol: '地区',
-    rateCol: '时薪（美元）',
-    certTitle: '认证路径',
-    certIntro:
-      '每位工程师在被匹配之前，都要先通过一套实操型 AI 技术筛选。在此之上，还可在该方向考取逐级递进的三级认证——考更高级别须先持有低一级的有效认证。试卷混合自动判分的选择题与 AI 评分的场景题、分析题；成绩需经平台管理员复核后才发证，挂科后需经过冷却期才能重考，并且只有持证工程师才能被指派到你的项目。',
-    certLink: '前往认证中心 →',
-    scadaNote:
-      '关于 SCADA 的说明：TalEngineer 目前只有四条认证方向——PLC 与控制、机器人、机器视觉、电气。不存在独立的 SCADA 证书；SCADA 工程师在 PLC 与控制方向下筛选与认证，监控层工作在技术上也确实归属于此。',
-    l1: 'L1 — 基础',
-    l2: 'L2 — 独立',
-    l3: 'L3 — 专家',
-    hiwTitle: '招聘流程怎么走',
-    steps: [
-      {
-        t: '发布项目',
-        d: '明确工作范围并拆成里程碑——AI 需求解析会先帮你把需求梳理成结构化的项目简报，再给工程师看。',
-      },
-      {
-        t: '匹配持证工程师',
-        d: '与经过预审、在该方向持证的工程师匹配——可按平台深度与认证级别筛选。',
-      },
-      {
-        t: '注资里程碑托管',
-        d: '每个里程碑的资金在开工前进入托管——工程师知道预算是真的，放款权仍在你手里。',
-      },
-      {
-        t: '验收与放款',
-        d: '逐里程碑验收交付物，确认后放款。如有争议，有明确的举证式纠纷路径保障双方。',
-      },
-    ],
-    hiwLink: '查看完整招聘流程 →',
-    linksTitle: '继续探索',
-    linksTrack: '方向母页',
-    linksIndustries: '按行业',
-    linksSiblings: '相关职位',
-    linksPlaybook: 'Playbook 文章',
-    faqTitle: '常见问题',
-    ctaHeading: '准备好招募了吗？',
-    ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
-  },
-};
+// UI 字典（含诚实红线备注）已迁至 lib/i18n/occupations-role.js（2026-07-24 架构 B）。
 
 export default function OccupationPage({ data }) {
   const [lang, setLang] = useLang();

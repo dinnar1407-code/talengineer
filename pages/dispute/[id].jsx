@@ -5,6 +5,8 @@ import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
 import { useLang } from '../../hooks/useLang';
 import Navbar from '../../components/Navbar';
+// 流程时间线中英文案字典：已迁至 lib/i18n/dispute-id.js（2026-07-24 机械搬移）
+import { DICT as FLOW } from '../../lib/i18n/dispute-id';
 import styles from './dispute.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -15,62 +17,6 @@ const STATUS_LABELS = {
   resolved_engineer: { label: 'Resolved — Engineer', color: '#10b981' },
   resolved_employer: { label: 'Resolved — Employer', color: '#10b981' },
   resolved_split:    { label: 'Resolved — Split', color: '#10b981' },
-};
-
-// ── 流程时间线与流程说明的中英文案（该页其余数据展示保持原样英文）─────────────
-const FLOW = {
-  en: {
-    timelineTitle: 'Dispute Progress',
-    filed: 'Dispute opened',
-    filedSub: (d) => `Filed on ${d}`,
-    evidence: 'Evidence submission',
-    evidenceDeadline: (d) => `Evidence deadline: ${d}`,
-    daysLeft: (n) => `${n} day${n === 1 ? '' : 's'} left to submit evidence`,
-    windowClosed: 'Evidence window closed',
-    review: 'Platform review',
-    reviewSub: 'Our team reviews both sides’ evidence and decides.',
-    decision: 'Decision',
-    decisionPending: 'Awaiting resolution',
-    payout: 'Engineer payout',
-    resLabels: {
-      resolved_engineer: 'Full amount awarded to the engineer',
-      resolved_employer: 'Full amount refunded to the employer',
-      resolved_split: 'Funds split between the parties',
-    },
-    processSummary: 'How the dispute process works',
-    processSteps: [
-      'Either party opens a dispute on a funded milestone.',
-      'Both sides have a 5-day window to submit evidence.',
-      'After the evidence deadline passes, the platform reviews the case and issues a decision.',
-      'The decision can award the full amount to the engineer, fully refund the employer, or split the funds proportionally. Funds are always handled through the original payment path.',
-    ],
-  },
-  zh: {
-    timelineTitle: '纠纷进度',
-    filed: '纠纷开启',
-    filedSub: (d) => `开启于 ${d}`,
-    evidence: '双方举证',
-    evidenceDeadline: (d) => `举证截止：${d}`,
-    daysLeft: (n) => `距举证截止还剩 ${n} 天`,
-    windowClosed: '举证已截止',
-    review: '平台审理',
-    reviewSub: '平台审阅双方证据后作出裁决。',
-    decision: '裁决结果',
-    decisionPending: '等待裁决',
-    payout: '工程师所得',
-    resLabels: {
-      resolved_engineer: '全额判给工程师',
-      resolved_employer: '全额退回雇主',
-      resolved_split: '按比例分账',
-    },
-    processSummary: '纠纷处理流程说明',
-    processSteps: [
-      '任一方可对已托管的里程碑发起纠纷。',
-      '双方有 5 天举证期提交证据。',
-      '举证期截止后，平台审阅案情并作出裁决。',
-      '裁决可为全额判给工程师、全额退回雇主，或按比例分账；资金一律按原路处理。',
-    ],
-  },
 };
 
 export default function DisputePage() {

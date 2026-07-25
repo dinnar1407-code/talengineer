@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
 import { getGuidePaths, getGuide } from '../../lib/regionGuides';
+import { DICT as UI } from '../../lib/i18n/guides-index';
 import styles from './guides.module.css';
 import ix from './guides-index.module.css';
 
@@ -16,13 +17,13 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
 // 三国显示名（en/zh；索引页只做两语，与 [region].jsx 的 REGION_META 同源同名）。
 const REGION_NAMES = {
-  mexico: { en: 'Mexico', zh: '墨西哥' },
-  vietnam: { en: 'Vietnam', zh: '越南' },
-  thailand: { en: 'Thailand', zh: '泰国' },
+  mexico: { en: 'Mexico', zh: '墨西哥', es: 'México', vi: 'Mexico', hi: 'मेक्सिको', fr: 'Mexique', de: 'Mexiko', ja: 'メキシコ', ko: '멕시코' },
+  vietnam: { en: 'Vietnam', zh: '越南', es: 'Vietnam', vi: 'Việt Nam', hi: 'वियतनाम', fr: 'Vietnam', de: 'Vietnam', ja: 'ベトナム', ko: '베트남' },
+  thailand: { en: 'Thailand', zh: '泰国', es: 'Tailandia', vi: 'Thái Lan', hi: 'थाईलैंड', fr: 'Thaïlande', de: 'Thailand', ja: 'タイ', ko: '태국' },
 };
 
 // 语言代码 → 徽章显示文本（指南内容语言因地而异：墨西哥/越南四语、泰国两语）。
-const LANG_BADGES = { en: 'EN', zh: '中文', es: 'ES', vi: 'VI' };
+const LANG_BADGES = { en: 'EN', zh: '中文', es: 'ES', vi: 'VI', hi: 'HI', fr: 'FR', de: 'DE', ja: 'JA', ko: 'KO' };
 
 // 相关 Playbook 文章（手工策展：与建厂迁移主题直接相关的两篇；文章本体为中文，
 // en 标签做英文释义并标注语言，避免英文读者点进去才发现是中文——诚实预期）。
@@ -32,62 +33,44 @@ const RELATED_ARTICLES = [
     title: {
       en: 'Finding automation engineers for a Mexico factory build',
       zh: '墨西哥建厂：自动化工程师怎么找',
+      es: 'Cómo encontrar ingenieros de automatización para construir una fábrica en México',
+      vi: 'Tìm kỹ sư tự động hóa cho một dự án xây dựng nhà máy tại Mexico',
+      hi: 'मेक्सिको में फ़ैक्ट्री बनाने के लिए ऑटोमेशन इंजीनियर कैसे खोजें',
+      fr: 'Trouver des ingénieurs en automatisation pour la construction d’une usine au Mexique',
+      de: 'Automatisierungsingenieure für den Bau einer Fabrik in Mexiko finden',
+      ja: 'メキシコでの工場建設に向けたオートメーションエンジニアの探し方',
+      ko: '멕시코 공장 건설을 위한 자동화 엔지니어 찾기',
     },
-    meta: { en: 'Playbook guide · in Chinese', zh: 'Playbook 指南 · 中文' },
+    meta: {
+      en: 'Playbook guide · in Chinese', zh: 'Playbook 指南 · 中文',
+      es: 'Guía del Playbook · en chino', vi: 'Hướng dẫn Playbook · bằng tiếng Trung',
+      hi: 'Playbook गाइड · चीनी भाषा में', fr: 'Guide Playbook · en chinois',
+      de: 'Playbook-Leitfaden · auf Chinesisch', ja: 'Playbookガイド・中国語', ko: 'Playbook 가이드 · 중국어',
+    },
   },
   {
     slug: 'vietnam-production-line-migration',
     title: {
       en: 'Engineer staffing for a Vietnam production-line migration',
       zh: '越南产线迁移的工程师配置指南',
+      es: 'Dotación de ingenieros para una migración de línea de producción en Vietnam',
+      vi: 'Bố trí kỹ sư cho một dự án di dời dây chuyền sản xuất tại Việt Nam',
+      hi: 'वियतनाम में प्रोडक्शन लाइन माइग्रेशन के लिए इंजीनियर स्टाफ़िंग',
+      fr: 'Recrutement d’ingénieurs pour une migration de ligne de production au Vietnam',
+      de: 'Ingenieurbesetzung für eine Produktionslinienverlagerung nach Vietnam',
+      ja: 'ベトナムでの生産ライン移転に向けたエンジニア配置',
+      ko: '베트남 생산 라인 이전을 위한 엔지니어 인력 배치',
     },
-    meta: { en: 'Playbook guide · in Chinese', zh: 'Playbook 指南 · 中文' },
+    meta: {
+      en: 'Playbook guide · in Chinese', zh: 'Playbook 指南 · 中文',
+      es: 'Guía del Playbook · en chino', vi: 'Hướng dẫn Playbook · bằng tiếng Trung',
+      hi: 'Playbook गाइड · चीनी भाषा में', fr: 'Guide Playbook · en chinois',
+      de: 'Playbook-Leitfaden · auf Chinesisch', ja: 'Playbookガイド・中国語', ko: 'Playbook 가이드 · 중국어',
+    },
   },
 ];
 
-// 页面文案（en/zh 两套，其余语言回退 en——全站 `|| en` 约定，SSR 首帧英文）。
-// 导语只写结构性事实（产能迁移方向、人才池增速跟不上产线落地速度、本地+跨境的组合解法），
-// 与 lib/regionGuides.js 的口径一致，不出现任何编造的统计数字。
-const UI = {
-  en: {
-    kicker: 'Country Guides',
-    title: 'Country hiring guides for cross-border factory projects',
-    sub: 'Where manufacturing capacity is moving, what the local automation talent pool actually looks like, and how to staff your line with a local core plus cross-border support.',
-    heroPost: 'Post a Project — Free',
-    heroBrowse: 'Browse engineers',
-    blurbTitle: 'Why cross-border staffing is the hard part',
-    blurb1:
-      'Manufacturing capacity keeps relocating — nearshoring pulls investment into Mexico, and China-plus-one strategies push electronics and light manufacturing into Vietnam and Thailand. In every one of these destinations the same structural problem repeats: new lines are being stood up faster than the local pool of experienced PLC, robotics and machine-vision engineers can grow, and the engineers who do exist are usually already committed.',
-    blurb2:
-      'The usual fallback — flying engineers in from headquarters — is slow and expensive, and it meets language and time-zone friction on the floor. The durable answer is a local core supported across borders: local certified engineers for commissioning and day-to-day support, paired with remote or fly-in specialists when local depth runs out, coordinated in one project room and protected by milestone escrow. Each guide below breaks this down for one destination.',
-    cardsTitle: 'Pick your destination',
-    readGuide: 'Read the guide →',
-    articlesTitle: 'From the Playbook',
-    articlesIntro:
-      'Deeper, article-length treatments of the same decisions — written for manufacturers planning a build or a line migration.',
-    ctaHeading: 'Ready to staff your line?',
-    ctaBody: 'Post your project and match with pre-screened, certified engineers — local and cross-border. Milestone escrow protects both sides.',
-  },
-  zh: {
-    kicker: '国别指南',
-    title: '跨境建厂项目的分国用人指南',
-    sub: '制造产能在往哪儿迁、当地自动化人才池的真实样貌，以及如何用"本地核心 + 跨境支持"为产线配人。',
-    heroPost: '免费发布项目',
-    heroBrowse: '浏览工程师',
-    blurbTitle: '为什么跨境用人才是难点',
-    blurb1:
-      '制造产能仍在持续迁移——近岸外包(nearshoring)把投资涌向墨西哥，"中国+1"策略把电子与轻工制造推向越南与泰国。在每个目的地，同一个结构性问题都在重演：新产线落地的速度，快于当地有经验的 PLC、机器人、机器视觉工程师池的增长，而现有的人手大多已被占满。',
-    blurb2:
-      '常见的退路——从总部空运工程师过去——既慢又贵，到了现场还撞上语言与时区的摩擦。经得起时间考验的答案，是有跨境支持的本地核心：本地持证工程师负责调试与日常支持，本地深度不够时搭配远程或飞抵的专家，在同一个项目间协同，并由里程碑托管保障。下面每篇指南，把这套思路落到一个具体目的地。',
-    cardsTitle: '选择目的地',
-    readGuide: '阅读指南 →',
-    articlesTitle: '来自 Playbook',
-    articlesIntro: '同一批决策的文章级深度展开——写给正在规划建厂或产线迁移的制造企业。',
-    ctaHeading: '准备好为产线配人了吗？',
-    ctaBody: '发布项目，与经过预审、持证的本地与跨境工程师精准匹配。里程碑托管保障双方权益。',
-  },
-};
-
+// 页面文案（en/zh 两套）已迁至 lib/i18n/guides-index.js（2026-07-24，架构 B 迁移）。
 export default function GuidesIndex({ guides }) {
   const [lang, setLang] = useLang();
   const u = UI[lang] || UI.en;

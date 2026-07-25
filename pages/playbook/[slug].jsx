@@ -58,7 +58,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 相关文章带标题（按文章语言取，与文末 CTA 同口径）。
 const RELATED_TITLE = { en: 'Related guides', zh: '相关指南' };
 
-export default function PlaybookArticle({ article, related }) {
+// 语言切换带（翻译组机制 2026-07-24）：本文所在翻译组存在其他语言版本时，
+// 在文首出一条「Read in: English / 中文 / …」。前缀按文章语言取（en/zh，其余回退 en）。
+const READ_IN = { en: 'Read in:', zh: '阅读其他语言版本：' };
+
+// 语言展示名：切换带里用完整母语名（比索引页徽章的短码更适合做链接文字）。
+// 覆盖全站 9 语（hooks/useLang SUPPORTED 同口径）。
+const LANG_NAME = {
+  en: 'English', zh: '中文', es: 'Español', vi: 'Tiếng Việt', hi: 'हिन्दी',
+  fr: 'Français', de: 'Deutsch', ja: '日本語', ko: '한국어',
+};
+
+export default function PlaybookArticle({ article, related, variants }) {
   const [lang, setLang] = useLang();
   const cta = CTA[article.lang] || CTA.en;
   // 订阅卡文案按文章语言取（与文末 CTA 同口径，独立于导航语言切换）。
@@ -144,6 +155,29 @@ export default function PlaybookArticle({ article, related }) {
         <div className={styles.breadcrumb}>
           <Link href="/playbook">{cta.back}</Link> ／ {article.title}
         </div>
+
+        {/* 语言切换带：同翻译组存在其他语言版本时才渲染，链到各兄弟 slug。
+            样式走内联（本页 CSS module 只读，与文末订阅卡同一约定）。 */}
+        {variants && variants.length > 0 && (
+          <div
+            style={{
+              display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
+              margin: '14px 0 0', padding: '10px 14px', fontSize: 14,
+              border: '1px solid var(--border)', borderRadius: 10,
+            }}
+          >
+            <span>{READ_IN[article.lang] || READ_IN.en}</span>
+            {variants.map((v) => (
+              <Link
+                key={v.slug}
+                href={`/playbook/${v.slug}`}
+                style={{ color: 'var(--primary)', fontWeight: 600 }}
+              >
+                {LANG_NAME[v.lang] || v.lang}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {article.date && <div className={styles.articleMeta}>{article.date}</div>}
 
@@ -257,5 +291,12 @@ export async function getStaticProps({ params }) {
     slug, title, description, date,
   }));
 
-  return { props: { article, related } };
+  // 语言切换带（翻译组机制）：同 group 的其他已发布语言版本。
+  // candidates 来自 getAllPlaybookMeta（草稿已滤），所以绝不会链到 draft 兄弟——
+  // 比如月报 en/zh 同组但都是草稿时，切换带自然不出现。只带 slug/lang 两个渲染字段。
+  const variants = candidates
+    .filter((m) => m.group === article.group)
+    .map(({ slug, lang }) => ({ slug, lang }));
+
+  return { props: { article, related, variants } };
 }

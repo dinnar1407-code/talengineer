@@ -19,7 +19,7 @@ const REGION_META = {
 // 三个方向母页（内链“按方向招募”用）。
 const SPECIALTIES = [
   { slug: 'plc', name: { en: 'PLC & Controls', zh: 'PLC 与控制', es: 'PLC y control', vi: 'PLC & điều khiển' } },
-  { slug: 'robotics', name: { en: 'Robotics', zh: '机器人', es: 'Robótica', vi: 'Robot' } },
+  { slug: 'robotics', name: { en: 'Robotics', zh: '机器人', es: 'Robótica', vi: 'Robot công nghiệp' } },
   { slug: 'vision', name: { en: 'Machine Vision', zh: '机器视觉', es: 'Visión artificial', vi: 'Thị giác máy' } },
 ];
 
@@ -103,7 +103,7 @@ const UI = {
     rates: 'Bảng giá tham khảo',
     pricing: 'Định giá & ký quỹ',
     ctaHeading: 'Sẵn sàng bố trí nhân sự cho dây chuyền?',
-    ctaBody: 'Đăng dự án và kết nối với kỹ sư đã được sàng lọc, có chứng nhận — địa phương và xuyên biên giới. Ký quỹ theo cột mốc bảo vệ cả hai bên.',
+    ctaBody: 'Đăng dự án và kết nối với kỹ sư đã được sàng lọc, có chứng chỉ — địa phương và xuyên biên giới. Ký quỹ theo cột mốc bảo vệ cả hai bên.',
   },
 };
 

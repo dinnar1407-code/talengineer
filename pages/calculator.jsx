@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
+import { DICT as T } from '../lib/i18n/calculator';
 import styles from './calculator.module.css';
 
 // 站点根 URL：canonical / OG 用。
@@ -12,129 +13,27 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 // 四个方向（与 /hire/[track] 同口径）。方向本身不改地区费率区间，仅用于给"这次估算"打标签，
 // 让展示的对比报告更贴合场景（例：北美 · PLC · 远程 · 200 小时）。
 const TRACKS = [
-  { key: 'plc',        label: { en: 'PLC & Controls',  zh: 'PLC 与控制' } },
-  { key: 'robotics',   label: { en: 'Robotics',        zh: '机器人' } },
-  { key: 'vision',     label: { en: 'Machine Vision',  zh: '机器视觉' } },
-  { key: 'electrical', label: { en: 'Electrical',      zh: '电气' } },
+  { key: 'plc',        label: { en: 'PLC & Controls',  zh: 'PLC 与控制', es: 'PLC y control', vi: 'PLC & Điều khiển', hi: 'PLC और कंट्रोल', fr: 'PLC et contrôle-commande', de: 'PLC & Steuerungstechnik', ja: 'PLC・制御', ko: 'PLC 및 제어' } },
+  { key: 'robotics',   label: { en: 'Robotics',        zh: '机器人', es: 'Robótica', vi: 'Robot công nghiệp', hi: 'रोबोटिक्स', fr: 'Robotique', de: 'Robotik', ja: 'ロボティクス', ko: '로보틱스' } },
+  { key: 'vision',     label: { en: 'Machine Vision',  zh: '机器视觉', es: 'Visión artificial', vi: 'Thị giác máy', hi: 'मशीन विज़न', fr: 'Vision industrielle', de: 'Bildverarbeitung', ja: 'マシンビジョン', ko: '머신 비전' } },
+  { key: 'electrical', label: { en: 'Electrical',      zh: '电气', es: 'Eléctrica', vi: 'Điện', hi: 'इलेक्ट्रिकल', fr: 'Électricité', de: 'Elektrotechnik', ja: '電気', ko: '전기' } },
 ];
 
 // 各地区费率区间（数字，$/hr）。来源 = 与 /hire/[track].jsx 的 REGIONS 及 /rates 地区基准同口径；
 // 当 /api/talent/rate-benchmarks 该地区无实时数据时回退到本静态表。
 const REGIONS = [
-  { key: 'na',    label: { en: 'North America',          zh: '北美' },       range: [75, 140] },
-  { key: 'we',    label: { en: 'Western Europe',         zh: '西欧' },       range: [70, 120] },
-  { key: 'ee',    label: { en: 'Eastern Europe',         zh: '东欧' },       range: [40, 75] },
-  { key: 'latam', label: { en: 'Mexico & Latin America', zh: '墨西哥及拉美' }, range: [35, 65] },
-  { key: 'cn',    label: { en: 'China',                  zh: '中国' },       range: [35, 70] },
-  { key: 'sea',   label: { en: 'Southeast Asia',         zh: '东南亚' },     range: [30, 55] },
-  { key: 'sa',    label: { en: 'India & South Asia',     zh: '印度及南亚' },  range: [25, 50] },
+  { key: 'na',    label: { en: 'North America',          zh: '北美', es: 'Norteamérica', vi: 'Bắc Mỹ', hi: 'उत्तरी अमेरिका', fr: 'Amérique du Nord', de: 'Nordamerika', ja: '北米', ko: '북미' },       range: [75, 140] },
+  { key: 'we',    label: { en: 'Western Europe',         zh: '西欧', es: 'Europa Occidental', vi: 'Tây Âu', hi: 'पश्चिमी यूरोप', fr: 'Europe de l’Ouest', de: 'Westeuropa', ja: '西ヨーロッパ', ko: '서유럽' },       range: [70, 120] },
+  { key: 'ee',    label: { en: 'Eastern Europe',         zh: '东欧', es: 'Europa del Este', vi: 'Đông Âu', hi: 'पूर्वी यूरोप', fr: 'Europe de l’Est', de: 'Osteuropa', ja: '東ヨーロッパ', ko: '동유럽' },       range: [40, 75] },
+  { key: 'latam', label: { en: 'Mexico & Latin America', zh: '墨西哥及拉美', es: 'México y Latinoamérica', vi: 'Mexico & Mỹ Latinh', hi: 'मेक्सिको और लैटिन अमेरिका', fr: 'Mexique et Amérique latine', de: 'Mexiko & Lateinamerika', ja: 'メキシコ・中南米', ko: '멕시코 및 라틴아메리카' }, range: [35, 65] },
+  { key: 'cn',    label: { en: 'China',                  zh: '中国', es: 'China', vi: 'Trung Quốc', hi: 'चीन', fr: 'Chine', de: 'China', ja: '中国', ko: '중국' },       range: [35, 70] },
+  { key: 'sea',   label: { en: 'Southeast Asia',         zh: '东南亚', es: 'Sudeste Asiático', vi: 'Đông Nam Á', hi: 'दक्षिण-पूर्व एशिया', fr: 'Asie du Sud-Est', de: 'Südostasien', ja: '東南アジア', ko: '동남아시아' },     range: [30, 55] },
+  { key: 'sa',    label: { en: 'India & South Asia',     zh: '印度及南亚', es: 'India y el sur de Asia', vi: 'Ấn Độ & Nam Á', hi: 'भारत और दक्षिण एशिया', fr: 'Inde et Asie du Sud', de: 'Indien & Südasien', ja: 'インド・南アジア', ko: '인도 및 남아시아' },  range: [25, 50] },
 ];
 
 // 平台费率（与 /pricing、定价一页纸同口径）：标准 15%，founding 客户（前 5 单）5%。
 const FEE_STANDARD = 0.15;
 const FEE_FOUNDING = 0.05;
-
-// 页内双语文案（en/zh）。
-const T = {
-  en: {
-    title: 'Cost Calculator — Platform vs Local Hire',
-    metaDesc: 'Estimate what a verified, escrow-protected automation engineer costs on Talengineer versus hiring a local full-time engineer. Free, transparent, no signup required.',
-    kicker: 'Cost Calculator',
-    heroTitle: 'What will this engineer actually cost you?',
-    heroSub: 'Compare a verified, escrow-protected Talengineer match against the true cost of a local full-time hire. Numbers use live platform rate benchmarks where available.',
-    inputsTitle: 'Your project',
-    fieldTrack: 'Discipline',
-    fieldRegion: 'Engineer region',
-    fieldHours: 'Estimated hours',
-    fieldEngagement: 'Engagement',
-    engRemote: 'Remote',
-    engOnsite: 'On-site / hybrid',
-    resultTitle: 'Talengineer platform plan',
-    labelLabor: 'Engineer labor',
-    labelFee: 'Platform escrow fee (15%)',
-    labelTotal: 'Total (standard 15%)',
-    labelFounding: 'Total as founding client (5%)',
-    perProject: 'for this project',
-    sourceLive: 'Rates from live platform benchmarks for this region.',
-    sourceFallback: 'Rates from regional reference ranges (no live benchmark for this region yet).',
-    onsiteNote: 'On-site / hybrid uses the upper half of the regional range — on-site commissioning carries a premium.',
-    remoteNote: 'Remote work uses the lower half of the regional range.',
-    vsTitle: 'vs hiring a local full-time engineer',
-    vsIntro: 'The platform number above is the near-complete cost. A local full-time hire carries costs that never show up on the hourly rate:',
-    vs1Title: 'Time-to-hire',
-    vs1Body: 'In markets like the US, controls-engineer searches routinely stretch past 60 days. Your line stays down while you search.',
-    vs2Title: 'Benefits & payroll burden',
-    vs2Body: 'A salary is only part of it — benefits, insurance, payroll taxes and overhead are layered on top of every full-time hire.',
-    vs3Title: 'Idle cost',
-    vs3Body: 'You pay a full-time salary between projects too. On the platform you pay for the hours a project actually needs — nothing when there is no work.',
-    vs4Title: 'Verified before they start',
-    vs4Body: 'Every matched engineer is platform-certified and works under milestone escrow — first milestone not satisfied, full refund.',
-    honestNote: 'We deliberately do not put a dollar figure on the local-hire side — the real number depends on your market, role and benefits. The point is the categories of cost you avoid.',
-    leadTitle: 'Want this comparison in your inbox?',
-    leadBody: 'Drop your email and we will send the full breakdown as a report you can share with your team. No spam, unsubscribe anytime.',
-    leadPlaceholder: 'you@company.com',
-    leadBtn: 'Subscribe & receive report',
-    leadBtnSending: 'Sending…',
-    leadOk: 'Thanks — you are subscribed. The full report is on its way.',
-    leadAlready: 'You are already on the list — thanks for coming back.',
-    leadErr: 'Something went wrong. Please check the email and try again.',
-    leadInvalid: 'Please enter a valid email address.',
-    ctaTitle: 'Ready to see real matches?',
-    ctaBody: 'Post your project free and match with pre-screened, certified engineers under milestone escrow.',
-    ctaBtn: 'Post a Project — Free',
-    pricingLink: 'See full pricing',
-    hoursUnit: 'hours',
-  },
-  zh: {
-    title: '成本计算器 — 平台 vs 本地雇佣',
-    metaDesc: '估算在 Talengineer 上雇佣一位经过验证、托管保障的自动化工程师，与本地全职雇佣相比的成本。免费、透明、无需注册。',
-    kicker: '成本计算器',
-    heroTitle: '这位工程师到底要花你多少钱？',
-    heroSub: '把 Talengineer 上一位经过验证、托管保障的匹配，与本地全职雇佣的真实成本做对比。有实时数据的地区用平台实时费率基准。',
-    inputsTitle: '你的项目',
-    fieldTrack: '方向',
-    fieldRegion: '工程师地区',
-    fieldHours: '预估工时',
-    fieldEngagement: '用工形态',
-    engRemote: '远程',
-    engOnsite: '驻场 / 混合',
-    resultTitle: 'Talengineer 平台方案',
-    labelLabor: '工程师劳务',
-    labelFee: '平台托管费（15%）',
-    labelTotal: '合计（标准 15%）',
-    labelFounding: 'Founding 客户合计（5%）',
-    perProject: '本项目',
-    sourceLive: '费率来自该地区的平台实时基准。',
-    sourceFallback: '费率来自地区参考区间（该地区暂无实时基准）。',
-    onsiteNote: '驻场 / 混合取地区区间的上半段——现场调试有溢价。',
-    remoteNote: '远程工作取地区区间的下半段。',
-    vsTitle: 'vs 本地全职雇佣一位工程师',
-    vsIntro: '上面的平台数字已接近全部成本。而本地全职雇佣，还有一些永远不会体现在时薪上的成本：',
-    vs1Title: '招聘周期',
-    vs1Body: '在美国这类市场，控制工程师招聘动辄超过 60 天。搜寻期间你的产线一直停着。',
-    vs2Title: '社保与用工负担',
-    vs2Body: '薪资只是一部分——社保、保险、工资税与管理成本，会叠加在每一个全职岗位之上。',
-    vs3Title: '闲置成本',
-    vs3Body: '项目间歇期你照样要付全职薪资。在平台上你只为项目真正需要的工时付费——没活时不产生成本。',
-    vs4Title: '上岗前已验证',
-    vs4Body: '每位匹配的工程师都经过平台认证，并在里程碑托管下工作——首个里程碑不满意，全额退款。',
-    honestNote: '我们刻意不给本地雇佣一侧标一个具体金额——真实数字取决于你所在市场、岗位与福利。重点是你能省掉的这几类成本。',
-    leadTitle: '想把这份对比发到你邮箱？',
-    leadBody: '留下邮箱，我们会把完整对比整理成一份可与团队分享的报告发给你。不发垃圾邮件，随时可退订。',
-    leadPlaceholder: 'you@company.com',
-    leadBtn: '订阅并接收报告',
-    leadBtnSending: '发送中…',
-    leadOk: '谢谢——你已订阅，完整报告即将送达。',
-    leadAlready: '你已经在订阅列表里了——欢迎回来。',
-    leadErr: '出了点问题，请检查邮箱后重试。',
-    leadInvalid: '请输入有效的邮箱地址。',
-    ctaTitle: '想看看真实的匹配？',
-    ctaBody: '免费发布项目，在里程碑托管下与经过预审、持证的工程师匹配。',
-    ctaBtn: '免费发布项目',
-    pricingLink: '查看完整定价',
-    hoursUnit: '小时',
-  },
-};
 
 // 金额格式化：四舍五入到整数 + 千分位，前缀 $。
 function fmt(n) {

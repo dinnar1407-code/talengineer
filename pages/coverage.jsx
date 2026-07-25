@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
+import { DICT } from '../lib/i18n/coverage';
 import styles from './coverage.module.css';
 
 // ── 覆盖地图页（W2-1）────────────────────────────────────────────────────────
@@ -15,75 +16,14 @@ import styles from './coverage.module.css';
 // 站点根 URL：canonical / OG / JSON-LD 用（照 hire/[track].jsx 模板）。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// 页面正文 en/zh 两套（全站惯例：页面 body 只做 en/zh，9 语只在 Navbar/ChatBot 壳层）。
-const DICT = {
-  en: {
-    heroBadge: 'Live Coverage Data',
-    heroTitle: 'Engineer Coverage Map',
-    heroSub: 'Where our industrial automation engineers are — by region, TalScore tier and specialty. Aggregated in real time from active engineer profiles on Talengineer.',
-    totalEngineers: 'Engineers',
-    totalAvailable: 'Available Now',
-    totalCertified: 'Certified',
-    totalRegions: 'Regions',
-    engineers: 'engineers',
-    engineer: 'engineer',
-    availableNow: 'available now',
-    certifiedLabel: 'certified',
-    tierBarLabel: 'TalScore tier distribution:',
-    tracksTitle: 'Certification coverage by specialty',
-    noTrackData: 'No platform certifications issued yet — our founding engineers are being certified right now.',
-    foundingTitle: 'A founding cohort, counted honestly',
-    foundingBody1: 'Every number on this page is aggregated live from real engineer profiles and platform certifications — nothing is estimated or inflated. We are early, and we would rather show you a small true number than a big fake one.',
-    foundingBody2: 'Our founding cohort of engineers goes through an AI practical screener and platform certification (three levels per specialty) before they can be assigned to projects. Coverage grows as each new engineer is verified.',
-    emptyTitle: 'The map starts here',
-    emptyBody: 'Our founding engineer cohort is onboarding right now. Every engineer goes through our AI screen and platform certification before they can be assigned to projects — check back soon, or be part of it.',
-    tiers: { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', unrated: 'Unrated' },
-    browseBtn: 'Browse Available Engineers →',
-    applyBtn: 'Apply as an Engineer',
-    ratesCta: 'See rate benchmarks by region →',
-    ctaTitle: 'Need an engineer in one of these regions?',
-    ctaBody: 'Post your project and get matched with pre-screened, certified engineers. Milestone escrow protects both parties.',
-    ctaBtn: 'Post a Project',
-    updatedAt: 'Data as of',
-  },
-  zh: {
-    heroBadge: '实时覆盖数据',
-    heroTitle: '工程师覆盖地图',
-    heroSub: '我们的工业自动化工程师分布在哪里——按地区、TalScore 档位与专业方向展示，数据实时聚合自 Talengineer 平台的工程师档案。',
-    totalEngineers: '工程师',
-    totalAvailable: '当前可接单',
-    totalCertified: '已认证',
-    totalRegions: '覆盖地区',
-    engineers: '位工程师',
-    engineer: '位工程师',
-    availableNow: '当前可接单',
-    certifiedLabel: '已认证',
-    tierBarLabel: 'TalScore 档位分布：',
-    tracksTitle: '按方向的认证覆盖',
-    noTrackData: '平台认证正在颁发中——创始工程师们正在完成考核认证。',
-    foundingTitle: '创始群体，诚实计数',
-    foundingBody1: '本页每个数字都实时聚合自真实的工程师档案与平台认证——没有估算，没有注水。我们处在早期，宁可给你看一个小而真的数字，也不给你一个大而假的数字。',
-    foundingBody2: '创始工程师群体在被指派项目前，都要通过 AI 实操筛选与平台认证（每个方向三个级别）。每验证一位新工程师，覆盖就多一分。',
-    emptyTitle: '地图从这里开始',
-    emptyBody: '创始工程师群体正在入驻。每位工程师都要先通过筛选与认证才能被指派项目——欢迎稍后回来，或者成为其中一员。',
-    tiers: { platinum: '白金', gold: '金', silver: '银', bronze: '铜', unrated: '未评分' },
-    browseBtn: '浏览在线工程师 →',
-    applyBtn: '以工程师身份申请',
-    ratesCta: '查看各地区费率基准 →',
-    ctaTitle: '需要这些地区的工程师？',
-    ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
-    ctaBtn: '发布项目',
-    updatedAt: '数据截至',
-  },
-};
-
+// 页面正文 en/zh 字典已迁至 lib/i18n/coverage.js（2026-07-24，架构 B 迁移）。
 // 四大认证方向的展示名（cert_tracks 种子 key → 标签；与 /hire/[track] 口径一致）。
 // 未来若出现未知 track_key，回退显示原始 key，不炸页面。
 const TRACK_LABELS = {
-  plc: { en: 'PLC Programming', zh: 'PLC 编程' },
-  robotics: { en: 'Robotics', zh: '机器人' },
-  vision: { en: 'Machine Vision', zh: '机器视觉' },
-  electrical: { en: 'Electrical', zh: '电气' },
+  plc: { en: 'PLC Programming', zh: 'PLC 编程', es: 'Programación de PLC', vi: 'Lập trình PLC', hi: 'PLC प्रोग्रामिंग', fr: 'Programmation PLC', de: 'PLC-Programmierung', ja: 'PLCプログラミング', ko: 'PLC 프로그래밍' },
+  robotics: { en: 'Robotics', zh: '机器人', es: 'Robótica', vi: 'Robot công nghiệp', hi: 'रोबोटिक्स', fr: 'Robotique', de: 'Robotik', ja: 'ロボティクス', ko: '로보틱스' },
+  vision: { en: 'Machine Vision', zh: '机器视觉', es: 'Visión artificial', vi: 'Thị giác máy', hi: 'मशीन विज़न', fr: 'Vision industrielle', de: 'Bildverarbeitung', ja: 'マシンビジョン', ko: '머신 비전' },
+  electrical: { en: 'Electrical', zh: '电气', es: 'Eléctrica', vi: 'Điện', hi: 'इलेक्ट्रिकल', fr: 'Électrique', de: 'Elektrotechnik', ja: '電気', ko: '전기' },
 };
 
 // 档位配色：半透明底 + 实色字，明暗主题下都清晰（照 TalScoreBadge 的金属色系手法；

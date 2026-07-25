@@ -5,38 +5,21 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
 import { getAllPlaybookMeta } from '../../lib/playbook';
+import { selectGroupVariants } from '../../lib/playbookGroups';
+import { DICT } from '../../lib/i18n/playbook-index';
 import styles from './playbook.module.css';
 
 // 站点根 URL：canonical / OG 用。构建期从环境变量读，回退线上域名。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// 语言分组展示名（列表页按 lang 分组）。
-const LANG_LABEL = { en: 'English guides', zh: '中文指南' };
-
-// 列表页顶部文案（跟随导航语言切换；只做 en/zh 两套，其余回退英文）。
-const DICT = {
-  en: {
-    kicker: 'Talengineer Playbook',
-    title: 'Guides for hiring and managing automation talent',
-    sub: 'Practical, no-fluff guides on rates, hiring, certification, and cross-border delivery for industrial automation projects.',
-    read: 'Read guide →',
-    typeAll: 'All',
-    typeLabels: { guide: 'Guide', 'market-data': 'Market Data', certification: 'Certification', case: 'Case Study' },
-    audAll: 'All audiences',
-    audLabels: { employer: 'For employers', engineer: 'For engineers' },
-  },
-  zh: {
-    kicker: 'Talengineer 实战指南',
-    title: '自动化人才招聘与管理指南',
-    sub: '关于费率、招聘、认证与跨境交付的实操型指南，专为工业自动化项目而写。',
-    read: '阅读指南 →',
-    typeAll: '全部',
-    typeLabels: { guide: '指南', 'market-data': '市场数据', certification: '认证解读', case: '案例' },
-    audAll: '全部受众',
-    audLabels: { employer: '雇主向', engineer: '工程师向' },
-  },
+// 「也提供」徽章里的语言短标（翻译组机制 2026-07-24）：
+// 覆盖全站 9 语（hooks/useLang SUPPORTED 同口径）；zh/ja/ko 用母语字样，其余用大写码。
+const LANG_BADGE = {
+  en: 'EN', zh: '中文', es: 'ES', vi: 'VI', hi: 'HI',
+  fr: 'FR', de: 'DE', ja: '日本語', ko: '한국어',
 };
 
+// 列表页顶部文案已迁至 lib/i18n/playbook-index.js（2026-07-24，架构 B 迁移）。
 // 类型筛选的展示顺序（内容 taxonomy，竞对改善 W1-2）。
 const TYPE_ORDER = ['guide', 'market-data', 'certification', 'case'];
 
@@ -48,31 +31,29 @@ const AUD_ORDER = ['employer', 'engineer'];
 const matchesAudience = (article, aud) =>
   !aud || article.audience === aud || article.audience === 'both';
 
-export default function PlaybookIndex({ groups }) {
+export default function PlaybookIndex({ articles }) {
   const [lang, setLang] = useLang();
   const [typeFilter, setTypeFilter] = useState('');
   // 受众筛选状态：'' = 不过滤（全部受众），镜像 typeFilter 的模式。
   const [audFilter, setAudFilter] = useState('');
   const d = DICT[lang] || DICT.en;
 
-  // 按类型 + 受众客户端过滤（两个维度是 AND 关系）；只展示筛选后仍有文章的语言组。
-  const visibleGroups = groups
-    .map((g) => ({
-      ...g,
-      articles: g.articles.filter(
-        (a) => (!typeFilter || a.type === typeFilter) && matchesAudience(a, audFilter)
-      ),
-    }))
-    .filter((g) => g.articles.length > 0);
+  // 翻译组去重（替代旧的按语言分区）：每组只出一张卡——当前 UI 语言的变体优先，
+  // 缺译回退 en，再缺取组内现存的那篇。useLang 首帧恒为 'en'（客户端 effect 才读
+  // localStorage），所以 SSR 首帧 = 完整 en 行为，静态 HTML 对搜索引擎稳定。
+  const selected = selectGroupVariants(articles, lang);
 
-  // 只给实际存在的类型出筛选 chip，避免空筛选项。
-  const presentTypes = TYPE_ORDER.filter((t) =>
-    groups.some((g) => g.articles.some((a) => a.type === t))
+  // 按类型 + 受众客户端过滤（两个维度是 AND 关系），作用在已按组去重的集合上。
+  const visibleArticles = selected.filter(
+    (a) => (!typeFilter || a.type === typeFilter) && matchesAudience(a, audFilter)
   );
+
+  // 只给实际存在的类型出筛选 chip，避免空筛选项（口径 = 当前语言选出的组代表集）。
+  const presentTypes = TYPE_ORDER.filter((t) => selected.some((a) => a.type === t));
 
   // 只给选中后有结果的受众出 chip（both 文章让两个受众都"存在"），避免空态筛选项。
   const presentAuds = AUD_ORDER.filter((aud) =>
-    groups.some((g) => g.articles.some((a) => matchesAudience(a, aud)))
+    selected.some((a) => matchesAudience(a, aud))
   );
 
   const pageTitle = 'Automation Hiring Playbook | Talengineer';
@@ -150,26 +131,26 @@ export default function PlaybookIndex({ groups }) {
           </div>
         )}
 
-        {visibleGroups.map((group) => (
-          <section key={group.lang}>
-            <h2 className={styles.groupTitle}>
-              {LANG_LABEL[group.lang] || group.lang}
-            </h2>
-            <div className={styles.grid}>
-              {group.articles.map((a) => (
-                <Link key={a.slug} href={`/playbook/${a.slug}`} className={styles.card}>
-                  <span className={styles.cardMeta}>
-                    {a.date && <span className={styles.cardDate}>{a.date}</span>}
-                    <span className={styles.cardType}>{d.typeLabels[a.type] || a.type}</span>
+        {/* 单一网格（翻译组机制）：不再按语言分区——每个翻译组只展示一张卡。
+            组内有其他语言版本时，卡片带「也提供: EN/中文/…」小徽章提示可切换。 */}
+        <div className={styles.grid}>
+          {visibleArticles.map((a) => (
+            <Link key={a.group} href={`/playbook/${a.slug}`} className={styles.card}>
+              <span className={styles.cardMeta}>
+                {a.date && <span className={styles.cardDate}>{a.date}</span>}
+                <span className={styles.cardType}>{d.typeLabels[a.type] || a.type}</span>
+                {a.otherLangs.length > 0 && (
+                  <span className={styles.cardType}>
+                    {d.also} {a.otherLangs.map((l) => LANG_BADGE[l] || l).join(' / ')}
                   </span>
-                  <b className={styles.cardTitle}>{a.title}</b>
-                  <span className={styles.cardDesc}>{a.description}</span>
-                  <span className={styles.cardMore}>{d.read}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))}
+                )}
+              </span>
+              <b className={styles.cardTitle}>{a.title}</b>
+              <span className={styles.cardDesc}>{a.description}</span>
+              <span className={styles.cardMore}>{d.read}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* 共享页脚：链接由 lib/navConfig.js FOOTER_COLUMNS 单一来源驱动（原手写简版页脚已移除） */}
@@ -178,19 +159,9 @@ export default function PlaybookIndex({ groups }) {
   );
 }
 
-// 构建期读取全部文章元数据，按语言分组（英文组在前）。
+// 构建期读取全部已发布文章元数据（日期倒序、草稿已滤）。
+// 翻译组的去重/回退在客户端做（依赖当前 UI 语言），这里只透传整份 meta——
+// 这样切语言无需重新请求，selectGroupVariants 直接在浏览器里重挑变体。
 export async function getStaticProps() {
-  const meta = getAllPlaybookMeta();
-
-  // 按 lang 归并；保留 getAllPlaybookMeta 已做的日期倒序。
-  const byLang = {};
-  meta.forEach((m) => {
-    (byLang[m.lang] = byLang[m.lang] || []).push(m);
-  });
-
-  // 展示顺序：en 优先，其余按字母序。
-  const order = Object.keys(byLang).sort((a, b) => (a === 'en' ? -1 : b === 'en' ? 1 : a < b ? -1 : 1));
-  const groups = order.map((l) => ({ lang: l, articles: byLang[l] }));
-
-  return { props: { groups } };
+  return { props: { articles: getAllPlaybookMeta() } };
 }

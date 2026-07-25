@@ -4,68 +4,13 @@ import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import { useLang } from '../../../hooks/useLang';
 import { REGIONS, RATES_NOTE, getMatrixPaths, hasMatrixEntry, getMatrixPage } from '../../../lib/hireMatrix';
+import { DICT as UI } from '../../../lib/i18n/hire-track-industry';
 import styles from './industry.module.css';
 
 // 站点根 URL：canonical / OG 用。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 
-// UI 标签（章节标题、按钮等），en/zh 两套——与 /hire/[track] 同口径。
-const UI = {
-  en: {
-    home: 'Hire',
-    heroApply: 'Apply as an Engineer',
-    heroPost: 'Post a Project — Free',
-    painTitle: 'Why this industry is different',
-    skillsTitle: 'Skills we screen for',
-    verifyTitle: 'What platform certification verifies',
-    verifyIntro:
-      'Every engineer passes a practical AI technical screener before they can be matched. On top of that, they can earn certification in this track at three levels — and only certified engineers can be assigned to your project.',
-    ratesTitle: 'Rate ranges by region',
-    regionCol: 'Region',
-    rateCol: 'Hourly (USD)',
-    linksTitle: 'Explore related talent',
-    linksSameTrack: 'Same specialty · other industries',
-    linksSameIndustry: 'Same industry · other specialties',
-    linksMore: 'More',
-    allTrack: 'All',
-    talentLink: 'engineers',
-    rates: 'Rate benchmarks',
-    pricing: 'Pricing & escrow',
-    certification: 'Certification',
-    ctaHeading: 'Ready to hire?',
-    ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
-    l1: 'L1 — Fundamentals',
-    l2: 'L2 — Independent',
-    l3: 'L3 — Expert',
-  },
-  zh: {
-    home: '招募',
-    heroApply: '以工程师身份申请',
-    heroPost: '免费发布项目',
-    painTitle: '这个行业为什么不一样',
-    skillsTitle: '我们筛选的技能',
-    verifyTitle: '平台认证验证什么',
-    verifyIntro:
-      '每位工程师在被匹配前都要通过一套实操型 AI 技术筛选。在此之上，还可在该方向考取三个级别的认证——只有持证工程师才能被指派到你的项目。',
-    ratesTitle: '各地区费率区间',
-    regionCol: '地区',
-    rateCol: '时薪（美元）',
-    linksTitle: '探索相关人才',
-    linksSameTrack: '同方向 · 其他行业',
-    linksSameIndustry: '同行业 · 其他方向',
-    linksMore: '更多',
-    allTrack: '查看全部',
-    talentLink: '工程师',
-    rates: '费率基准',
-    pricing: '定价与托管',
-    certification: '认证',
-    ctaHeading: '准备好招募了吗？',
-    ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
-    l1: 'L1 — 基础',
-    l2: 'L2 — 独立',
-    l3: 'L3 — 专家',
-  },
-};
+// UI 字典已迁至 lib/i18n/hire-track-industry.js（2026-07-24 架构 B）。
 
 export default function HireIndustry({ data }) {
   const [lang, setLang] = useLang();
@@ -236,7 +181,7 @@ export default function HireIndustry({ data }) {
               <p className={styles.linkGroupTitle}>{u.linksMore}</p>
               <div className={styles.linkList}>
                 <Link href={`/hire/${data.track}`} className={styles.linkItem}>
-                  {u.allTrack} {trackLabel} {u.talentLink} →
+                  {u.allTrackEngineers.replace('{track}', trackLabel)} →
                 </Link>
                 <Link href="/rates" className={styles.linkItem}>{u.rates} →</Link>
                 <Link href="/pricing" className={styles.linkItem}>{u.pricing} →</Link>

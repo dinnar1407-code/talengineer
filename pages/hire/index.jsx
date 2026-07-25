@@ -5,6 +5,7 @@ import Footer from '../../components/Footer';
 import { useLang } from '../../hooks/useLang';
 import { REGIONS, RATES_NOTE, getTrackMeta, getIndustriesForTrack } from '../../lib/hireMatrix';
 import { getRolesForTrack } from '../../lib/occupations';
+import { DICT as UI, TRACK_BLURBS } from '../../lib/i18n/hire-index';
 import styles from './hire.module.css';
 import ix from './hire-index.module.css';
 
@@ -19,88 +20,14 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 // 四个方向的展示顺序（与导航 Specialties 菜单一致：plc → robotics → vision → electrical）。
 const TRACK_ORDER = ['plc', 'robotics', 'vision', 'electrical'];
 
-// 方向卡的一句话简介：索引页专属文案（结构性陈述，零统计数字）。
-// 方向页的完整文案在 pages/hire/[track].jsx，这里只做"进入前的一口简介"，不重复母页正文。
-const TRACK_BLURBS = {
-  plc: {
-    en: 'Siemens, Rockwell, Mitsubishi and Beckhoff programmers for logic design, migration and commissioning — matched by platform, not just by keyword.',
-    zh: 'Siemens、Rockwell、Mitsubishi、Beckhoff 程序员，覆盖逻辑设计、迁移与调试——按平台匹配，而不只是按关键词。',
-  },
-  robotics: {
-    en: 'Fanuc, KUKA, ABB and Yaskawa specialists for cell design, programming and on-site commissioning, screened on real path and integration problems.',
-    zh: 'Fanuc、KUKA、ABB、Yaskawa 专家，负责工作站设计、编程与现场调试，在真实的路径与集成问题上完成筛选。',
-  },
-  vision: {
-    en: 'Inspection, guidance and measurement engineers across Cognex, Keyence and Halcon — verified where vision projects actually fail: lighting, calibration, variation.',
-    zh: '横跨 Cognex、Keyence、Halcon 的检测、引导与测量工程师——在视觉项目真正翻车的地方验证：打光、标定、来料变化。',
-  },
-  electrical: {
-    en: 'Panel design, drives and power specialists — EPLAN, UL/IEC and safe, buildable schematics that survive commissioning.',
-    zh: '电柜设计、驱动与配电专家——EPLAN、UL/IEC，画得出经得起调试的安全可施工图纸。',
-  },
-};
+// 方向卡简介 TRACK_BLURBS 与页面 UI 字典已迁至 lib/i18n/hire-index.js（2026-07-24 架构 B）。
 
 // 建厂用人指南跨链（与 /hire/[track] 的 GUIDES 同一组三国，slug 对应 /guides/[region] 路由）。
 const GUIDES = [
-  { slug: 'mexico', flag: '🇲🇽', name: { en: 'Mexico', zh: '墨西哥' } },
-  { slug: 'vietnam', flag: '🇻🇳', name: { en: 'Vietnam', zh: '越南' } },
-  { slug: 'thailand', flag: '🇹🇭', name: { en: 'Thailand', zh: '泰国' } },
+  { slug: 'mexico', flag: '🇲🇽', name: { en: 'Mexico', zh: '墨西哥', es: 'México', vi: 'Mexico', hi: 'मेक्सिको', fr: 'Mexique', de: 'Mexiko', ja: 'メキシコ', ko: '멕시코' } },
+  { slug: 'vietnam', flag: '🇻🇳', name: { en: 'Vietnam', zh: '越南', es: 'Vietnam', vi: 'Việt Nam', hi: 'वियतनाम', fr: 'Vietnam', de: 'Vietnam', ja: 'ベトナム', ko: '베트남' } },
+  { slug: 'thailand', flag: '🇹🇭', name: { en: 'Thailand', zh: '泰国', es: 'Tailandia', vi: 'Thái Lan', hi: 'थाईलैंड', fr: 'Thaïlande', de: 'Thailand', ja: 'タイ', ko: '태국' } },
 ];
-
-// 页面文案（en/zh 两套，其余语言回退 en——全站 `|| en` 约定，SSR 首帧英文）。
-const UI = {
-  en: {
-    kicker: 'Hire Engineers',
-    title: 'Hire Certified Industrial Automation Engineers',
-    sub: 'PLC, robotics, machine vision and electrical specialists — pre-screened by a practical AI assessment, certified at three levels, and delivering under milestone escrow.',
-    heroPost: 'Post a Project — Free',
-    heroApply: 'Apply as an Engineer',
-    lead1:
-      'Hiring automation talent across borders usually fails in one of two places: you cannot verify that a résumé keyword means real depth on your exact controller, robot or camera; or the money side of a cross-border engagement is too risky for either party to commit. This page is the map of how we solve both — pick a specialty, an industry or a role title, and every path leads to the same verified pool.',
-    lead2:
-      'Every engineer on the platform passes a practical AI technical screener before they can be matched, and can earn platform certification in their track at three levels — only certified engineers can be assigned to your project. Payment runs through milestone escrow: funds are held and released stage by stage as work is accepted, protecting both sides of the border.',
-    tracksTitle: 'Browse by specialty',
-    tracksIntro:
-      'Four certification tracks. Each specialty page covers what we screen for, what the three certification levels mean, and regional rate ranges.',
-    viewTrack: 'View specialty →',
-    industriesLabel: 'By industry:',
-    rolesTitle: 'Hire by role title',
-    rolesIntro:
-      'If you think in job titles rather than certification tracks, start from the role — each role page maps the title to the right track, skills and certification path.',
-    ratesTitle: 'Rate ranges by region',
-    regionCol: 'Region',
-    rateCol: 'Hourly (USD)',
-    guidesTitle: 'Setting up in a new country?',
-    guidesBody:
-      'Read our country hiring guides for local rate ranges, certification and on-the-ground commissioning before you build.',
-    ctaHeading: 'Ready to hire?',
-    ctaBody: 'Post your project and match with pre-screened, certified engineers. Milestone escrow protects both sides.',
-  },
-  zh: {
-    kicker: '招聘工程师',
-    title: '雇佣持证工业自动化工程师',
-    sub: 'PLC、机器人、机器视觉与电气专家——通过实操型 AI 筛选、三级认证，在里程碑托管下交付。',
-    heroPost: '免费发布项目',
-    heroApply: '以工程师身份申请',
-    lead1:
-      '跨境招募自动化人才，通常卡在两个地方：一是没法验证简历上的关键词，在你这台具体的控制器、机器人或相机上到底有没有真功夫；二是跨境合作的资金风险，让双方都不敢先迈一步。这一页就是我们解决这两件事的地图——无论从方向、行业还是职位名进入，每条路都通向同一个经过验证的工程师池。',
-    lead2:
-      '平台上每位工程师在被匹配前，都要先通过一套实操型 AI 技术筛选，并可在所属方向考取三个级别的平台认证——只有持证工程师才能被指派到你的项目。付款走里程碑托管：资金先托管，随每阶段验收逐步释放，跨境双方都有保障。',
-    tracksTitle: '按方向浏览',
-    tracksIntro: '四条认证方向。每个方向页涵盖：我们筛选什么、三级认证分别意味着什么、各地区费率区间。',
-    viewTrack: '进入方向页 →',
-    industriesLabel: '按行业：',
-    rolesTitle: '按职位名招募',
-    rolesIntro: '如果你习惯用职位名而不是认证方向思考，就从职位入手——每个职位页会把职位名映射到对应的方向、技能与认证路径。',
-    ratesTitle: '各地区费率区间',
-    regionCol: '地区',
-    rateCol: '时薪（美元）',
-    guidesTitle: '要在新国家建厂？',
-    guidesBody: '动工前，先读我们的分国用人指南：了解当地费率区间、认证与落地调试。',
-    ctaHeading: '准备好招募了吗？',
-    ctaBody: '发布项目，与经过预审、持证的工程师精准匹配。里程碑托管保障双方权益。',
-  },
-};
 
 export default function HireIndex({ tracks, roles }) {
   const [lang, setLang] = useLang();

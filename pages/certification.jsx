@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
+import { DICT as UI, FUNNEL, ANTICHEAT } from '../lib/i18n/certification';
 import styles from './certification.module.css';
 
 // 站点根 URL：canonical / OG / JSON-LD 用。
@@ -11,9 +12,9 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
 // 四方向 × L1–L3 认证矩阵。方向口径与 src/routes/demand.js / pages/hire/[track].jsx 一致；
 // 每级含义与考核规则的单一来源是 src/config/training.js（MAX_LEVEL=3，L(n) 须先持 L(n-1)）。
 const LEVELS = [
-  { n: 1, en: 'Fundamentals', zh: '基础' },
-  { n: 2, en: 'Independent', zh: '独立' },
-  { n: 3, en: 'Expert', zh: '专家' },
+  { n: 1, en: 'Fundamentals', zh: '基础', es: 'Fundamentos', vi: 'Nền tảng', hi: 'बुनियादी', fr: 'Fondamentaux', de: 'Grundlagen', ja: '基礎', ko: '기초' },
+  { n: 2, en: 'Independent', zh: '独立', es: 'Independiente', vi: 'Độc lập', hi: 'स्वतंत्र', fr: 'Autonome', de: 'Eigenständig', ja: '独立', ko: '독립' },
+  { n: 3, en: 'Expert', zh: '专家', es: 'Experto', vi: 'Chuyên gia', hi: 'विशेषज्ञ', fr: 'Expert', de: 'Experte', ja: 'エキスパート', ko: '전문가' },
 ];
 
 const TRACKS = [
@@ -21,101 +22,51 @@ const TRACKS = [
     key: 'plc',
     en: { name: 'PLC & Controls', cells: ['Executes specified ladder/ST work under guidance', 'Owns a control scope end to end', 'Architects control systems and safety'] },
     zh: { name: 'PLC 与控制', cells: ['在指导下完成范围明确的 ladder/ST 工作', '端到端负责一个控制范围', '架构控制系统，把关安全'] },
+    es: { name: 'PLC y control', cells: ['Ejecuta trabajo especificado de ladder/ST bajo supervisión', 'Es responsable de un alcance de control de principio a fin', 'Diseña sistemas de control y seguridad'] },
+    vi: { name: 'PLC & Điều khiển', cells: ['Thực hiện công việc ladder/ST được chỉ định dưới sự hướng dẫn', 'Chịu trách nhiệm toàn bộ một phạm vi điều khiển từ đầu đến cuối', 'Kiến trúc hệ thống điều khiển và an toàn'] },
+    hi: { name: 'PLC और कंट्रोल', cells: ['निर्देशन में तय ladder/ST काम को अंजाम देता है', 'एंड-टू-एंड एक कंट्रोल स्कोप का ज़िम्मा उठाता है', 'कंट्रोल सिस्टम और सुरक्षा की आर्किटेक्चर करता है'] },
+    fr: { name: 'PLC et contrôle-commande', cells: ['Exécute un travail ladder/ST spécifié sous supervision', 'Prend en charge un périmètre de contrôle de bout en bout', 'Conçoit les systèmes de contrôle et la sécurité'] },
+    de: { name: 'PLC & Steuerungstechnik', cells: ['Führt festgelegte Ladder-/ST-Arbeiten unter Anleitung aus', 'Verantwortet einen Steuerungsbereich end-to-end', 'Entwirft Steuerungssysteme und Sicherheit'] },
+    ja: { name: 'PLC・制御', cells: ['指導のもと指定されたラダー/ST作業を実行', '制御範囲をエンドツーエンドで担当', '制御システムと安全の全体設計を担う'] },
+    ko: { name: 'PLC 및 제어', cells: ['지도하에 지정된 래더/ST 작업을 수행', '제어 범위를 처음부터 끝까지 전담', '제어 시스템과 안전을 설계'] },
   },
   {
     key: 'robotics',
     en: { name: 'Robotics', cells: ['Runs taught programs and defined cell work', 'Programs and commissions a cell solo', 'Designs cells, leads multi-robot commissioning'] },
     zh: { name: '机器人', cells: ['执行示教程序与定义明确的工作站活', '独立完成工作站编程与调试', '设计复杂工作站，带队多机联调'] },
+    es: { name: 'Robótica', cells: ['Ejecuta programas enseñados y trabajo de celda definido', 'Programa y pone en marcha una celda en solitario', 'Diseña celdas y lidera la puesta en marcha multi-robot'] },
+    vi: { name: 'Robot công nghiệp', cells: ['Chạy các chương trình đã được dạy và công việc trạm rõ ràng', 'Tự mình lập trình và chạy thử một trạm', 'Thiết kế trạm, dẫn dắt chạy thử đa robot'] },
+    hi: { name: 'रोबोटिक्स', cells: ['सिखाए गए प्रोग्राम व तय सेल काम चलाता है', 'अकेले एक सेल को प्रोग्राम व कमीशन करता है', 'सेल डिज़ाइन करता है, मल्टी-रोबोट कमीशनिंग का नेतृत्व करता है'] },
+    fr: { name: 'Robotique', cells: ['Exécute des programmes enseignés et un travail de cellule défini', 'Programme et met en service une cellule en solo', 'Conçoit les cellules, dirige la mise en service multi-robots'] },
+    de: { name: 'Robotik', cells: ['Führt eingelernte Programme und definierte Zellenarbeit aus', 'Programmiert und nimmt eine Zelle allein in Betrieb', 'Entwirft Zellen, leitet die Inbetriebnahme mehrerer Roboter'] },
+    ja: { name: 'ロボティクス', cells: ['教示済みプログラムと定義済みセル作業を実行', '単独でセルのプログラミングと試運転を行う', 'セルを設計し、複数ロボットの試運転を主導する'] },
+    ko: { name: '로보틱스', cells: ['교시된 프로그램과 정의된 셀 작업을 실행', '단독으로 셀을 프로그래밍하고 시운전', '셀을 설계하고 다중 로봇 시운전을 주도'] },
   },
   {
     key: 'vision',
     en: { name: 'Machine Vision', cells: ['Configures inspections and standard lighting', 'Designs robust inspection, calibrates solo', 'Architects demanding vision systems'] },
     zh: { name: '机器视觉', cells: ['配置检测，搭建标准打光', '设计稳健检测，独立标定', '架构高要求的视觉系统'] },
+    es: { name: 'Visión artificial', cells: ['Configura inspecciones e iluminación estándar', 'Diseña inspecciones robustas, calibra en solitario', 'Diseña sistemas de visión exigentes'] },
+    vi: { name: 'Thị giác máy', cells: ['Cấu hình kiểm tra và chiếu sáng tiêu chuẩn', 'Thiết kế kiểm tra bền vững, tự hiệu chuẩn', 'Kiến trúc các hệ thống thị giác đòi hỏi cao'] },
+    hi: { name: 'मशीन विज़न', cells: ['इंस्पेक्शन व स्टैंडर्ड लाइटिंग कॉन्फ़िगर करता है', 'मज़बूत इंस्पेक्शन डिज़ाइन करता है, अकेले कैलिब्रेट करता है', 'मुश्किल विज़न सिस्टम की आर्किटेक्चर करता है'] },
+    fr: { name: 'Vision industrielle', cells: ['Configure les inspections et l’éclairage standard', 'Conçoit des inspections robustes, calibre en solo', 'Conçoit des systèmes de vision exigeants'] },
+    de: { name: 'Bildverarbeitung', cells: ['Konfiguriert Inspektionen und Standardbeleuchtung', 'Entwirft robuste Inspektionen, kalibriert allein', 'Entwirft anspruchsvolle Bildverarbeitungssysteme'] },
+    ja: { name: 'マシンビジョン', cells: ['検査と標準照明を設定する', '堅牢な検査を設計し、単独でキャリブレーションする', '要求水準の高いビジョンシステムを設計する'] },
+    ko: { name: '머신 비전', cells: ['검사 및 표준 조명을 구성', '견고한 검사를 설계하고 단독으로 캘리브레이션', '까다로운 비전 시스템을 설계'] },
   },
   {
     key: 'electrical',
     en: { name: 'Electrical', cells: ['Produces standard panel layouts and schematics', 'Designs compliant panels and drives solo', 'Architects power distribution and safety'] },
     zh: { name: '电气', cells: ['完成标准电柜布局与图纸', '独立设计合规的电柜与驱动', '架构配电，把关规范与安全'] },
+    es: { name: 'Eléctrica', cells: ['Produce distribuciones y planos de tableros estándar', 'Diseña tableros y variadores conformes en solitario', 'Diseña la distribución de energía y la seguridad'] },
+    vi: { name: 'Điện', cells: ['Tạo bố trí tủ điện và sơ đồ tiêu chuẩn', 'Tự mình thiết kế tủ điện và biến tần đạt chuẩn', 'Kiến trúc phân phối điện và an toàn'] },
+    hi: { name: 'इलेक्ट्रिकल', cells: ['स्टैंडर्ड पैनल लेआउट व स्कीमैटिक तैयार करता है', 'अकेले कंप्लायंट पैनल व ड्राइव डिज़ाइन करता है', 'पावर डिस्ट्रीब्यूशन व सुरक्षा की आर्किटेक्चर करता है'] },
+    fr: { name: 'Électricité', cells: ['Produit des plans et schémas d’armoires standard', 'Conçoit des armoires et variateurs conformes en solo', 'Conçoit la distribution électrique et la sécurité'] },
+    de: { name: 'Elektrotechnik', cells: ['Erstellt Standard-Schaltschranklayouts und -pläne', 'Entwirft konforme Schaltschränke und Antriebe allein', 'Entwirft Energieverteilung und Sicherheit'] },
+    ja: { name: '電気', cells: ['標準的な制御盤レイアウトと回路図を作成する', '単独で法規に適合した制御盤とドライブを設計する', '配電と安全の全体設計を担う'] },
+    ko: { name: '전기', cells: ['표준 패널 배치도와 회로도를 작성', '단독으로 규정을 준수하는 패널과 드라이브를 설계', '배전과 안전을 설계'] },
   },
 ];
-
-// 认证漏斗 —— 每一级写清"卡什么"。数字取自 src/config/training.js（40 分钟 / 10 题 / 70 分 / 7 天冷却）。
-// 诚实空态：平台在 beta，没有真实通过率数据，此处不编任何百分比。
-const FUNNEL = {
-  en: [
-    { step: 'Enroll', gate: 'Pick a track and level. L1 is open to everyone; L2 and L3 unlock only after you hold the level below.' },
-    { step: 'Study & log time', gate: 'Work through the AI learning path. Study time is timed on the server, not self-reported.' },
-    { step: 'AI exam', gate: '40 minutes, 10 questions (5 multiple-choice + 3 scenario + 2 deep-analysis). You need 70/100 to pass.' },
-    { step: 'Human review', gate: 'Passing the AI grader is not enough. An admin reviews the paper by hand before anything is issued.' },
-    { step: 'Certificate issued', gate: 'The credential is recorded on your engineer profile for employers to see.' },
-    { step: 'Assignment unlocked', gate: 'Only now can you be assigned to official on-site projects in that track. No certificate, no assignment.' },
-  ],
-  zh: [
-    { step: '报名', gate: '选方向与等级。L1 对所有人开放；L2、L3 只有持有下一级证书后才解锁。' },
-    { step: '学习打卡', gate: '走完 AI 学习路径。学习时长由服务端计时，不是自己报的。' },
-    { step: 'AI 实测', gate: '40 分钟，10 题（5 选择 + 3 场景短答 + 2 深度分析）。满分 100，需达 70 分。' },
-    { step: '人工复核', gate: '过了 AI 评分还不够。发证前，admin 会逐题人工阅卷把关。' },
-    { step: '发证', gate: '证书记入你的工程师档案，雇主可见。' },
-    { step: '解锁指派资格', gate: '到这一步才能被指派到该方向的正式现场项目。没有证书，就没有指派。' },
-  ],
-};
-
-// 反作弊设计 —— 机制叙事，不编数据。数字取自 src/config/training.js（题库 20 套 / 冷却 7 天 / 限时 40 分钟）。
-const ANTICHEAT = {
-  en: [
-    { title: 'Randomized question bank', body: 'Up to 20 exam sets are stored per track × level × language. Every attempt draws one at random, so memorizing a single paper gets you nowhere.' },
-    { title: 'Server-side timer', body: 'The 40-minute deadline is enforced on the server. The browser clock is never trusted; a late submission is marked expired.' },
-    { title: 'Failure cooldown', body: 'Fail an exam and you wait 7 days before retaking the same track and level — enough to close the door on brute-forcing the bank.' },
-    { title: 'Server-side grading', body: 'Multiple-choice answer keys never reach the browser. Grading happens on the server, so you cannot read the answers out of the network tab.' },
-  ],
-  zh: [
-    { title: '随机题库', body: '每 方向 × 等级 × 语言 存最多 20 套考卷。每次开考随机抽一套，背下单套题毫无用处。' },
-    { title: '服务端计时', body: '40 分钟的截止时间由服务端把控。浏览器时间从不采信；超时交卷判 expired。' },
-    { title: '挂科冷却', body: '挂科后，同方向同等级需等 7 天才能重考——足以关上暴力刷题库的门。' },
-    { title: '服务端判分', body: '选择题的答案键绝不下发到浏览器。判分在服务端进行，F12 看网络请求也抄不到答案。' },
-  ],
-};
-
-const UI = {
-  en: {
-    kicker: 'Certification',
-    title: 'A certificate here is a hard gate, not a badge',
-    sub: 'Our certification is not decoration for a profile. It is the switch that decides whether an engineer can be assigned to a project at all. Here is exactly what it takes to earn one — and why it is hard to fake.',
-    ctaPrimary: 'Start your certification',
-    ctaGhost: 'How the quality score uses it',
-    matrixTitle: 'Four tracks, three levels',
-    matrixIntro: 'Every track certifies at three levels, from supervised fundamentals to independent expert. You cannot skip a level.',
-    progressNote: 'Levels are cumulative: you must hold L1 before attempting L2, and L2 before L3. Each level is a separate timed exam.',
-    funnelTitle: 'From enrollment to assignment',
-    funnelIntro: 'Six gates, each one blocking the next until it is cleared. We show what each gate checks — not made-up pass rates, because the platform is still in beta and we will not invent numbers.',
-    antiTitle: 'Designed against shortcuts',
-    antiIntro: 'The exam is built so that the only way through is to actually know the material.',
-    relTitle: 'Where the exam lives',
-    relBody: 'Certification is earned through the training module. Study the AI learning path, then take the timed exam there — this page explains the rules, /training is where you sit them.',
-    relCta: 'Go to /training to enroll',
-    ctaHeading: 'Prove it under exam conditions',
-    ctaBody: 'Get certified, and unlock the projects that require verified, on-site-ready engineers.',
-  },
-  zh: {
-    kicker: '认证',
-    title: '这里的证书是硬门禁，不是徽章装饰',
-    sub: '我们的认证不是档案上的点缀。它是决定一位工程师能不能被指派到项目的那个开关。这里把拿到它到底要过几关、为什么难作假，全部讲清楚。',
-    ctaPrimary: '开始你的认证',
-    ctaGhost: '质量分怎么用它',
-    matrixTitle: '四方向，三等级',
-    matrixIntro: '每个方向都在三个等级上发证，从需监督的基础到能独立的专家。你不能跳级。',
-    progressNote: '等级是累进的：考 L2 须先持 L1，考 L3 须先持 L2。每一级都是一场独立的限时考试。',
-    funnelTitle: '从报名到指派',
-    funnelIntro: '六道关，每一道都拦住下一道，直到通过为止。我们只讲每道关卡查什么——不编通过率，因为平台仍在 beta，我们不会造数字。',
-    antiTitle: '为对付走捷径而设计',
-    antiIntro: '这场考试的设计，让唯一的通过方式就是真的掌握内容。',
-    relTitle: '考试在哪里',
-    relBody: '认证通过培训模块考取。先走完 AI 学习路径，再到那里参加限时考试——本页讲规则，/training 是真正考试的地方。',
-    relCta: '去 /training 报名',
-    ctaHeading: '在考试条件下证明自己',
-    ctaBody: '考取认证，解锁那些需要经过验证、可上现场的工程师的项目。',
-  },
-};
 
 export default function Certification() {
   const [lang, setLang] = useLang();
