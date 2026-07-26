@@ -63,6 +63,8 @@ const REQUIRED_LANGS = {
   privacy: ALL_LANGS,
   terms: ALL_LANGS,
   'dispute-id': ALL_LANGS,
+  'messages-demandid': ALL_LANGS, // /messages/[demandId] 消息详情页（2026-07-25）
+  'workorder-id': ALL_LANGS, // /workorder/[id] 现场执行工单页（2026-07-25 九语新增迁移）
 };
 
 // ── 顶层可缺键豁免清单（模块名 → 允许 7 语（es/vi/hi/fr/de/ja/ko）缺失的顶层键）──

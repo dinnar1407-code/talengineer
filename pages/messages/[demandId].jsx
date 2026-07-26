@@ -3,7 +3,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import { useLang } from '../../hooks/useLang';
 import Navbar from '../../components/Navbar';
+// 页面文案字典：已迁至 lib/i18n/messages-demandid.js（2026-07-25 机械搬移）
+import { DICT } from '../../lib/i18n/messages-demandid';
 import styles from './messages.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -12,6 +15,8 @@ export default function MessageThread() {
   const router = useRouter();
   const { demandId } = router.query;
   const toast = useToast();
+  const [lang] = useLang();
+  const d = DICT[lang] || DICT.en;
   const bottomRef = useRef(null);
   const pollRef   = useRef(null);
 
@@ -74,7 +79,7 @@ export default function MessageThread() {
         setLoading(false);
         maybeMarkRead(data.data || []);
       } else {
-        toast.error(data.error || 'Failed to load messages.');
+        toast.error(data.error || d.loadError);
         setLoading(false);
       }
     } catch { setLoading(false); }
@@ -119,7 +124,7 @@ export default function MessageThread() {
         setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       }
     } catch {
-      toast.error('Failed to send. Check your connection.');
+      toast.error(d.sendError);
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
     }
     setSending(false);
@@ -136,7 +141,7 @@ export default function MessageThread() {
   return (
     <>
       <Head>
-        <title>{demand?.title ? `${demand.title} — Messages` : 'Messages'} | Talengineer</title>
+        <title>{`${demand?.title ? d.titleWithProject(demand.title) : d.title} | Talengineer`}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
@@ -148,8 +153,8 @@ export default function MessageThread() {
         <div className={styles.header}>
           <Link href="/finance" className={styles.backBtn}>←</Link>
           <div className={styles.headerInfo}>
-            <div className={styles.headerTitle}>{demand?.title || `Project #${demandId}`}</div>
-            <div className={styles.headerSub}>Project Messages</div>
+            <div className={styles.headerTitle}>{demand?.title || d.projectFallback(demandId)}</div>
+            <div className={styles.headerSub}>{d.headerSub}</div>
           </div>
         </div>
 
@@ -162,7 +167,7 @@ export default function MessageThread() {
           ) : messages?.length === 0 ? (
             <div className={styles.empty}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-              <p>No messages yet. Start the conversation!</p>
+              <p>{d.emptyMsg}</p>
             </div>
           ) : (
             messages.map((msg, i) => {
@@ -190,7 +195,7 @@ export default function MessageThread() {
           <input
             type="text"
             className={styles.input}
-            placeholder="Type a message…"
+            placeholder={d.placeholder}
             value={content}
             onChange={e => setContent(e.target.value)}
             maxLength={2000}

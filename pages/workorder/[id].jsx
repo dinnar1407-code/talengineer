@@ -2,17 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useToast } from '../../components/Toast';
+import { useLang } from '../../hooks/useLang';
 import Navbar from '../../components/Navbar';
 import OfflineBanner from '../../components/OfflineBanner';
 import { useOfflineData } from '../../lib/offline/useOfflineData';
 import { enqueue } from '../../lib/offline/outbox';
+// 工单页九语字典：已迁至 lib/i18n/workorder-id.js（2026-07-25 九语新增迁移）
+import { DICT } from '../../lib/i18n/workorder-id';
 import styles from './workorder.module.css';
-
-const STATUS_LABEL = { checked_in: '🟡 Checked In', completed: '🔵 Awaiting Approval', approved: '✅ Approved & Paid' };
 
 export default function WorkOrder() {
   const router  = useRouter();
   const toast   = useToast();
+  const [lang]  = useLang();
+  const d       = DICT[lang] || DICT.en; // SSR 首帧兜底英文
   const { id }  = router.query; // milestone_id
   const fileRef   = useRef(null);  // 本地 base64 快拍（离线可用）
   const uploadRef = useRef(null);  // 上传到云端存储桶
@@ -44,7 +47,7 @@ export default function WorkOrder() {
 
   const loadedRef = useRef(false); // 首拉是否已拿到数据（供离线兜底判定）
 
-  // woData 到手后落本地 state 并推导当前步骤（原地保留 setData(d => ...) 的乐观更新能力）
+  // woData 到手后落本地 state 并推导当前步骤（原地保留 setData(prev => ...) 的乐观更新能力）
   useEffect(() => {
     if (woData == null) return;
     loadedRef.current = true;
@@ -68,18 +71,18 @@ export default function WorkOrder() {
   }, []);
 
   function getGPS() {
-    if (!navigator.geolocation) { toast.warn('GPS not available on this device.'); return; }
+    if (!navigator.geolocation) { toast.warn(d.toastGpsUnavailable); return; }
     navigator.geolocation.getCurrentPosition(
       pos => {
         setLocation({ lat: pos.coords.latitude.toFixed(6), lng: pos.coords.longitude.toFixed(6) });
-        toast.success('Location captured.');
+        toast.success(d.toastLocationCaptured);
       },
-      () => toast.warn('Location permission denied — check-in will proceed without GPS.')
+      () => toast.warn(d.toastLocationDenied)
     );
   }
 
   async function handleCheckin() {
-    if (!currentUser?.token) { toast.error('Please sign in first.'); return; }
+    if (!currentUser?.token) { toast.error(d.toastSignInFirst); return; }
     // 离线：把签到请求原样入队，回网后 outbox 重放；按钮转「已排队待同步」，在线行为不变。
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       await enqueue({
@@ -92,7 +95,7 @@ export default function WorkOrder() {
         },
       });
       setQueuedCheckin(true);
-      toast.success('Offline — check-in queued, will sync when back online.');
+      toast.success(d.toastOfflineCheckinQueued);
       return;
     }
     setSubmitting(true);
@@ -103,9 +106,9 @@ export default function WorkOrder() {
         body: JSON.stringify({ lat: location?.lat, lng: location?.lng }),
       });
       const result = await res.json();
-      if (res.ok) { toast.success('Checked in! Begin your work.'); setStep('working'); setData(d => ({ ...d, checkin: result.data })); }
+      if (res.ok) { toast.success(d.toastCheckedIn); setStep('working'); setData(prev => ({ ...prev, checkin: result.data })); }
       else toast.error(result.error);
-    } catch { toast.error('Network error.'); }
+    } catch { toast.error(d.toastNetworkError); }
     setSubmitting(false);
   }
 
@@ -123,7 +126,7 @@ export default function WorkOrder() {
   async function handlePhotoUpload(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    if (!currentUser?.token) { toast.error('Please sign in first.'); return; }
+    if (!currentUser?.token) { toast.error(d.toastSignInFirst); return; }
     setUploading(true);
     for (const file of files) {
       try {
@@ -135,16 +138,16 @@ export default function WorkOrder() {
           body: form,
         });
         const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Upload failed');
+        if (!res.ok) throw new Error(result.error || d.toastUploadFailed);
         setPhotos(prev => [...prev, result.url]);
-      } catch (err) { toast.error(err.message || 'Upload failed. Please try again.'); }
+      } catch (err) { toast.error(err.message || d.toastUploadFailedRetry); }
     }
     setUploading(false);
     e.target.value = ''; // 重置，允许再次选择同一文件
   }
 
   async function handleComplete() {
-    if (!notes.trim()) { toast.warn('Please add completion notes before submitting.'); return; }
+    if (!notes.trim()) { toast.warn(d.toastAddNotes); return; }
     // 离线：把提交完工请求原样入队（type=checkout），回网后 outbox 重放；按钮转「已排队待同步」。
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       await enqueue({
@@ -157,7 +160,7 @@ export default function WorkOrder() {
         },
       });
       setQueuedComplete(true);
-      toast.success('Offline — submission queued, will sync when back online.');
+      toast.success(d.toastOfflineSubmitQueued);
       return;
     }
     setSubmitting(true);
@@ -168,9 +171,9 @@ export default function WorkOrder() {
         body: JSON.stringify({ notes, photos }),
       });
       const result = await res.json();
-      if (res.ok) { toast.success('Work submitted for client approval!'); setStep('review'); }
+      if (res.ok) { toast.success(d.toastWorkSubmitted); setStep('review'); }
       else toast.error(result.error);
-    } catch { toast.error('Network error.'); }
+    } catch { toast.error(d.toastNetworkError); }
     setSubmitting(false);
   }
 
@@ -184,19 +187,19 @@ export default function WorkOrder() {
       });
       const result = await res.json();
       if (res.ok) {
-        toast.success(`Approved! Payout $${result.payout?.toFixed(2)} sent to engineer.`);
-        setData(d => ({ ...d, approvedDemandId: result.demand_id }));
+        toast.success(d.toastApproved(result.payout?.toFixed(2)));
+        setData(prev => ({ ...prev, approvedDemandId: result.demand_id }));
         setStep('done');
       }
       else toast.error(result.error);
-    } catch { toast.error('Network error.'); }
+    } catch { toast.error(d.toastNetworkError); }
     setSubmitting(false);
   }
 
   if (loading) return (
     <>
       <Navbar />
-      <div className={styles.wrap}><div className={styles.spinner} /><p>Loading work order…</p></div>
+      <div className={styles.wrap}><div className={styles.spinner} /><p>{d.loadingWorkOrder}</p></div>
     </>
   );
 
@@ -206,7 +209,7 @@ export default function WorkOrder() {
   return (
     <>
       <Head>
-        <title>Work Order | TalEngineer</title>
+        <title>{`${d.titleWorkOrder} | TalEngineer`}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#0056b3" />
@@ -222,26 +225,26 @@ export default function WorkOrder() {
         {/* 回退上一页：工单页多从项目/控制台深链进入，返回优先走历史栈，无历史则回控制台 */}
         <button type="button" className={styles.backBtn} onClick={() => (window.history.length > 1 ? router.back() : router.push('/console'))}>←</button>
         <div className={styles.logo}><img src="/img/logo-macaw.svg" alt="" width={26} height={26} style={{ verticalAlign: "middle" }} /> TalEngineer</div>
-        {checkin && <div className={styles.statusChip}>{STATUS_LABEL[checkin.status] || checkin.status}</div>}
+        {checkin && <div className={styles.statusChip}>{d.statusLabel[checkin.status] || checkin.status}</div>}
       </div>
 
       <div className={styles.wrap}>
         {/* Project info */}
         <div className={styles.card}>
-          <div className={styles.cardLabel}>Project</div>
-          <div className={styles.cardTitle}>{ms?.demands?.title || `Milestone #${id}`}</div>
+          <div className={styles.cardLabel}>{d.projectLabel}</div>
+          <div className={styles.cardTitle}>{ms?.demands?.title || d.milestoneFallback(id)}</div>
           <div className={styles.cardSub}>{ms?.phase_name} · <strong style={{ color: 'var(--primary)' }}>${(ms?.amount || 0).toLocaleString()}</strong></div>
           {/* War Room 入口（项目级实时翻译沟通间）：War Room 按 projectId 分房，
               这里的项目 id 即里程碑所属需求 ms.demand_id（与本页"Rate the Engineer"链接取值一致）。
               仅在拿到 demand_id 时渲染，避免离线兜底 ms 为空时生成坏链接。
-              工单页无 i18n（全站英文），按钮沿用本页英文语言模式。 */}
+              展示名 "War Room" 九语统一保留英文（见 lib/i18n/glossary.js DISPLAY_NAMES）。 */}
           {ms?.demand_id && (
             <a
               href={`/warroom?projectId=${ms.demand_id}`}
               className={styles.btnPrimary}
               style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 12, background: '#7c3aed' }}
             >
-              🛰️ Enter War Room
+              {d.enterWarRoom}
             </a>
           )}
         </div>
@@ -249,13 +252,13 @@ export default function WorkOrder() {
         {/* ── Step: Check In ── */}
         {step === 'checkin' && (
           <div className={styles.card}>
-            <div className={styles.stepTitle}>Step 1 — Check In</div>
-            <p className={styles.stepDesc}>Confirm your arrival at the job site. GPS is optional but recommended.</p>
+            <div className={styles.stepTitle}>{d.step1Title}</div>
+            <p className={styles.stepDesc}>{d.step1Desc}</p>
             <button className={styles.btnGPS} onClick={getGPS}>
-              {location ? `📍 ${location.lat}, ${location.lng}` : '📍 Capture GPS Location'}
+              {location ? `📍 ${location.lat}, ${location.lng}` : d.gpsCapture}
             </button>
             <button className={styles.btnPrimary} disabled={submitting || queuedCheckin} onClick={handleCheckin}>
-              {queuedCheckin ? '⏳ Queued — will sync' : submitting ? 'Checking in…' : '✅ Check In Now'}
+              {queuedCheckin ? d.queuedWillSync : submitting ? d.checkingIn : d.checkInNow}
             </button>
           </div>
         )}
@@ -263,16 +266,16 @@ export default function WorkOrder() {
         {/* ── Step: Working ── */}
         {step === 'working' && (
           <div className={styles.card}>
-            <div className={styles.stepTitle}>Step 2 — Document Your Work</div>
-            <p className={styles.stepDesc}>Take photos of the installation/repair and add your completion notes.</p>
+            <div className={styles.stepTitle}>{d.step2Title}</div>
+            <p className={styles.stepDesc}>{d.step2Desc}</p>
 
             <button className={styles.btnCamera} onClick={() => fileRef.current?.click()}>
-              📸 Add Photos ({photos.length})
+              {d.addPhotos(photos.length)}
             </button>
             <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
 
             <button className={styles.btnCamera} disabled={uploading} onClick={() => uploadRef.current?.click()}>
-              {uploading ? '⬆️ Uploading…' : '⬆️ Upload Photos'}
+              {uploading ? d.uploadingPhotos : d.uploadPhotosBtn}
             </button>
             <input ref={uploadRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoUpload} />
 
@@ -280,7 +283,7 @@ export default function WorkOrder() {
               <div className={styles.photoGrid}>
                 {photos.map((p, i) => (
                   <div key={i} className={styles.photoThumb}>
-                    <img src={p} alt={`Photo ${i + 1}`} />
+                    <img src={p} alt={d.photoAlt(i + 1)} />
                     <button onClick={() => setPhotos(prev => prev.filter((_, j) => j !== i))}>×</button>
                   </div>
                 ))}
@@ -292,11 +295,11 @@ export default function WorkOrder() {
               rows={5}
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Describe the work completed: what was done, any issues found, parts used, test results…"
+              placeholder={d.notesPlaceholder}
             />
 
             <button className={styles.btnPrimary} disabled={submitting || queuedComplete} onClick={handleComplete}>
-              {queuedComplete ? '⏳ Queued — will sync' : submitting ? 'Submitting…' : '🚀 Submit for Approval'}
+              {queuedComplete ? d.queuedWillSync : submitting ? d.submitting : d.submitForApproval}
             </button>
           </div>
         )}
@@ -305,22 +308,22 @@ export default function WorkOrder() {
         {step === 'review' && (
           <div className={styles.card}>
             <div className={styles.stepTitle}>
-              {currentUser?.role === 'employer' ? 'Step 3 — Review & Approve' : '⏳ Awaiting Client Approval'}
+              {currentUser?.role === 'employer' ? d.step3TitleReview : d.step3TitleAwaiting}
             </div>
 
             {checkin?.completion_notes && (
               <div className={styles.notesBlock}>
-                <div className={styles.cardLabel}>Engineer Notes</div>
+                <div className={styles.cardLabel}>{d.engineerNotes}</div>
                 <p>{checkin.completion_notes}</p>
               </div>
             )}
 
             {checkin?.photos?.length > 0 && (
               <div>
-                <div className={styles.cardLabel}>Work Photos ({checkin.photos.length})</div>
+                <div className={styles.cardLabel}>{d.workPhotosLabel(checkin.photos.length)}</div>
                 <div className={styles.photoGrid}>
                   {checkin.photos.map((p, i) => (
-                    <div key={i} className={styles.photoThumb}><img src={p} alt={`Photo ${i + 1}`} /></div>
+                    <div key={i} className={styles.photoThumb}><img src={p} alt={d.photoAlt(i + 1)} /></div>
                   ))}
                 </div>
               </div>
@@ -328,7 +331,7 @@ export default function WorkOrder() {
 
             {currentUser?.role === 'employer' && (
               <button className={styles.btnApprove} disabled={submitting} onClick={handleApprove}>
-                {submitting ? 'Processing…' : '✅ Approve & Release Funds'}
+                {submitting ? d.processing : d.approveRelease}
               </button>
             )}
           </div>
@@ -338,15 +341,15 @@ export default function WorkOrder() {
         {step === 'done' && (
           <div className={`${styles.card} ${styles.doneCard}`}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-            <h2>Work Order Complete</h2>
-            <p>Funds have been released to the engineer's Stripe account.</p>
+            <h2>{d.workOrderComplete}</h2>
+            <p>{d.fundsReleased}</p>
             {currentUser?.role === 'employer' && ms?.demands?.assigned_engineer_id && (
               <a
                 href={`/engineer/${ms.demands.assigned_engineer_id}?review=1&demand_id=${ms.demand_id}`}
                 className={styles.btnPrimary}
                 style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 10, background: '#f59e0b' }}
               >
-                ★ Rate the Engineer
+                {d.rateEngineer}
               </a>
             )}
             <a
@@ -356,16 +359,16 @@ export default function WorkOrder() {
               className={styles.btnPrimary}
               style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 10, background: '#6b7280' }}
             >
-              📄 Download Work Order PDF
+              {d.downloadPdf}
             </a>
-            <button className={styles.btnPrimary} onClick={() => router.push('/finance')}>Back to Dashboard</button>
+            <button className={styles.btnPrimary} onClick={() => router.push('/finance')}>{d.backToDashboard}</button>
           </div>
         )}
 
         {/* Check-in time stamp */}
         {checkin?.checkin_time && (
           <div className={styles.timestamp}>
-            Checked in: {new Date(checkin.checkin_time).toLocaleString()}
+            {d.checkedInAt(new Date(checkin.checkin_time).toLocaleString())}
             {checkin.checkin_lat && ` · 📍 ${checkin.checkin_lat}, ${checkin.checkin_lng}`}
           </div>
         )}
@@ -375,7 +378,7 @@ export default function WorkOrder() {
         {checkin?.geofence_ok === false && checkin?.distance_m != null && (
           <div style={{ marginTop: 6 }}>
             <span style={{ display: 'inline-block', background: 'rgba(239,68,68,.12)', color: '#ef4444', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 12 }}>
-              ⚠️ {(checkin.distance_m / 1000).toFixed(1)}km from site
+              {d.distanceFromSite((checkin.distance_m / 1000).toFixed(1))}
             </span>
           </div>
         )}
