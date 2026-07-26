@@ -87,25 +87,6 @@
   cursor: not-allowed;
 }
 
-/* 折叠态下的邮箱入口：做成低调的文字按钮，但不是"次等选项"的视觉 */
-.emailToggle {
-  display: block;
-  width: 100%;
-  margin-top: 16px;
-  padding: 10px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 13px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.emailToggle:hover {
-  color: var(--text);
-}
-
 .divider {
   display: flex;
   align-items: center;

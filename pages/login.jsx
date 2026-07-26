@@ -43,7 +43,6 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [mode, setMode] = useState('signin');       // 'signin' | 'signup' | 'forgot'
-  const [showEmail, setShowEmail] = useState(false); // 邮箱区默认折叠（社交通道优先）
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -263,99 +262,91 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* ── 邮箱通道（折叠，但平权）── */}
-          {!showEmail ? (
-            <button type="button" className={styles.emailToggle} onClick={() => setShowEmail(true)}>
-              {u.orEmail}
-            </button>
+          {/* ── 邮箱通道：默认展开。折叠会让人以为只能用社交登录，而邮箱是平权通道 ── */}
+          <div className={styles.divider}><span>{u.orEmail}</span></div>
+
+          {mode === 'forgot' ? (
+            forgotSent ? (
+              <div className={styles.sent}>
+                <div className={styles.sentIcon}>📧</div>
+                <h2 className={styles.sentTitle}>{u.forgotSentTitle}</h2>
+                <p className={styles.sub}>{u.forgotSentBody}</p>
+                <button type="button" className={styles.linkBtn} onClick={() => { setMode('signin'); setForgotSent(false); }}>
+                  {u.backToSignIn}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgot}>
+                <p className={styles.lead}>{u.forgotLead}</p>
+                <label className={styles.field}>
+                  <span>{u.lblEmail}</span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+                </label>
+                <Turnstile onToken={setTurnstileToken} />
+                <button type="submit" className={styles.btnPrimary} disabled={busy}>
+                  {busy ? u.working : u.btnForgot}
+                </button>
+                <button type="button" className={styles.linkBtn} onClick={() => setMode('signin')}>{u.backToSignIn}</button>
+              </form>
+            )
           ) : (
             <>
-              <div className={styles.divider}><span>{u.orEmail}</span></div>
+              <div className={styles.tabs}>
+                <button type="button" className={mode === 'signin' ? styles.tabActive : styles.tab} onClick={() => { setMode('signin'); setError(''); }}>
+                  {u.tabSignIn}
+                </button>
+                <button type="button" className={mode === 'signup' ? styles.tabActive : styles.tab} onClick={() => { setMode('signup'); setError(''); }}>
+                  {u.tabSignUp}
+                </button>
+              </div>
 
-              {mode === 'forgot' ? (
-                forgotSent ? (
-                  <div className={styles.sent}>
-                    <div className={styles.sentIcon}>📧</div>
-                    <h2 className={styles.sentTitle}>{u.forgotSentTitle}</h2>
-                    <p className={styles.sub}>{u.forgotSentBody}</p>
-                    <button type="button" className={styles.linkBtn} onClick={() => { setMode('signin'); setForgotSent(false); }}>
-                      {u.backToSignIn}
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleForgot}>
-                    <p className={styles.lead}>{u.forgotLead}</p>
+              <form onSubmit={handleEmailSubmit}>
+                {mode === 'signup' && (
+                  <>
                     <label className={styles.field}>
-                      <span>{u.lblEmail}</span>
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-                    </label>
-                    <Turnstile onToken={setTurnstileToken} />
-                    <button type="submit" className={styles.btnPrimary} disabled={busy}>
-                      {busy ? u.working : u.btnForgot}
-                    </button>
-                    <button type="button" className={styles.linkBtn} onClick={() => setMode('signin')}>{u.backToSignIn}</button>
-                  </form>
-                )
-              ) : (
-                <>
-                  <div className={styles.tabs}>
-                    <button type="button" className={mode === 'signin' ? styles.tabActive : styles.tab} onClick={() => { setMode('signin'); setError(''); }}>
-                      {u.tabSignIn}
-                    </button>
-                    <button type="button" className={mode === 'signup' ? styles.tabActive : styles.tab} onClick={() => { setMode('signup'); setError(''); }}>
-                      {u.tabSignUp}
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleEmailSubmit}>
-                    {mode === 'signup' && (
-                      <>
-                        <label className={styles.field}>
-                          <span>{u.lblName}</span>
-                          <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-                        </label>
-                        <label className={styles.field}>
-                          <span>{u.lblRole}</span>
-                          <select value={role} onChange={(e) => setRole(e.target.value)}>
-                            <option value="employer">{u.optEmployer}</option>
-                            <option value="engineer">{u.optEngineer}</option>
-                          </select>
-                        </label>
-                        <label className={styles.field}>
-                          <span>{u.lblReferral}</span>
-                          <input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} maxLength={32} placeholder="ABCD2345" />
-                        </label>
-                      </>
-                    )}
-                    <label className={styles.field}>
-                      <span>{u.lblEmail}</span>
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+                      <span>{u.lblName}</span>
+                      <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
                     </label>
                     <label className={styles.field}>
-                      <span>{u.lblPassword}</span>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                      />
+                      <span>{u.lblRole}</span>
+                      <select value={role} onChange={(e) => setRole(e.target.value)}>
+                        <option value="employer">{u.optEmployer}</option>
+                        <option value="engineer">{u.optEngineer}</option>
+                      </select>
                     </label>
+                    <label className={styles.field}>
+                      <span>{u.lblReferral}</span>
+                      <input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} maxLength={32} placeholder="ABCD2345" />
+                    </label>
+                  </>
+                )}
+                <label className={styles.field}>
+                  <span>{u.lblEmail}</span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+                </label>
+                <label className={styles.field}>
+                  <span>{u.lblPassword}</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  />
+                </label>
 
-                    {/* 只有注册挂人机验证——登录默认弹会伤转化，且爆破已被限流挡住 */}
-                    {mode === 'signup' && <Turnstile onToken={setTurnstileToken} />}
+                {/* 只有注册挂人机验证——登录默认弹会伤转化，且爆破已被限流挡住 */}
+                {mode === 'signup' && <Turnstile onToken={setTurnstileToken} />}
 
-                    <button type="submit" className={styles.btnPrimary} disabled={busy}>
-                      {busy ? u.working : (mode === 'signin' ? u.btnSignIn : u.btnSignUp)}
-                    </button>
-                    {mode === 'signin' && (
-                      <button type="button" className={styles.linkBtn} onClick={() => { setMode('forgot'); setError(''); }}>
-                        {u.forgotLink}
-                      </button>
-                    )}
-                  </form>
-                </>
-              )}
+                <button type="submit" className={styles.btnPrimary} disabled={busy}>
+                  {busy ? u.working : (mode === 'signin' ? u.btnSignIn : u.btnSignUp)}
+                </button>
+                {mode === 'signin' && (
+                  <button type="button" className={styles.linkBtn} onClick={() => { setMode('forgot'); setError(''); }}>
+                    {u.forgotLink}
+                  </button>
+                )}
+              </form>
             </>
           )}
         </div>
