@@ -29,7 +29,7 @@ router.post('/onboard', requireAuth, async (req, res) => {
       await supabase.from('talents').update({ stripe_account_id: accountId }).eq('id', talent.id);
     }
 
-    const domain = process.env.DOMAIN || 'http://localhost:4000';
+    const domain = process.env.DOMAIN || 'https://talengineer.us';
     const link = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${domain}/finance?connect=refresh`,

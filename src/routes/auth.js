@@ -150,7 +150,7 @@ router.post('/register', async (req, res) => {
  */
 function sendVerificationEmail(email) {
   const verifyToken = jwt.sign({ email, type: 'verify_email' }, JWT_SECRET, { expiresIn: '48h' });
-  const domain = process.env.DOMAIN || 'http://localhost:4000';
+  const domain = process.env.DOMAIN || 'https://talengineer.us';
   const verifyUrl = `${domain}/verify-email?token=${verifyToken}`;
   emailVerifyEmail({ userEmail: email, verifyUrl }).catch(console.error);
 }
@@ -343,7 +343,7 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return;
 
     const resetToken = jwt.sign({ email: user.email, type: 'reset' }, JWT_SECRET, { expiresIn: '1h' });
-    const domain = process.env.DOMAIN || 'http://localhost:4000';
+    const domain = process.env.DOMAIN || 'https://talengineer.us';
     const resetUrl = `${domain}/reset-password?token=${resetToken}`;
 
     emailPasswordReset({ userEmail: user.email, resetUrl }).catch(console.error);
