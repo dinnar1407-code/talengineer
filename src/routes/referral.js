@@ -5,25 +5,31 @@
 //   GET /admin-list requireAdmin——全量归因列表（分页），加载时同页触发懒兑现
 // 挂载（集成批负责）：app.use('/api/referral', require('./routes/referral'))
 //
-// 红线遵守：不碰任何钱路径文件；兑现只在读侧发生（evaluateVesting）；
-// 不对外展示任何奖励金额（REFERRAL_REWARD_USD=null 待 Terry 定价）。
+// 红线遵守：不碰任何钱路径文件（兑现只在读侧发生，见 evaluateVesting）；
+// 2026-07-25 起奖励不再是固定数字（REFERRAL_REWARD_USD 已废弃），改成规则：
+// 被推荐人首个 released 里程碑产生的平台佣金，逐条 referral 单独算，见 /me、/admin-list。
 const express = require('express');
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
 const { clampPagination } = require('../utils/pagination');
-const { REFERRAL_ENABLED, REFERRAL_REWARD_USD, VESTING_RULE } = require('../config/referral');
+const { REFERRAL_ENABLED, REFERRAL_REWARD_RULE, VESTING_RULE } = require('../config/referral');
+const { PLATFORM_FEE } = require('../config/fees');
 const { getOrCreateCode, evaluateVesting, maskEmail } = require('../services/referralService');
 
 // ── GET /config：公开配置（无 PII、无金额泄漏风险）───────────────────────────
-// 前端 /referral 页据 enabled 切换"已上线/即将上线"文案；reward_usd 为 null 时隐藏金额区块。
+// 前端 /referral 页据 enabled 切换"已上线/即将上线"文案；reward_rule 驱动规则文案，
+// platform_fee_pct 是当前全局费率（个别 demand 的 founding 让利费率不体现在这里，
+// 只是给营销文案一个"典型情况"的参考数字，实际到手金额以每条 referral 兑现时的
+// vest_evidence.reward_usd 为准——那才是数字纪律真正守护的地方）。
 router.get('/config', (req, res) => {
   res.json({
     status: 'ok',
     data: {
       enabled: REFERRAL_ENABLED,
-      reward_usd: REFERRAL_REWARD_USD, // null = 待 Terry 定价，前端隐藏金额
+      reward_rule: REFERRAL_REWARD_RULE,
+      platform_fee_pct: PLATFORM_FEE,
       vesting_rule: VESTING_RULE,
     },
   });
@@ -42,7 +48,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
     const { data: rows, error } = await supabase
       .from('referrals')
-      .select('id, referred_user_id, status, vested_at, created_at')
+      .select('id, referred_user_id, status, vested_at, vest_evidence, created_at')
       .eq('referrer_user_id', userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -63,14 +69,17 @@ router.get('/me', requireAuth, async (req, res) => {
       (us || []).forEach((u) => { emailById[u.id] = maskEmail(u.email); });
     }
 
-    // 合并本次刚兑现的状态（无需回读数据库）
+    // 合并本次刚兑现的状态（无需回读数据库）；reward_usd 只有 vested 才有值——
+    // attributed 阶段还不知道被推荐人的第一个里程碑会是多少钱，不能编一个数字出来。
     const referrals = list.map((r) => {
       const v = vestedNow.get(r.id);
+      const evidence = v ? v.vest_evidence : r.vest_evidence;
       return {
         id: r.id,
         referred_email: emailById[r.referred_user_id] || null,
         status: v ? 'vested' : r.status,
         vested_at: v ? v.vested_at : r.vested_at,
+        reward_usd: (evidence && typeof evidence.reward_usd === 'number') ? evidence.reward_usd : null,
         created_at: r.created_at,
       };
     });

@@ -22,7 +22,7 @@ const {
   maskEmail,
 } = require('../src/services/referralService');
 const { registerSchema } = require('../src/routes/auth');
-const { REFERRAL_ENABLED, REFERRAL_REWARD_USD, VESTING_RULE } = require('../src/config/referral');
+const { REFERRAL_ENABLED, REFERRAL_REWARD_RULE, VESTING_RULE } = require('../src/config/referral');
 
 // ── 1. registerSchema 归因字段 ────────────────────────────────────────────────
 
@@ -233,6 +233,33 @@ describe('evaluateVesting（读侧懒兑现判定矩阵）', () => {
     assert.ok(eqs.some((a) => a[0] === 'status' && a[1] === 'attributed'));
   });
 
+  it('奖励金额 = 里程碑金额 × demand 实际费率（标准 15%），四舍五入到分', async () => {
+    const { client } = makeSupabase({
+      talents: { data: [], error: null },
+      demands: { data: [{ id: 100, employer_id: 5, fee_pct: null }], error: null }, // 未设 → 回退全局 15%
+      project_milestones: { data: [{ id: 900, demand_id: 100, amount: 8333.33 }], error: null },
+      referrals: { data: null, error: null },
+    });
+    const result = await evaluateVesting(client, [
+      { id: 10, referred_user_id: 5, status: 'attributed' },
+    ]);
+    // 8333.33 * 0.15 = 1249.9995 → 四舍五入到分 = 1250.00
+    assert.equal(result.get(10).vest_evidence.reward_usd, 1250);
+  });
+
+  it('奖励金额跟着 founding 客户 5% 费率走，不是恒定 15%', async () => {
+    const { client } = makeSupabase({
+      talents: { data: [], error: null },
+      demands: { data: [{ id: 100, employer_id: 5, fee_pct: 0.05 }], error: null }, // founding 让利
+      project_milestones: { data: [{ id: 900, demand_id: 100, amount: 10000 }], error: null },
+      referrals: { data: null, error: null },
+    });
+    const result = await evaluateVesting(client, [
+      { id: 10, referred_user_id: 5, status: 'attributed' },
+    ]);
+    assert.equal(result.get(10).vest_evidence.reward_usd, 500); // 10000 * 0.05
+  });
+
   it('engineer 侧达标：talents.user_id → demands.assigned_engineer_id 链路组装后命中', async () => {
     const { client } = makeSupabase({
       talents: { data: [{ id: 70, user_id: 7 }], error: null },  // 被推荐人是工程师，talent id=70
@@ -315,10 +342,10 @@ describe('evaluateVesting（读侧懒兑现判定矩阵）', () => {
 // ── 5. 配置形状 + 邮箱打码 ────────────────────────────────────────────────────
 
 describe('referral 配置与工具函数', () => {
-  it('配置形状：默认关闭、金额未定价恒 null（数字纪律）、规则常量正确', () => {
+  it('配置形状：默认关闭、奖励规则常量正确（2026-07-25 起改为动态计算，非固定金额）', () => {
     // 测试环境未设 REFERRAL_ENABLED → 默认 false
     assert.equal(REFERRAL_ENABLED, false);
-    assert.equal(REFERRAL_REWARD_USD, null);
+    assert.equal(REFERRAL_REWARD_RULE, 'first_milestone_platform_fee');
     assert.equal(VESTING_RULE, 'first_released_milestone');
   });
 

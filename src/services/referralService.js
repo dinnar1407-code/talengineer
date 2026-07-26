@@ -13,6 +13,7 @@
 //    ownership.js / workorder.js 里"没有该列"的旧注释是过时的，勿信。
 const crypto = require('crypto');
 const { VESTING_RULE } = require('../config/referral');
+const { feeFor } = require('../config/fees');
 
 // 推荐码字符集：标准 base32（大写字母 + 2-7），刻意排除 0/1/8/9 等易混淆字符，
 // 口头转述/手抄不易出错。8 位 → 32^8 ≈ 1.1 万亿组合，撞码概率极低，撞了靠唯一索引 + 重试兜底。
@@ -136,7 +137,8 @@ async function attributeReferral(supabase, { newUserId, newUserEmail, referralCo
 
 /**
  * 读侧懒兑现（批量）：对一批 referrals 行，检查其中 attributed 的被推荐用户
- * 是否已出现第一个 released 里程碑，是则条件更新为 vested。
+ * 是否已出现第一个 released 里程碑，是则条件更新为 vested，并算出奖励金额
+ * （REFERRAL_REWARD_RULE = 'first_milestone_platform_fee'：该里程碑金额 × 平台实际费率）。
  *
  * 判定口径（VESTING_RULE = 'first_released_milestone'）：
  * - employer 侧：demand.employer_id = 被推荐用户 id，且该 demand 下有 released 里程碑；
@@ -151,7 +153,7 @@ async function attributeReferral(supabase, { newUserId, newUserEmail, referralCo
  *
  * @param {object} supabase Supabase client
  * @param {Array<{id:number, referred_user_id:number, status:string}>} referralRows
- * @returns {Promise<Map<number, {vested_at:string, vest_evidence:object}>>}
+ * @returns {Promise<Map<number, {vested_at:string, vest_evidence:{milestone_id:string, rule:string, reward_usd:number}}>>}
  *   referral id → 本次刚兑现的信息（调用方据此合并展示，无需回读数据库）
  */
 async function evaluateVesting(supabase, referralRows) {
@@ -173,20 +175,24 @@ async function evaluateVesting(supabase, referralRows) {
     const talentToUser = new Map();
     (talents || []).forEach((t) => talentToUser.set(t.id, t.user_id));
 
-    // ② demand → 被推荐用户 映射（两侧各一次批量查询）。
+    // ② demand → 被推荐用户 映射（两侧各一次批量查询），顺带把 fee_pct 一起取回——
+    // 奖励金额 = 首个达标里程碑金额 × 该 demand 的实际费率（founding 客户 5%/标准 15%
+    // 各不相同，fee_pct 缺失时 feeFor() 自动回退全局 PLATFORM_FEE，同一套费率单一来源）。
     // 一个 demand 可能同时对应两个不同的被推荐人（该 demand 的雇主 + 被指派的工程师
     // 都恰好是被推荐用户），两边都要能各自兑现，所以是 demand id → 用户 id 数组。
     const demandToUser = new Map();
+    const demandFeePct = new Map(); // demand_id → fee_pct（可能是 null，交给 feeFor 处理回退）
     // employer 侧：被推荐用户自己发的需求
     const { data: empDemands, error: dErr } = await supabase
       .from('demands')
-      .select('id, employer_id')
+      .select('id, employer_id, fee_pct')
       .in('employer_id', referredIds);
     if (dErr) throw dErr;
     (empDemands || []).forEach((d) => {
       const arr = demandToUser.get(d.id) || [];
       arr.push(d.employer_id);
       demandToUser.set(d.id, arr);
+      demandFeePct.set(d.id, d.fee_pct);
     });
 
     // engineer 侧：被推荐用户（作为工程师）被指派的需求。
@@ -195,7 +201,7 @@ async function evaluateVesting(supabase, referralRows) {
     if (talentIds.length > 0) {
       const { data: engDemands, error: eErr } = await supabase
         .from('demands')
-        .select('id, assigned_engineer_id')
+        .select('id, assigned_engineer_id, fee_pct')
         .in('assigned_engineer_id', talentIds);
       if (eErr) throw eErr;
       (engDemands || []).forEach((d) => {
@@ -205,35 +211,43 @@ async function evaluateVesting(supabase, referralRows) {
         const arr = demandToUser.get(d.id) || [];
         if (!arr.includes(uid)) arr.push(uid);
         demandToUser.set(d.id, arr);
+        demandFeePct.set(d.id, d.fee_pct);
       });
     }
 
     const demandIds = [...demandToUser.keys()];
     if (demandIds.length === 0) return result;
 
-    // ③ 一次 .in() 查出这些 demand 下所有 released 里程碑（升序取"第一个"作证据）
+    // ③ 一次 .in() 查出这些 demand 下所有 released 里程碑（升序取"第一个"作证据），
+    // 带上 amount——奖励金额的计算基础。
     const { data: released, error: mErr } = await supabase
       .from('project_milestones')
-      .select('id, demand_id')
+      .select('id, demand_id, amount')
       .eq('status', 'released')
       .in('demand_id', demandIds)
       .order('id', { ascending: true });
     if (mErr) throw mErr;
 
+    // user id → 命中的第一个达标里程碑（含 amount/demand_id，供下一步算奖励金额）
     const userToMilestone = new Map();
     (released || []).forEach((m) => {
       for (const uid of demandToUser.get(m.demand_id) || []) {
-        if (!userToMilestone.has(uid)) userToMilestone.set(uid, m.id);
+        if (!userToMilestone.has(uid)) userToMilestone.set(uid, m);
       }
     });
     if (userToMilestone.size === 0) return result;
 
-    // ④ 达标的逐行条件更新：.eq('status','attributed') 保幂等（并发评估只成功一次）
+    // ④ 达标的逐行条件更新：.eq('status','attributed') 保幂等（并发评估只成功一次）。
+    // 奖励金额 = 里程碑金额 × 该 demand 的实际费率，四舍五入到分——算出来直接快照进
+    // vest_evidence.reward_usd，之后 PLATFORM_FEE_PCT 环境变量再调整也不会改写这条历史记录
+    // （兑现是一次性事件，不是每次读都重算的实时公式）。
     const nowIso = new Date().toISOString();
     for (const r of attributed) {
-      const milestoneId = userToMilestone.get(r.referred_user_id);
-      if (milestoneId == null) continue;
-      const evidence = { milestone_id: milestoneId, rule: VESTING_RULE };
+      const milestone = userToMilestone.get(r.referred_user_id);
+      if (milestone == null) continue;
+      const feePct = feeFor({ fee_pct: demandFeePct.get(milestone.demand_id) });
+      const rewardUsd = Math.round(Number(milestone.amount || 0) * feePct * 100) / 100;
+      const evidence = { milestone_id: milestone.id, rule: VESTING_RULE, reward_usd: rewardUsd };
       const { error: upErr } = await supabase
         .from('referrals')
         .update({ status: 'vested', vested_at: nowIso, vest_evidence: evidence })

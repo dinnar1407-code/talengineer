@@ -3,8 +3,11 @@
 // + JSON-LD + module.css 全 var(--token)。SSR 首帧是合法英文（useLang 客户端才生效，
 // user/config 都在 useEffect 里取，SSR 渲染未登录 + 无横幅的默认态，无 hydration 风险）。
 //
-// 数字纪律：奖励金额未定价（config.reward_usd=null）——页面在 null 时完全隐藏金额区块，
-// 只展示规则文案。enabled=false 时展示"即将上线 + 现在就能领码（归因从今天算数）"。
+// 奖励规则（2026-07-25 起）：不是固定金额，是"被推荐人首个完工里程碑产生的平台佣金"——
+// 规则区块用 config.platform_fee_pct 给一个"典型情况"参考费率（founding 客户等特殊费率
+// 不在这里体现），每条 referral 具体到手多少钱，等它 vested 后从 me.referrals[].reward_usd
+// 读取真实算出来的数字，未 vested 之前不猜测显示。enabled=false 时展示"即将上线 + 现在就能
+// 领码（归因从今天算数）"。
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -156,11 +159,12 @@ export default function ReferralPage() {
           <p className={styles.note}>{u.ruleNote}</p>
         </div>
 
-        {/* 金额区块：reward_usd 未定价（null）时整块隐藏——数字纪律，不编数字 */}
-        {cfg && typeof cfg.reward_usd === 'number' && (
+        {/* 规则区块：奖励不是固定数字，是被推荐人首个里程碑的平台佣金——
+            platform_fee_pct 只是"典型情况"参考费率，具体到手金额见下方列表的 reward_usd。 */}
+        {cfg && typeof cfg.platform_fee_pct === 'number' && (
           <div className={styles.block}>
             <h2 className={styles.sectionTitle}>{u.rewardTitle}</h2>
-            <p className={styles.lead}>${cfg.reward_usd}</p>
+            <p className={styles.lead}>{u.rewardBody(Math.round(cfg.platform_fee_pct * 100))}</p>
           </div>
         )}
 
@@ -196,6 +200,7 @@ export default function ReferralPage() {
                     <tr>
                       <th>{u.colWho}</th>
                       <th>{u.colStatus}</th>
+                      <th>{u.colReward}</th>
                       <th>{u.colDate}</th>
                     </tr>
                   </thead>
@@ -208,6 +213,9 @@ export default function ReferralPage() {
                             {statusLabel(r.status)}
                           </span>
                         </td>
+                        {/* reward_usd 只有 vested 才有值——attributed 阶段还不知道对方第一个
+                            里程碑会是多少钱，不猜数字，显示"待兑现"占位文案。 */}
+                        <td>{typeof r.reward_usd === 'number' ? `$${r.reward_usd.toLocaleString()}` : u.rewardPending}</td>
                         <td>{r.created_at ? String(r.created_at).slice(0, 10) : '—'}</td>
                       </tr>
                     ))}
