@@ -427,7 +427,7 @@ export default function Navbar({ lang: langProp, onLangChange }) {
             与菜单/页脚里的 postProject 同源，文案/落点永不漂移）。
           */
           <>
-            <Link href="/finance" className={styles.navLink}>
+            <Link href="/login" className={styles.navLink}>
               {d.signIn}
             </Link>
             <Link href={CTA_POST_PROJECT.href} className={styles.btnSignIn}>

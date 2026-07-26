@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import ChatBot from '../components/ChatBot';
 import ConsoleShell from '../components/ConsoleShell';
 import TalScoreBadge from '../components/TalScoreBadge';
+import Turnstile, { turnstileEnabled } from '../components/Turnstile';
 import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
@@ -75,6 +76,8 @@ export default function Talent() {
   // Engineer profile form
   const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '', referralCode: '' });
   const [postingProfile, setPostingProfile] = useState(false);
+  // Turnstile 人机验证 token（工程师建档 = 注册，见 submitProfile）。未配 site key 时恒为空串且不拦截。
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   useEffect(() => {
     loadDemands();
@@ -228,6 +231,12 @@ export default function Talent() {
 
   async function submitProfile(e) {
     e.preventDefault();
+    // 人机验证放在 AI 技术筛选【之前】：筛选要打两次 Gemini 还要弹 prompt 等用户作答，
+    // 全跑完再被 403 拦下，既烧钱又白费用户几分钟。
+    if (turnstileEnabled && !turnstileToken) {
+      toast.error('Please complete the verification below before submitting.');
+      return;
+    }
     setPostingProfile(true);
     try {
       // Step 1: AI tech screen question
@@ -257,11 +266,12 @@ export default function Talent() {
       toast.success(`Tech Screen Passed! Score: ${vData.score} — ${vData.feedback}`);
 
       // 分数改为凭服务端签名的 score_token 落库（防抓包自报高分），不再直接回传 verified_score
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', score_token: vData.score_token, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio, referral_code: profileForm.referralCode.trim() || undefined }) });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...profileForm, role: 'engineer', score_token: vData.score_token, engName: profileForm.name, engSkills: profileForm.skills, engRegion: profileForm.region, engRate: profileForm.rate, engLevel: profileForm.level, engBio: profileForm.bio, referral_code: profileForm.referralCode.trim() || undefined, turnstile_token: turnstileToken || undefined }) });
       const result = await res.json();
       if (res.ok) {
         toast.success('Profile published! Nexus Verified score added.');
         setProfileForm({ name: '', email: '', password: '', skills: '', region: 'Mexico (MX)', rate: '', level: 'Mid-Level (3-7 yrs)', bio: '', referralCode: '' });
+        setTurnstileToken(''); // token 一次性，用过即弃
         loadTalent();
       } else {
         toast.error('Error: ' + result.error);
@@ -570,6 +580,9 @@ export default function Talent() {
                 </FormGroup>
                 <FormGroup label="Short Bio"><textarea rows={4} value={profileForm.bio} onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} placeholder="Briefly describe your experience and availability..." required /></FormGroup>
                 <FormGroup label={d?.referralLabel ?? DICT.en.referralLabel}><input value={profileForm.referralCode} onChange={e => setProfileForm(f => ({ ...f, referralCode: e.target.value }))} placeholder={d?.referralPh ?? DICT.en.referralPh} maxLength={32} /></FormGroup>
+                {/* 本表单直接打 /api/auth/register，与 /login 的注册走同一个挂了 Turnstile 的端点。
+                    不放挂件的话，一旦 TURNSTILE_SECRET_KEY 配上，工程师建档会被 403 拦死。 */}
+                <Turnstile onToken={setTurnstileToken} />
                 <button type="submit" className={styles.btnSubmit} disabled={postingProfile}>{postingProfile ? '🤖 AI Tech Interviewing...' : d.submitProfileBtn}</button>
               </form>
             </div>

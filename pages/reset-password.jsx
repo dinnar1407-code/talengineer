@@ -48,7 +48,7 @@ export default function ResetPassword() {
             <div className={styles.icon}>🔗</div>
             <h2>Invalid Link</h2>
             <p>This password reset link is missing or has expired.</p>
-            <Link href="/finance" className={styles.btnPrimary}>Return to Sign In</Link>
+            <Link href="/login" className={styles.btnPrimary}>Return to Sign In</Link>
           </div>
         </div>
       </>
@@ -89,7 +89,7 @@ export default function ResetPassword() {
           <button type="submit" className={styles.btnPrimary} disabled={loading}>
             {loading ? 'Updating…' : 'Update Password'}
           </button>
-          <Link href="/finance" className={styles.backLink}>← Back to Sign In</Link>
+          <Link href="/login" className={styles.backLink}>← Back to Sign In</Link>
         </form>
       </div>
     </>

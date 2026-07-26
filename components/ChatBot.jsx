@@ -16,7 +16,7 @@ const DICT = {
     dRole: 'Role', dRegion: 'Region', dBudget: 'Budget', dMilestones: 'Milestones',
     confirmPublish: 'Confirm & Publish', publishing: 'Publishing…', publishedBtn: 'Published ✓',
     published: (id) => `<b>✅ Published!</b><br/>Your demand is now live and visible to engineers.<br/><a href="/demand/${id}" style="${LINK_BTN}">View project</a>`,
-    loginNeeded: `Please sign in as an employer to publish this draft.<br/><a href="/finance" style="${LINK_BTN}">Sign In</a>`,
+    loginNeeded: `Please sign in as an employer to publish this draft.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Sign In</a>`,
     publishFail: '<span style="color:#ef4444;">Publish failed. Please try again.</span>',
   },
   zh: {
@@ -30,7 +30,7 @@ const DICT = {
     dRole: '角色', dRegion: '区域', dBudget: '预算', dMilestones: '里程碑',
     confirmPublish: '确认发布', publishing: '发布中…', publishedBtn: '已发布 ✓',
     published: (id) => `<b>✅ 发布成功！</b><br/>需求已上线，工程师现在可以看到了。<br/><a href="/demand/${id}" style="${LINK_BTN}">查看项目</a>`,
-    loginNeeded: `请先以雇主身份登录后再发布草稿。<br/><a href="/finance" style="${LINK_BTN}">去登录</a>`,
+    loginNeeded: `请先以雇主身份登录后再发布草稿。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">去登录</a>`,
     publishFail: '<span style="color:#ef4444;">发布失败，请稍后再试。</span>',
   },
   es: {
@@ -44,7 +44,7 @@ const DICT = {
     dRole: 'Rol', dRegion: 'Región', dBudget: 'Presupuesto', dMilestones: 'Hitos',
     confirmPublish: 'Confirmar y publicar', publishing: 'Publicando…', publishedBtn: 'Publicado ✓',
     published: (id) => `<b>✅ ¡Publicado!</b><br/>Tu demanda ya está activa y visible para los ingenieros.<br/><a href="/demand/${id}" style="${LINK_BTN}">Ver proyecto</a>`,
-    loginNeeded: `Inicia sesión como empleador para publicar este borrador.<br/><a href="/finance" style="${LINK_BTN}">Iniciar sesión</a>`,
+    loginNeeded: `Inicia sesión como empleador para publicar este borrador.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Iniciar sesión</a>`,
     publishFail: '<span style="color:#ef4444;">Error al publicar. Intenta de nuevo.</span>',
   },
   vi: {
@@ -58,7 +58,7 @@ const DICT = {
     dRole: 'Vai trò', dRegion: 'Khu vực', dBudget: 'Ngân sách', dMilestones: 'Cột mốc',
     confirmPublish: 'Xác nhận & Đăng', publishing: 'Đang đăng…', publishedBtn: 'Đã đăng ✓',
     published: (id) => `<b>✅ Đã đăng!</b><br/>Yêu cầu của bạn đã hoạt động và hiển thị với kỹ sư.<br/><a href="/demand/${id}" style="${LINK_BTN}">Xem dự án</a>`,
-    loginNeeded: `Vui lòng đăng nhập với tư cách nhà tuyển dụng để đăng bản nháp này.<br/><a href="/finance" style="${LINK_BTN}">Đăng nhập</a>`,
+    loginNeeded: `Vui lòng đăng nhập với tư cách nhà tuyển dụng để đăng bản nháp này.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Đăng nhập</a>`,
     publishFail: '<span style="color:#ef4444;">Đăng thất bại. Vui lòng thử lại.</span>',
   },
   hi: {
@@ -72,7 +72,7 @@ const DICT = {
     dRole: 'भूमिका', dRegion: 'क्षेत्र', dBudget: 'बजट', dMilestones: 'माइलस्टोन',
     confirmPublish: 'पुष्टि करें और प्रकाशित करें', publishing: 'प्रकाशित हो रहा है…', publishedBtn: 'प्रकाशित ✓',
     published: (id) => `<b>✅ प्रकाशित!</b><br/>आपकी डिमांड अब लाइव है और इंजीनियरों को दिख रही है।<br/><a href="/demand/${id}" style="${LINK_BTN}">प्रोजेक्ट देखें</a>`,
-    loginNeeded: `इस ड्राफ्ट को प्रकाशित करने के लिए कृपया नियोक्ता के रूप में साइन इन करें।<br/><a href="/finance" style="${LINK_BTN}">साइन इन</a>`,
+    loginNeeded: `इस ड्राफ्ट को प्रकाशित करने के लिए कृपया नियोक्ता के रूप में साइन इन करें।<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">साइन इन</a>`,
     publishFail: '<span style="color:#ef4444;">प्रकाशन विफल। कृपया पुनः प्रयास करें।</span>',
   },
   fr: {
@@ -86,7 +86,7 @@ const DICT = {
     dRole: 'Rôle', dRegion: 'Région', dBudget: 'Budget', dMilestones: 'Jalons',
     confirmPublish: 'Confirmer et publier', publishing: 'Publication…', publishedBtn: 'Publié ✓',
     published: (id) => `<b>✅ Publié !</b><br/>Votre demande est en ligne et visible par les ingénieurs.<br/><a href="/demand/${id}" style="${LINK_BTN}">Voir le projet</a>`,
-    loginNeeded: `Connectez-vous en tant qu'employeur pour publier ce brouillon.<br/><a href="/finance" style="${LINK_BTN}">Connexion</a>`,
+    loginNeeded: `Connectez-vous en tant qu'employeur pour publier ce brouillon.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Connexion</a>`,
     publishFail: '<span style="color:#ef4444;">Échec de la publication. Veuillez réessayer.</span>',
   },
   de: {
@@ -100,7 +100,7 @@ const DICT = {
     dRole: 'Rolle', dRegion: 'Region', dBudget: 'Budget', dMilestones: 'Meilensteine',
     confirmPublish: 'Bestätigen & Veröffentlichen', publishing: 'Wird veröffentlicht…', publishedBtn: 'Veröffentlicht ✓',
     published: (id) => `<b>✅ Veröffentlicht!</b><br/>Ihr Bedarf ist jetzt live und für Ingenieure sichtbar.<br/><a href="/demand/${id}" style="${LINK_BTN}">Projekt ansehen</a>`,
-    loginNeeded: `Bitte melden Sie sich als Arbeitgeber an, um diesen Entwurf zu veröffentlichen.<br/><a href="/finance" style="${LINK_BTN}">Anmelden</a>`,
+    loginNeeded: `Bitte melden Sie sich als Arbeitgeber an, um diesen Entwurf zu veröffentlichen.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Anmelden</a>`,
     publishFail: '<span style="color:#ef4444;">Veröffentlichung fehlgeschlagen. Bitte erneut versuchen.</span>',
   },
   ja: {
@@ -114,7 +114,7 @@ const DICT = {
     dRole: '役割', dRegion: '地域', dBudget: '予算', dMilestones: 'マイルストーン',
     confirmPublish: '確認して公開', publishing: '公開中…', publishedBtn: '公開済み ✓',
     published: (id) => `<b>✅ 公開しました！</b><br/>案件が公開され、エンジニアが閲覧できます。<br/><a href="/demand/${id}" style="${LINK_BTN}">プロジェクトを見る</a>`,
-    loginNeeded: `このドラフトを公開するには、雇用主としてサインインしてください。<br/><a href="/finance" style="${LINK_BTN}">サインイン</a>`,
+    loginNeeded: `このドラフトを公開するには、雇用主としてサインインしてください。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">サインイン</a>`,
     publishFail: '<span style="color:#ef4444;">公開に失敗しました。もう一度お試しください。</span>',
   },
   ko: {
@@ -128,7 +128,7 @@ const DICT = {
     dRole: '역할', dRegion: '지역', dBudget: '예산', dMilestones: '마일스톤',
     confirmPublish: '확인 및 게시', publishing: '게시 중…', publishedBtn: '게시됨 ✓',
     published: (id) => `<b>✅ 게시 완료!</b><br/>수요가 게시되어 엔지니어에게 공개됩니다.<br/><a href="/demand/${id}" style="${LINK_BTN}">프로젝트 보기</a>`,
-    loginNeeded: `이 초안을 게시하려면 고용주로 로그인하세요.<br/><a href="/finance" style="${LINK_BTN}">로그인</a>`,
+    loginNeeded: `이 초안을 게시하려면 고용주로 로그인하세요.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">로그인</a>`,
     publishFail: '<span style="color:#ef4444;">게시 실패. 다시 시도해 주세요.</span>',
   },
 };

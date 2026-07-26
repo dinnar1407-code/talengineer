@@ -238,7 +238,7 @@ export default function Enterprise() {
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🔑</div>
                 <h3>{d.signInTitle}</h3>
                 <p>{d.signInDesc}</p>
-                <Link href="/finance" className={styles.btnSignIn}>{d.signInBtn}</Link>
+                <Link href="/login" className={styles.btnSignIn}>{d.signInBtn}</Link>
               </div>
             )}
 
