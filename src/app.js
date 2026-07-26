@@ -89,8 +89,34 @@ const authLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
 });
 
+// 注册专用限流：10 次/小时/IP，成功也计数（Wave A / A5）
+// 为什么单独一个：上面的 authLimiter 带 skipSuccessfulRequests:true，只统计【失败】请求。
+// 这对登录是对的（防爆破又不误伤正常登录），但它挂在整个 /api/auth/ 上，于是
+// 「注册成功」也不计数 —— 单个 IP 可以无限量刷注册。而本平台真正的敞口正是批量假号
+// （污染撮合池、薅推荐奖励），不是密码爆破。故 register 单挂一个成功也计数的严格限流器。
+// 两个限流器叠加生效：register 同时受 30 次失败/15min 与 10 次/小时 约束。
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many sign-up attempts. Please try again later.' },
+});
+
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
+app.use('/api/auth/register', registerLimiter);
+
+// ── 真人验证（Turnstile，Wave A / A4）─────────────────────────────────────────
+// 只挂两个口，且都在路由处理器之前——被拦下的请求永远碰不到业务逻辑，不写库也不发邮件：
+//   register        —— 真正的敞口：批量注册假账号
+//   forgot-password —— 现在无条件回 ok（防邮箱枚举，设计是对的），但也因此可被用来
+//                      刷 Resend 发信额度 + 骚扰任意邮箱
+// 不挂 login（默认弹验证会实打实伤转化；爆破已有 authLimiter 挡着），不挂 OAuth 通道
+// （Google/Microsoft 侧已做过人机验证）。未配 TURNSTILE_SECRET_KEY 时该中间件放行，见 utils/turnstile.js。
+const { requireTurnstile } = require('./utils/turnstile');
+app.use('/api/auth/register', requireTurnstile);
+app.use('/api/auth/forgot-password', requireTurnstile);
 
 // ── DB 可用性防护（审计 P2 防御纵深）──────────────────────────────────────────
 // getClient() 在 SUPABASE_URL/KEY 缺失时返回 null，而 69 处路由调用均未判空——

@@ -5,11 +5,13 @@
 // 生产构建不需要 eval，故 prod 不放开，收窄 XSS 面。
 const directives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com', ...(process.env.NODE_ENV !== 'production' ? ["'unsafe-eval'"] : [])],
+  // challenges.cloudflare.com：Turnstile 真人验证（脚本 + 它自己的 iframe 挑战框），
+  // 挂在注册/忘记密码页，见 src/utils/turnstile.js
+  scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com', 'https://challenges.cloudflare.com', ...(process.env.NODE_ENV !== 'production' ? ["'unsafe-eval'"] : [])],
   styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: ["'self'", 'data:', 'blob:', 'https://*.supabase.co'],
   connectSrc: ["'self'", 'https://*.supabase.co', 'https://api.stripe.com', 'wss:', 'https://*.ingest.sentry.io'],
-  frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com'],
+  frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com', 'https://challenges.cloudflare.com'],
   workerSrc: ["'self'"],
   // 以下与 helmet 默认集对齐：页面链路手动 set 时也要有同等强度，两条链路输出一致。
   baseUri: ["'self'"],

@@ -225,9 +225,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    // 空密码账户是 OAuth 注册用户（见 /oauth-token 写入 password: ''），禁止密码登录，防止任意密码绕过鉴权
+    // 空密码账户是 OAuth 注册用户（见 /oauth-token 写入 password: ''），禁止密码登录，防止任意密码绕过鉴权。
+    // 文案不点名具体 provider：账号可能绑了 Google 或 Microsoft，说错反而误导（要查 auth_identities
+    // 才知道绑的是哪个，为一句提示多打一次库不值当）。
     if (!user.password) {
-      return res.status(401).json({ error: 'This account uses Google sign-in. Please log in with Google.' });
+      return res.status(401).json({ error: 'This account uses Google or Microsoft sign-in. Please use that button to log in.' });
     }
 
     // Handle legacy accounts (plain SHA256 hash — migrate on first login)
@@ -269,49 +271,159 @@ router.post('/login', async (req, res) => {
 });
 
 // ── OAuth Token Exchange ─────────────────────────────────────────────────────
-// Called after Supabase OAuth to exchange a Supabase session for our own JWT
+// Supabase OAuth 会话 → 自家 JWT。Wave A/A1 起按 (provider, provider_sub) 认人，
+// 不再按 email 认人——理由见 migrations/025_auth_identities.sql 头注释（换邮箱/多通道会分裂账号）。
+//
+// 认人三段式（顺序即优先级）：
+//   1. auth_identities 命中 (provider, sub) → 老用户回访，直接发 JWT。用户在 provider 侧
+//      改了邮箱也照样认得出——这正是不按 email 认人的价值。
+//   2. 未命中但 email 命中 users → 首次用该通道登录一个已存在的账号（密码老用户第一次点
+//      Google，或 Google 老用户第一次点 Microsoft）→ 补写 identity 行完成关联。
+//      ⚠️ 仅在 provider 已验证邮箱时允许，见下方 email_confirmed_at 检查。
+//   3. 都没命中 → 建新用户 + identity 行 + 推荐归因。
+//
+// role 只在【建新用户】时使用；老用户的角色一律以库里为准（前端传什么都不改它）。
+// 新用户没带 role 时回 400 + code:'ROLE_REQUIRED'，供 /login 页弹角色选择后重试。
+const ALLOWED_OAUTH_PROVIDERS = new Set(['google', 'azure']); // azure = Microsoft；Apple 明确不做（要付费开发者账号）
+
+/**
+ * 从 Supabase user 对象解出 (provider, sub)。
+ * provider 取本次会话实际使用的通道（app_metadata.provider）——绝不取 body，
+ * 那是调用方自报，等于让人挑自己的身份空间。
+ * sub 优先取该 provider 的 identity.id（即 OIDC sub，provider 侧永久稳定主键），
+ * 兜底用 Supabase 自己的 user.id（对该 Supabase 用户同样稳定，够用）。
+ */
+function extractOAuthIdentity(user) {
+  const provider = user?.app_metadata?.provider || null;
+  const identity = Array.isArray(user?.identities)
+    ? user.identities.find((i) => i.provider === provider)
+    : null;
+  return { provider, sub: identity?.id ? String(identity.id) : (user?.id ? String(user.id) : null) };
+}
 
 router.post('/oauth-token', async (req, res) => {
   try {
     // referral_code（可选）：OAuth 注册绕过 /register，若只在 /register 挂归因会漏掉 OAuth 新用户。
-    // 前端暂无入口传 code，后端先行支持 body.referral_code（W2-4）。
-    const { access_token, role, referral_code } = req.body;
-    if (!access_token || !role) return res.status(400).json({ error: 'Missing access_token or role' });
-    if (!['employer', 'engineer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    const { access_token, role, referral_code } = req.body || {};
+    if (!access_token) return res.status(400).json({ error: 'Missing access_token' });
+    // role 此处不强制——老用户回访不需要它。只有走到「建新用户」分支才要求，见下。
+    if (role != null && !['employer', 'engineer'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
 
     const supabase = getClient();
 
-    // Verify Supabase session
+    // 验证 Supabase 会话（唯一可信的身份来源）
     const { data: { user }, error: authErr } = await supabase.auth.getUser(access_token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired session' });
 
-    // Find or create user in our users table
-    let { data: dbUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', user.email)
-      .single();
+    const { provider, sub } = extractOAuthIdentity(user);
+    if (!provider || !ALLOWED_OAUTH_PROVIDERS.has(provider)) {
+      // 白名单之外的通道一律拒绝：Supabase 后台若被误开第三个 provider，这里是最后一道闸。
+      console.warn(`[Auth] OAuth rejected: provider "${provider}" not in allow-list`);
+      return res.status(400).json({ error: 'This sign-in method is not supported.' });
+    }
+    if (!sub) {
+      console.error('[Auth] OAuth identity missing sub', { provider });
+      return res.status(400).json({ error: 'Authentication failed. Please try again.' });
+    }
 
+    let dbUser = null;
+
+    // 迁移 025 若还没在生产执行，auth_identities 不存在。部署顺序（迁移先上生产再 push）
+    // 是纪律，但不该由用户的登录来兜底——这里精确识别"表不存在"（42P01）后降级回旧的
+    // 按 email 认人，并把错误吼进日志。只认这一个错误码，其余照常抛，不做兜底式吞异常。
+    let identityTableReady = true;
+
+    // ── 第 1 段：按 (provider, sub) 认人 ────────────────────────────────────
+    const { data: identityRow, error: idErr } = await supabase
+      .from('auth_identities')
+      .select('user_id')
+      .eq('provider', provider)
+      .eq('provider_sub', sub)
+      .maybeSingle();
+    if (idErr) {
+      if (idErr.code === '42P01') {
+        identityTableReady = false;
+        console.error('[Auth] auth_identities missing — migration 025 not applied on this environment. Falling back to email matching.');
+      } else {
+        throw idErr;
+      }
+    }
+
+    if (identityRow) {
+      const { data: found, error: uErr } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', identityRow.user_id)
+        .maybeSingle();
+      if (uErr) throw uErr;
+      // 身份行指向一个已不存在的用户（账号被删）——当作未关联处理，往下走建号分支。
+      if (found) dbUser = found;
+      else console.warn(`[Auth] auth_identities row points to missing user ${identityRow.user_id}`);
+    }
+
+    // ── 第 2 段：按 email 关联已有账号（仅首次）────────────────────────────
+    if (!dbUser && user.email) {
+      const { data: byEmail, error: eErr } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+      if (eErr) throw eErr;
+
+      if (byEmail) {
+        // 账号接管防线：只有 provider 确实验证过这个邮箱，才允许拿它认领一个已存在的账号。
+        // Google/Microsoft 都会验证，正常路径恒为真；此处防的是 Supabase 后台误配了
+        // 不验证邮箱的 IdP——那种情况下攻击者注册受害者邮箱即可登入受害者账号。
+        if (!user.email_confirmed_at) {
+          console.warn(`[Auth] OAuth link refused: unverified email from provider "${provider}"`);
+          return res.status(403).json({ error: 'Your email is not verified by the sign-in provider.' });
+        }
+        dbUser = byEmail;
+      }
+    }
+
+    // ── 第 3 段：建新用户 ──────────────────────────────────────────────────
+    let isNewUser = false;
     if (!dbUser) {
-      const name = user.user_metadata?.full_name || user.email.split('@')[0];
+      if (!role) {
+        // 前端据 code 弹「我是雇主 / 我是工程师」再带 role 重试同一个 access_token。
+        return res.status(400).json({ error: 'Please choose an account type.', code: 'ROLE_REQUIRED' });
+      }
+      const name = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : 'User');
       const { data: newUser, error: insertErr } = await supabase
         .from('users')
-        .insert([{ email: user.email, role, name, password: '' }])
+        .insert([{ email: user.email, role, name, password: '' }]) // password:'' = OAuth 账户，登录路由据此禁密码登录
         .select()
         .single();
       if (insertErr) throw insertErr;
       dbUser = newUser;
+      isNewUser = true;
+    }
 
-      // 推荐归因（仅限【新建】用户；老用户 OAuth 登录不归因，防止"拿别人的码归因存量账号"）。
-      // 与 /register 同一 fire-and-forget + fail-open 纪律：任何失败不阻断登录。
-      if (referral_code && typeof referral_code === 'string') {
-        try {
-          const { attributeReferral } = require('../services/referralService');
-          attributeReferral(supabase, { newUserId: newUser.id, newUserEmail: newUser.email, referralCode: referral_code })
-            .catch((e) => console.error('[Auth] OAuth referral attribution error:', e));
-        } catch (e) {
-          console.error('[Auth] OAuth referral attribution error:', e);
-        }
+    // ── 补写身份行（第 2、3 段都需要；第 1 段命中时跳过）────────────────────
+    if (identityTableReady && !identityRow) {
+      const { error: linkErr } = await supabase
+        .from('auth_identities')
+        .insert([{ user_id: dbUser.id, provider, provider_sub: sub, email_at_link: user.email || null }]);
+      if (linkErr) {
+        // 23505 = 唯一键冲突：两个请求同时首登，另一个已抢先写入。身份已存在即达成目的，
+        // 继续发 JWT 即可（不重查——(provider,sub) 唯一，冲突方指向的必是同一个 user）。
+        if (linkErr.code !== '23505') throw linkErr;
+        console.warn('[Auth] auth_identities concurrent insert, continuing:', linkErr.message);
+      }
+    }
+
+    // 推荐归因（仅限【新建】用户；老用户 OAuth 登录不归因，防止"拿别人的码归因存量账号"）。
+    // 与 /register 同一 fire-and-forget + fail-open 纪律：任何失败不阻断登录。
+    if (isNewUser && referral_code && typeof referral_code === 'string') {
+      try {
+        const { attributeReferral } = require('../services/referralService');
+        attributeReferral(supabase, { newUserId: dbUser.id, newUserEmail: dbUser.email, referralCode: referral_code })
+          .catch((e) => console.error('[Auth] OAuth referral attribution error:', e));
+      } catch (e) {
+        console.error('[Auth] OAuth referral attribution error:', e);
       }
     }
 
@@ -321,7 +433,10 @@ router.post('/oauth-token', async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    res.json({ status: 'ok', token, email: dbUser.email, role: dbUser.role, name: dbUser.name });
+    // is_new_user 供前端分流：OAuth 建号的工程师没有 talents 档案行（密码注册那条路径是
+    // 在 /register 里顺手建的），必须被送去 /onboarding 补档案，否则他不会出现在任何撮合里。
+    // 档案行本身由 PUT /api/talent/profile 首次调用时创建，见 src/routes/talent.js。
+    res.json({ status: 'ok', token, email: dbUser.email, role: dbUser.role, name: dbUser.name, is_new_user: isNewUser });
   } catch (err) {
     console.error('[Auth] OAuth token exchange error:', err);
     res.status(500).json({ error: 'Authentication failed. Please try again.' });
