@@ -200,7 +200,7 @@ export default function Pools() {
 
   const head = (
     <Head>
-      <title>{d.metaTitle} | Talengineer</title>
+      <title>{`${d.metaTitle} | Talengineer`}</title>
       <meta name="description" content={d.metaDescription} />
       {/* 登录态控制台页：不进 sitemap/llms.txt，也不让搜索引擎收录 */}
       <meta name="robots" content="noindex" />

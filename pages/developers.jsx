@@ -85,7 +85,7 @@ export default function Developers() {
   return (
     <>
       <Head>
-        <title>{d.metaTitle} | Talengineer</title>
+        <title>{`${d.metaTitle} | Talengineer`}</title>
         <meta name="description" content={d.metaDescription} />
         <meta property="og:title" content={`${d.metaTitle} | Talengineer`} />
         <meta property="og:description" content={d.metaDescription} />

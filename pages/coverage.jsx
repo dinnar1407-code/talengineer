@@ -84,7 +84,7 @@ export default function Coverage() {
   return (
     <div className={styles.page}>
       <Head>
-        <title>{d.metaTitle} | Talengineer</title>
+        <title>{`${d.metaTitle} | Talengineer`}</title>
         <meta name="description" content={d.metaDescription} />
         <link rel="canonical" href={`${SITE}/coverage`} />
         <meta property="og:type" content="website" />
