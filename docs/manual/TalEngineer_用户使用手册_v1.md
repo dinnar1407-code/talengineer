@@ -1,12 +1,12 @@
 ---
 title: TalEngineer 用户使用手册
-version: v1.2
+version: v1.3
 date: 2026-07-25
 audience: 雇主（出海制造企业 / 美国制造商）· 工业自动化工程师
 site: https://talengineer.us
 ---
 
-# TalEngineer 用户使用手册 v1.2
+# TalEngineer 用户使用手册 v1.3
 
 > **认证过的工业自动化工程师，托管付款，随需交付。**
 > 工厂要找会 PLC、机器人、机器视觉、电气的工程师，靠猎头太慢、靠自由市场不敢信。TalEngineer 用平台考证解决"这人行不行"，用资金托管解决"钱给了怕打水漂"，把跨境用人变成一件可控的事。
@@ -237,4 +237,4 @@ Stripe 覆盖地区直接绑 Stripe；不覆盖的（部分拉美/东南亚）�
 
 ---
 
-*TalEngineer · Certified Industrial Automation Engineers, On Demand · v1.2 (2026-07-25)*
+*TalEngineer · Certified Industrial Automation Engineers, On Demand · v1.3 (2026-07-25)*
