@@ -50,6 +50,7 @@ register({
     },
   },
   roles: ['public'],
+  tier: 'read',
   handler: async (args, ctx) => {
     const { track, region, skill, maxRate } = args;
     const limit = args.limit || 5; // schema 已钳制 1~10，默认 5
@@ -127,6 +128,7 @@ register({
     },
   },
   roles: ['public'],
+  tier: 'read',
   handler: async (args, ctx) => {
     let summary;
     if (ratesCache && ratesCache.expiresAt > Date.now()) {
@@ -200,6 +202,7 @@ register({
     },
   },
   roles: ['public'],
+  tier: 'read',
   handler: async (args, ctx) => {
     // 方向清单读 cert_tracks 表（照 src/routes/training.js GET /tracks 的查询）
     const { data, error } = await ctx.supabase
@@ -258,6 +261,7 @@ register({
     'they posted; an engineer sees demands they are assigned to; an admin sees recent platform projects.',
   parameters: { type: 'object', properties: {} },
   roles: ['employer', 'engineer', 'admin'],
+  tier: 'read',
   handler: async (_args, ctx) => {
     const role = ctx.user.role; // 角色门控已保证 role ∈ employer/engineer/admin
     // demand 字段白名单（照 entV1.js GET /demands 的列），不 select('*')
@@ -325,6 +329,7 @@ register({
     required: ['demandId'],
   },
   roles: ['employer', 'engineer', 'admin'],
+  tier: 'read',
   handler: async (args, ctx) => {
     // 防 IDOR：先当事方校验；"不存在"与"无权限"统一同一文案，
     // 不区分二者防 id 枚举探测（照 entV1.js milestones 端点的做法）。
@@ -352,6 +357,7 @@ register({
     'Read-only summary; no per-user personal data.',
   parameters: { type: 'object', properties: {} },
   roles: ['admin'],
+  tier: 'read',
   handler: async (_args, ctx) => {
     // 只读聚合下推到 SQL（migrations/021 的 admin_analytics_summary；用法照 admin.js:146）
     const { data, error } = await ctx.supabase.rpc('admin_analytics_summary');

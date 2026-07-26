@@ -18,6 +18,12 @@ const DICT = {
     published: (id) => `<b>✅ Published!</b><br/>Your demand is now live and visible to engineers.<br/><a href="/demand/${id}" style="${LINK_BTN}">View project</a>`,
     loginNeeded: `Please sign in as an employer to publish this draft.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Sign In</a>`,
     publishFail: '<span style="color:#ef4444;">Publish failed. Please try again.</span>',
+    confirmTitle: 'Confirm before I do this',
+    confirmTool: { apply_to_demand: 'Apply to this project' },
+    confirmArg: { demand_id: 'Project ID', message: 'Your note', quoted_rate: 'Your rate', quoted_days: 'Estimated days', quote_amount: 'Total quote' },
+    confirmBtn: 'Confirm', confirming: 'Working…', confirmedBtn: 'Done ✓',
+    confirmDone: '<b>✅ Done.</b>',
+    confirmFail: '<span style="color:#ef4444;">Could not complete that. Please try again.</span>',
   },
   zh: {
     greeting: '长官，我是小麦穗！后台四大Agent已部署完毕，您可以直接用大白话发号施令（比如："帮我在蒙特雷招一个懂西门子的，预算1500美金"）。',
@@ -32,6 +38,12 @@ const DICT = {
     published: (id) => `<b>✅ 发布成功！</b><br/>需求已上线，工程师现在可以看到了。<br/><a href="/demand/${id}" style="${LINK_BTN}">查看项目</a>`,
     loginNeeded: `请先以雇主身份登录后再发布草稿。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">去登录</a>`,
     publishFail: '<span style="color:#ef4444;">发布失败，请稍后再试。</span>',
+    confirmTitle: '执行前请确认',
+    confirmTool: { apply_to_demand: '投递这个项目' },
+    confirmArg: { demand_id: '项目编号', message: '附言', quoted_rate: '报价费率', quoted_days: '预计工期（天）', quote_amount: '报价总额' },
+    confirmBtn: '确认执行', confirming: '处理中…', confirmedBtn: '已完成 ✓',
+    confirmDone: '<b>✅ 已完成。</b>',
+    confirmFail: '<span style="color:#ef4444;">操作未能完成，请重试。</span>',
   },
   es: {
     greeting: '¡Hola! Soy Maisui, tu asistente IA. Dime lo que necesitas — ej. "Busca un ingeniero Siemens en Monterrey, presupuesto $1500".',
@@ -46,6 +58,12 @@ const DICT = {
     published: (id) => `<b>✅ ¡Publicado!</b><br/>Tu demanda ya está activa y visible para los ingenieros.<br/><a href="/demand/${id}" style="${LINK_BTN}">Ver proyecto</a>`,
     loginNeeded: `Inicia sesión como empleador para publicar este borrador.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Iniciar sesión</a>`,
     publishFail: '<span style="color:#ef4444;">Error al publicar. Intenta de nuevo.</span>',
+    confirmTitle: 'Confirme antes de que lo haga',
+    confirmTool: { apply_to_demand: 'Postularse a este proyecto' },
+    confirmArg: { demand_id: 'ID del proyecto', message: 'Su nota', quoted_rate: 'Su tarifa', quoted_days: 'Días estimados', quote_amount: 'Monto cotizado' },
+    confirmBtn: 'Confirmar', confirming: 'Procesando…', confirmedBtn: 'Listo ✓',
+    confirmDone: '<b>✅ Listo.</b>',
+    confirmFail: '<span style="color:#ef4444;">No se pudo completar. Intente de nuevo.</span>',
   },
   vi: {
     greeting: 'Xin chào! Tôi là Maisui, trợ lý AI của bạn. Hãy nói cho tôi biết bạn cần gì — ví dụ: "Tìm kỹ sư Siemens ở TP.HCM, ngân sách $1500".',
@@ -60,6 +78,12 @@ const DICT = {
     published: (id) => `<b>✅ Đã đăng!</b><br/>Yêu cầu của bạn đã hoạt động và hiển thị với kỹ sư.<br/><a href="/demand/${id}" style="${LINK_BTN}">Xem dự án</a>`,
     loginNeeded: `Vui lòng đăng nhập với tư cách nhà tuyển dụng để đăng bản nháp này.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Đăng nhập</a>`,
     publishFail: '<span style="color:#ef4444;">Đăng thất bại. Vui lòng thử lại.</span>',
+    confirmTitle: 'Xác nhận trước khi tôi thực hiện',
+    confirmTool: { apply_to_demand: 'Ứng tuyển dự án này' },
+    confirmArg: { demand_id: 'Mã dự án', message: 'Lời nhắn của bạn', quoted_rate: 'Đơn giá của bạn', quoted_days: 'Số ngày dự kiến', quote_amount: 'Tổng báo giá' },
+    confirmBtn: 'Xác nhận', confirming: 'Đang xử lý…', confirmedBtn: 'Hoàn tất ✓',
+    confirmDone: '<b>✅ Hoàn tất.</b>',
+    confirmFail: '<span style="color:#ef4444;">Không thể hoàn tất. Vui lòng thử lại.</span>',
   },
   hi: {
     greeting: 'नमस्ते! मैं Maisui हूँ, आपका AI सहायक। मुझे बताएं आपको क्या चाहिए — जैसे: "मुंबई में Siemens इंजीनियर खोजें, बजट $1500"।',
@@ -74,6 +98,12 @@ const DICT = {
     published: (id) => `<b>✅ प्रकाशित!</b><br/>आपकी डिमांड अब लाइव है और इंजीनियरों को दिख रही है।<br/><a href="/demand/${id}" style="${LINK_BTN}">प्रोजेक्ट देखें</a>`,
     loginNeeded: `इस ड्राफ्ट को प्रकाशित करने के लिए कृपया नियोक्ता के रूप में साइन इन करें।<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">साइन इन</a>`,
     publishFail: '<span style="color:#ef4444;">प्रकाशन विफल। कृपया पुनः प्रयास करें।</span>',
+    confirmTitle: 'करने से पहले पुष्टि करें',
+    confirmTool: { apply_to_demand: 'इस प्रोजेक्ट के लिए अप्लाई करें' },
+    confirmArg: { demand_id: 'प्रोजेक्ट ID', message: 'आपका संदेश', quoted_rate: 'आपकी दर', quoted_days: 'अनुमानित दिन', quote_amount: 'कुल कोट' },
+    confirmBtn: 'पुष्टि करें', confirming: 'प्रोसेस हो रहा है…', confirmedBtn: 'हो गया ✓',
+    confirmDone: '<b>✅ हो गया।</b>',
+    confirmFail: '<span style="color:#ef4444;">पूरा नहीं हो सका। कृपया फिर कोशिश करें।</span>',
   },
   fr: {
     greeting: 'Bonjour ! Je suis Maisui, votre assistant IA. Dites-moi ce dont vous avez besoin — ex. "Trouvez un ingénieur Siemens à Lyon, budget 1500$".',
@@ -88,6 +118,12 @@ const DICT = {
     published: (id) => `<b>✅ Publié !</b><br/>Votre demande est en ligne et visible par les ingénieurs.<br/><a href="/demand/${id}" style="${LINK_BTN}">Voir le projet</a>`,
     loginNeeded: `Connectez-vous en tant qu'employeur pour publier ce brouillon.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Connexion</a>`,
     publishFail: '<span style="color:#ef4444;">Échec de la publication. Veuillez réessayer.</span>',
+    confirmTitle: 'Confirmez avant que je le fasse',
+    confirmTool: { apply_to_demand: 'Postuler à ce projet' },
+    confirmArg: { demand_id: 'ID du projet', message: 'Votre message', quoted_rate: 'Votre taux', quoted_days: 'Jours estimés', quote_amount: 'Montant total' },
+    confirmBtn: 'Confirmer', confirming: 'Traitement…', confirmedBtn: 'Terminé ✓',
+    confirmDone: '<b>✅ Terminé.</b>',
+    confirmFail: '<span style="color:#ef4444;">Impossible de terminer. Veuillez réessayer.</span>',
   },
   de: {
     greeting: 'Hallo! Ich bin Maisui, Ihr KI-Assistent. Sagen Sie mir, was Sie brauchen — z.B. "Finde einen Siemens-Ingenieur in Hamburg, Budget 1500$".',
@@ -102,6 +138,12 @@ const DICT = {
     published: (id) => `<b>✅ Veröffentlicht!</b><br/>Ihr Bedarf ist jetzt live und für Ingenieure sichtbar.<br/><a href="/demand/${id}" style="${LINK_BTN}">Projekt ansehen</a>`,
     loginNeeded: `Bitte melden Sie sich als Arbeitgeber an, um diesen Entwurf zu veröffentlichen.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Anmelden</a>`,
     publishFail: '<span style="color:#ef4444;">Veröffentlichung fehlgeschlagen. Bitte erneut versuchen.</span>',
+    confirmTitle: 'Bitte bestätigen Sie, bevor ich das ausführe',
+    confirmTool: { apply_to_demand: 'Auf dieses Projekt bewerben' },
+    confirmArg: { demand_id: 'Projekt-ID', message: 'Ihre Nachricht', quoted_rate: 'Ihr Satz', quoted_days: 'Geschätzte Tage', quote_amount: 'Gesamtangebot' },
+    confirmBtn: 'Bestätigen', confirming: 'Wird verarbeitet…', confirmedBtn: 'Erledigt ✓',
+    confirmDone: '<b>✅ Erledigt.</b>',
+    confirmFail: '<span style="color:#ef4444;">Konnte nicht abgeschlossen werden. Bitte erneut versuchen.</span>',
   },
   ja: {
     greeting: 'こんにちは！AIアシスタントのMaisuiです。お気軽にご要望をどうぞ — 例：「大阪でSiemensエンジニアを探して、予算$1500」。',
@@ -116,6 +158,12 @@ const DICT = {
     published: (id) => `<b>✅ 公開しました！</b><br/>案件が公開され、エンジニアが閲覧できます。<br/><a href="/demand/${id}" style="${LINK_BTN}">プロジェクトを見る</a>`,
     loginNeeded: `このドラフトを公開するには、雇用主としてサインインしてください。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">サインイン</a>`,
     publishFail: '<span style="color:#ef4444;">公開に失敗しました。もう一度お試しください。</span>',
+    confirmTitle: '実行前にご確認ください',
+    confirmTool: { apply_to_demand: 'この案件に応募する' },
+    confirmArg: { demand_id: '案件ID', message: 'メッセージ', quoted_rate: '希望単価', quoted_days: '想定日数', quote_amount: '見積総額' },
+    confirmBtn: '確認して実行', confirming: '処理中…', confirmedBtn: '完了 ✓',
+    confirmDone: '<b>✅ 完了しました。</b>',
+    confirmFail: '<span style="color:#ef4444;">実行できませんでした。もう一度お試しください。</span>',
   },
   ko: {
     greeting: '안녕하세요! AI 어시스턴트 Maisui입니다. 필요한 것을 말씀해 주세요 — 예: "서울에서 Siemens 엔지니어 찾아줘, 예산 $1500".',
@@ -130,6 +178,12 @@ const DICT = {
     published: (id) => `<b>✅ 게시 완료!</b><br/>수요가 게시되어 엔지니어에게 공개됩니다.<br/><a href="/demand/${id}" style="${LINK_BTN}">프로젝트 보기</a>`,
     loginNeeded: `이 초안을 게시하려면 고용주로 로그인하세요.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">로그인</a>`,
     publishFail: '<span style="color:#ef4444;">게시 실패. 다시 시도해 주세요.</span>',
+    confirmTitle: '실행 전에 확인해 주세요',
+    confirmTool: { apply_to_demand: '이 프로젝트에 지원하기' },
+    confirmArg: { demand_id: '프로젝트 ID', message: '메시지', quoted_rate: '희망 요율', quoted_days: '예상 일수', quote_amount: '견적 총액' },
+    confirmBtn: '확인 후 실행', confirming: '처리 중…', confirmedBtn: '완료 ✓',
+    confirmDone: '<b>✅ 완료되었습니다.</b>',
+    confirmFail: '<span style="color:#ef4444;">완료하지 못했습니다. 다시 시도해 주세요.</span>',
   },
 };
 
@@ -208,11 +262,66 @@ export default function ChatBot({ lang = 'en' }) {
       if (result.draft && typeof result.draft === 'object' && result.draft.title) {
         newMsgs.push({ role: 'agent', draft: result.draft, draftState: 'idle' });
       }
+      // pendingConfirmation = T2 工具的提案（agent 没有执行，也不会执行）→ 渲染确认卡。
+      // 令牌原样存在消息里，点确认时连同参数一起回传，服务端重算哈希比对（见 confirmToken.js）。
+      const pc = result.pendingConfirmation;
+      if (pc && typeof pc === 'object' && pc.tool && pc.confirmToken) {
+        newMsgs.push({ role: 'agent', confirm: pc, confirmState: 'idle' });
+      }
       setMessages(prev => prev.filter(m => m.id !== loadId).concat(newMsgs));
     } catch {
       setMessages(prev => prev.filter(m => m.id !== loadId).concat([{ role: 'agent', html: t.netErr }]));
     }
     setSending(false);
+  }
+
+  // 「确认执行」：T2 工具（tier='confirm'）的唯一执行入口。agent 只能提案，
+  // 真正落地必须由人在这里点一下，走 POST /api/agent/confirm（requireAuth + 令牌校验）。
+  async function runConfirm(index) {
+    const t = DICT[lang] || DICT.en;
+    const msg = messages[index];
+    if (!msg?.confirm || msg.confirmState !== 'idle') return;
+
+    const token = getToken();
+    if (!token) {
+      setMessages(prev => [...prev, { role: 'agent', html: t.loginNeeded }]);
+      return;
+    }
+
+    setMessages(prev => prev.map((m, i) => (i === index ? { ...m, confirmState: 'working' } : m)));
+    try {
+      const res = await fetch('/api/agent/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          confirm_token: msg.confirm.confirmToken,
+          tool: msg.confirm.tool,
+          args: msg.confirm.args,   // 原样回传：服务端据此重算哈希，确保执行的就是卡片上这份
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setMessages(prev => prev
+          .map((m, i) => (i === index ? { ...m, confirmState: 'idle' } : m))
+          .concat([{ role: 'agent', html: t.loginNeeded }]));
+        return;
+      }
+      if (!res.ok || result.status !== 'ok') {
+        // 服务端的拒绝理由（令牌过期、已投递过、项目已关闭…）直接转述，比一句"失败了"有用得多
+        const why = typeof result.error === 'string' ? escapeHtml(result.error) : t.confirmFail;
+        setMessages(prev => prev
+          .map((m, i) => (i === index ? { ...m, confirmState: 'idle' } : m))
+          .concat([{ role: 'agent', html: `<span style="color:#ef4444;">${why}</span>` }]));
+        return;
+      }
+      setMessages(prev => prev
+        .map((m, i) => (i === index ? { ...m, confirmState: 'done' } : m))
+        .concat([{ role: 'agent', html: t.confirmDone }]));
+    } catch {
+      setMessages(prev => prev
+        .map((m, i) => (i === index ? { ...m, confirmState: 'idle' } : m))
+        .concat([{ role: 'agent', html: t.confirmFail }]));
+    }
   }
 
   // 「确认发布」：G2 红线——发布只能由人类点击触发，走现有 POST /api/demand/submit
@@ -290,7 +399,31 @@ export default function ChatBot({ lang = 'en' }) {
             <span className={styles.close} onClick={toggle}>×</span>
           </div>
           <div className={styles.body}>
-            {messages.map((m, i) => m.draft ? (
+            {messages.map((m, i) => m.confirm ? (
+              // 确认卡：agent 提案、人来拍板。参数全部走 JSX 文本节点（不进 innerHTML），天然免 XSS。
+              // 卡上显示的就是将要执行的那份参数——服务端会重算哈希比对，两者不可能不一致。
+              <div key={i} className={styles.msgAgent} style={{ maxWidth: '95%', border: '1px solid var(--primary)', background: 'var(--surface)' }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠️ {t.confirmTitle}</div>
+                <div style={{ fontWeight: 600 }}>{t.confirmTool[m.confirm.tool] || m.confirm.tool}</div>
+                {Object.entries(m.confirm.args || {}).map(([k, v]) => (
+                  <div key={k} style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
+                    {t.confirmArg[k] || k}: {String(v).slice(0, 200)}
+                  </div>
+                ))}
+                <button
+                  onClick={() => runConfirm(i)}
+                  disabled={m.confirmState !== 'idle'}
+                  style={{
+                    marginTop: 8, padding: '6px 12px', background: 'var(--primary)', color: '#fff',
+                    border: 'none', borderRadius: 6, fontWeight: 700,
+                    cursor: m.confirmState === 'idle' ? 'pointer' : 'default',
+                    opacity: m.confirmState === 'working' ? 0.7 : 1,
+                  }}
+                >
+                  {m.confirmState === 'done' ? t.confirmedBtn : m.confirmState === 'working' ? t.confirming : t.confirmBtn}
+                </button>
+              </div>
+            ) : m.draft ? (
               // 草稿卡：字段全部走 JSX 文本节点渲染（不进 innerHTML），天然免 XSS。
               <div key={i} className={styles.msgAgent} style={{ maxWidth: '95%', border: '1px solid var(--border)', background: 'var(--surface)' }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>📋 {t.draftTitle}</div>

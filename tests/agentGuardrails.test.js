@@ -29,8 +29,10 @@ function allRegisteredTools() {
 describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工具永不存在）', () => {
   const tools = allRegisteredTools();
 
-  it('注册表非空（首批 10 个工具已注册）', () => {
-    assert.equal(tools.length, 10);
+  // 精确数字是有意的绊线：加工具必须顺手改这里，逼你重读一遍下面几条红线再决定 tier。
+  // 10（Phase 1 首批）→ 13（Wave B 加了 update_my_profile / update_demand_draft / apply_to_demand）
+  it('注册表规模符合预期（改动数量必须是有意识的）', () => {
+    assert.equal(tools.length, 13);
   });
 
   it('G2：不存在资金类工具名（注资/放款/退款/托管转账）', () => {
@@ -64,15 +66,57 @@ describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工�
   });
 });
 
-describe('G2 写面收口：create_demand_draft 是唯一写工具', () => {
+describe('写面收口：分层纪律（Wave B 起 G2 由 tier 体系承担）', () => {
   const tools = allRegisteredTools();
 
-  it('写动词前缀的工具名有且只有 create_demand_draft', () => {
-    // 写操作按命名约定识别（registry 不暴露 handler，静态扫描只能看名字——
-    // 这也正是命名纪律的意义：写工具必须用写动词开头，才逃不过本扫描）
-    const writeVerb = /^(create|update|delete|remove|set|write|insert|add|post|submit|publish|assign|approve|reject|cancel|upsert)_/i;
-    const writeTools = tools.filter((t) => writeVerb.test(t.name)).map((t) => t.name);
-    assert.deepEqual(writeTools, ['create_demand_draft']);
+  // 原来这条断言"写工具有且只有 create_demand_draft"。Wave B 起写面按 tier 分层管理
+  // （Terry 2026-07-25 批准），单一写工具的约束换成更强的一条：**名字与 tier 必须对得上**。
+  // 意义在于静态可扫：registry 不暴露 handler，外部只能看名字，所以写操作必须用写动词
+  // 开头才逃不过扫描；反过来带写动词却标成 read 的，就是漏标 tier（会绕过 write-ahead 审计）。
+  it('写动词工具集合 === 非 read 层工具集合（两边对不上就是 tier 标错了）', () => {
+    const writeVerb = /^(create|update|delete|remove|set|write|insert|add|post|submit|publish|assign|approve|reject|cancel|upsert|apply)_/i;
+    const byName = tools.filter((t) => writeVerb.test(t.name)).map((t) => t.name).sort();
+    const byTier = tools.filter((t) => t.tier !== 'read').map((t) => t.name).sort();
+    assert.deepEqual(byName, byTier);
+  });
+
+  it('每个工具都有合法 tier（注册期已挡，这里端到端复核）', () => {
+    for (const t of tools) {
+      assert.ok(['read', 'write', 'confirm'].includes(t.tier), `${t.name} tier 非法: ${t.tier}`);
+    }
+  });
+
+  // G3 的第二道：名字扫描防"直接给 agent 一个发消息的能力"，这条防"外发藏在别的动作里"。
+  // apply_to_demand 会给雇主发邮件，名字却完全扫不出来——只有显式声明 + 强制 confirm 层
+  // 才能保证外发永远发生在用户亲手点过确认之后。
+  it('G3：有外发副作用的工具必须是 confirm 层（且 read/write 层不得有任何外发）', () => {
+    for (const t of tools) {
+      const effects = t.sideEffects || [];
+      if (effects.length > 0) {
+        assert.equal(t.tier, 'confirm', `${t.name} 有外发副作用 ${effects} 却不是 confirm 层`);
+      }
+      if (t.tier !== 'confirm') {
+        assert.deepEqual(effects, [], `${t.name} 是 ${t.tier} 层，不允许有外发副作用`);
+      }
+    }
+  });
+
+  it('confirm 层工具对未确认调用只回提案，绝不执行', async () => {
+    // 端到端复核 registry 的分流：没有 ctx.confirmed 就拿不到执行结果
+    const confirmTools = tools.filter((t) => t.tier === 'confirm');
+    assert.ok(confirmTools.length > 0, '至少应有一个 confirm 层工具，否则本条形同虚设');
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-guardrails';
+    for (const t of confirmTools) {
+      const res = await registry.call(t.name, { demand_id: 1 }, {
+        user: { userId: 1, email: 'e@x.com', role: 'engineer' },
+        // supabase 故意给一个会炸的对象：真执行了就会抛错暴露出来，
+        // 而正确行为是压根走不到 handler
+        supabase: { from() { throw new Error('handler 不该被执行'); } },
+      });
+      assert.equal(res.ok, false);
+      assert.equal(res.needsConfirmation, true, `${t.name} 未确认时必须回 needsConfirmation`);
+      assert.ok(res.confirmToken, `${t.name} 必须签发确认令牌`);
+    }
   });
 
   it('create_demand_draft 仅 employer 角色可见（public/engineer 列表里没有）', () => {
@@ -167,7 +211,8 @@ describe('runAgentChat 循环（注入假模型/假工具，纯逻辑）', () =>
         callModel: async (req) => { seen.push(req); return { text: '你好！', functionCalls: [] }; },
       },
     );
-    assert.deepEqual(result, { reply: '你好！', toolEvents: [], draft: null });
+    // pendingConfirmation 是 Wave B 新增的返回字段：没有 T2 提案时恒为 null
+    assert.deepEqual(result, { reply: '你好！', toolEvents: [], draft: null, pendingConfirmation: null });
     // 系统提示写死 G2：资金/发证/裁决只能解释，执行必须在 UI 点击
     assert.match(seen[0].systemInstruction, /NO tools for money movement/);
     assert.match(seen[0].systemInstruction, /clicks the corresponding action in the platform UI/);

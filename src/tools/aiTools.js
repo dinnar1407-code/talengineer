@@ -58,6 +58,7 @@ register({
     required: ['text'],
   },
   roles: ['public', 'employer'],
+  tier: 'read',
   // 纯"解析→返回草稿"：不碰数据库，落库要走 create_demand_draft（employer 角色）。
   handler: async (args) => parseDemandSafe(args.text),
 });
@@ -85,6 +86,7 @@ register({
     required: ['text'],
   },
   roles: ['employer'],
+  tier: 'read',
   // 纯模板拼装（不二次调 AI）：aiService 没有导出 callGemini，且模板产出确定性强、
   // 零额外失败面；milestones 的 percentage 是 0-1 小数，展示层转成百分比标签。
   handler: async (args) => {
@@ -140,6 +142,7 @@ register({
     required: ['demandId'],
   },
   roles: ['employer', 'admin'],
+  tier: 'read',
   handler: async (args, ctx) => {
     const supabase = ctx.supabase;
     // 延迟 require：readTools 的 module.exports 是重赋值，模块加载期取会在循环依赖下

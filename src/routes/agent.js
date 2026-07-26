@@ -13,6 +13,9 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const { runAgentChat } = require('../services/agentService');
 const { getClient } = require('../config/db');
+const { requireAuth } = require('../middleware/auth');
+const { verify: verifyConfirmToken } = require('../services/confirmToken');
+const registry = require('../tools/registry');
 
 const MAX_MESSAGES = 40;        // 单次请求最多带 40 条历史（控滥用与 token 成本）
 const MAX_CONTENT_LENGTH = 8000; // 单条消息内容上限（与 parse_demand 工具入参上限一致）
@@ -48,14 +51,52 @@ router.post('/chat', async (req, res) => {
 
     const user = optionalUser(req);
     const result = await runAgentChat(
-      { messages, user, lang: typeof lang === 'string' ? lang : undefined },
+      { messages, user, lang: typeof lang === 'string' ? lang : undefined, ip: req.ip },
       { supabase: getClient() },
     );
-    return res.json(result); // { reply, toolEvents:[{tool,ok}], draft:object|null }
+    // { reply, toolEvents, draft, pendingConfirmation:{tool,args,confirmToken}|null }
+    return res.json(result);
   } catch (err) {
     // 仓库惯例（照 demand.js）：真实错误进日志，客户端只回通用文案
     console.error('[Agent] chat failed:', err);
     return res.status(500).json({ error: 'Agent chat failed. Please try again later.' });
+  }
+});
+
+// ── POST /api/agent/confirm：执行一个用户已确认的 T2 工具（Wave B / B2）──────
+// 契约：body { confirm_token, tool, args }。令牌由 registry 在工具 tier='confirm' 且
+// 未确认时签发（见 src/services/confirmToken.js），绑死 (userId, tool, argsHash)。
+//
+// 这里【必须】用 requireAuth 而不是 optionalUser：确认即执行，匿名不许执行任何写操作。
+// 令牌里的 userId 会与 req.user.userId 比对——光有令牌不够，还得是本人。
+//
+// 参数由前端回传而非从令牌里解出，是为了让服务端能重算哈希做比对：这样"用户确认的"
+// 与"实际执行的"必然是同一份。令牌里只放哈希，也顺带让令牌不至于把业务数据带出去。
+router.post('/confirm', requireAuth, async (req, res) => {
+  try {
+    const { confirm_token: confirmToken, tool, args } = req.body || {};
+    if (typeof tool !== 'string' || !tool) {
+      return res.status(400).json({ error: 'Missing tool.' });
+    }
+    const safeArgs = args && typeof args === 'object' && !Array.isArray(args) ? args : {};
+
+    const verdict = verifyConfirmToken(confirmToken, { userId: req.user.userId, tool, args: safeArgs });
+    if (!verdict.ok) return res.status(400).json({ error: verdict.error });
+
+    // confirmed:true 是这条路径独有的——registry 只认它，别的地方都传不进来
+    const result = await registry.call(tool, safeArgs, {
+      user: req.user,
+      supabase: getClient(),
+      confirmed: true,
+      source: 'agent',
+      ip: req.ip,
+    });
+    if (!result.ok) return res.status(400).json({ error: result.error || 'Action failed.' });
+
+    return res.json({ status: 'ok', data: result.data });
+  } catch (err) {
+    console.error('[Agent] confirm failed:', err);
+    return res.status(500).json({ error: 'Could not complete that action. Please try again.' });
   }
 });
 

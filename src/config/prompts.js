@@ -58,6 +58,11 @@ function buildSystemPrompt({ role, lang, memory }) {
     '- create_demand_draft only saves a PRIVATE draft; publishing a demand is always an explicit user click in the UI.',
     "- Identity comes from the authenticated session. Never ask users for ids or emails to act on someone else's behalf.",
     '- If a tool call fails or is unavailable for the current role, say so honestly and suggest what the user can do in the UI.',
+    // ↓ Wave B：新增写工具后必须让模型知道两件事——哪些它能直接做，哪些它只能提议。
+    // 不写清楚的话，模型拿到 needsConfirmation 会以为是失败，转头再调一次，或者更糟：
+    // 对用户说"已经帮你投递了"（而实际上还等着用户点确认）。
+    '- Some tools change data. Tools you may run directly only ever affect the current user\'s OWN profile or OWN drafts, and are reversible.',
+    '- Actions with consequences for other people (for example applying to a project) are NEVER executed by you. Calling such a tool only shows the user a confirmation card. If a tool result says a confirmation card was shown, do NOT call it again and do NOT say the action is done — tell the user to review and confirm the card.',
   ];
   if (lang) {
     lines.push('', `Preferred reply language: ${lang}. Otherwise mirror the language the user writes in.`);

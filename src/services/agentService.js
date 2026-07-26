@@ -171,10 +171,11 @@ async function callGeminiWithTools({ contents, systemInstruction, tools }) {
  *                         user:{userId,email,role}|null, lang?:string }
  * @param {object} [deps] 测试注入点 { callModel?, callTool?, supabase? }——
  *                        默认走真实 Gemini / registry.call / db.getClient()。
- * @returns {Promise<{reply:string, toolEvents:Array<{tool:string,ok:boolean}>, draft:object|null}>}
+ * @returns {Promise<{reply:string, toolEvents:Array<{tool:string,ok:boolean}>, draft:object|null,
+ *                    pendingConfirmation:{tool,args,confirmToken}|null}>}
  */
 async function runAgentChat(input, deps = {}) {
-  const { messages, user = null, lang } = input || {};
+  const { messages, user = null, lang, ip } = input || {};
   if (!Array.isArray(messages) || messages.length === 0) {
     throw new Error('messages must be a non-empty array');
   }
@@ -209,6 +210,8 @@ async function runAgentChat(input, deps = {}) {
 
   const toolEvents = [];
   let draft = null;
+  // T2 工具的待确认提案（最后一个生效）。前端据它渲染确认卡；令牌不进模型上下文。
+  let pendingConfirmation = null;
   let reply = '';
 
   try {
@@ -235,7 +238,8 @@ async function runAgentChat(input, deps = {}) {
       const responseParts = [];
       for (const fc of calls) {
         // registry.call 永远返回 {ok,...} 不抛裸异常；角色门控/参数校验都在它内部
-        const result = await callTool(fc.name, fc.args || {}, { user, supabase });
+        // source/ip 供 agent_actions 审计记账（写工具才用得上，读工具不入表）
+        const result = await callTool(fc.name, fc.args || {}, { user, supabase, source: 'agent', ip });
         toolEvents.push({ tool: fc.name, ok: result.ok === true });
         // 埋点：每次工具调用一条（fire-and-forget，input=工具参数 JSON，不存对话原文）
         recordAiEvent(supabase, {
@@ -248,7 +252,22 @@ async function runAgentChat(input, deps = {}) {
         if (result.ok === true && DRAFT_TOOLS.has(fc.name) && result.data && typeof result.data === 'object') {
           draft = result.data; // 最后一个草稿产出生效（多次解析以最新为准）
         }
-        responseParts.push({ functionResponse: { name: fc.name, response: result } });
+
+        // T2 工具未确认：registry 回的是「提案 + 确认令牌」，不是执行结果。
+        let modelVisible = result;
+        if (result.needsConfirmation === true) {
+          pendingConfirmation = { tool: result.tool, args: result.args, confirmToken: result.confirmToken };
+          // ⚠️ 确认令牌绝不进模型上下文。进去了模型就可能把它复述进回复文本，
+          // 于是这串能执行动作的凭据出现在聊天记录里（还会被后续轮次原样带回来）。
+          // 给模型的只是一句状态说明——它需要知道的仅仅是"别再调一次，等用户点"。
+          modelVisible = {
+            ok: false,
+            needsConfirmation: true,
+            note: 'A confirmation card was shown to the user. Do not call this tool again; '
+              + 'briefly tell the user to review and confirm it.',
+          };
+        }
+        responseParts.push({ functionResponse: { name: fc.name, response: modelVisible } });
       }
       contents.push({ role: 'user', parts: responseParts });
     }
@@ -280,7 +299,7 @@ async function runAgentChat(input, deps = {}) {
     updateMemoryProfile(supabase, user.userId, { lang, demandPattern: draft?.title });
   }
 
-  return { reply, toolEvents, draft };
+  return { reply, toolEvents, draft, pendingConfirmation };
 }
 
 module.exports = {

@@ -16,11 +16,32 @@
 //   ctx = { user: {userId, email, role}|null, supabase }
 //   user 只能来自已验证的 JWT（requireAuth 语义）或 API key 映射（mcp.js）。
 const { z } = require('zod');
+const audit = require('../services/agentAudit');
+const { issue: issueConfirmToken } = require('../services/confirmToken');
 
-// 工具存储：name → { name, description, parameters, roles, handler, validator }
+// 工具存储：name → { name, description, parameters, roles, tier, handler, validator }
 const tools = new Map();
 
 const VALID_ROLES = ['public', 'employer', 'engineer', 'admin'];
+
+// ── 风险分层（Wave B）——按【可逆性】分，不按模块分 ──────────────────────────
+//   read    无副作用。直接执行，不进 agent_actions（ai_events 已逐次埋点）。
+//   write   可逆写（改自己的档案、改自己的草稿）。直接执行 + write-ahead 审计。
+//   confirm 状态迁移，有业务后果（投递、发布、指派）。**agent 不许直接执行**——
+//           先回「提案 + 确认令牌」，用户在卡片上点了才走 /api/agent/confirm 执行。
+//
+// 注册表里【永远】不存在第四类：资金（注资/放款/退款）、发证、纠纷裁决、封号。
+// 那些只能由用户在原生 UI 完成，agent 至多给一个预填好的跳转链接。这条是 Terry 拍板的
+// 红线（2026-07-25），不是"能执行但要二次确认"，是根本不提供这个能力。别在后续松动。
+const VALID_TIERS = ['read', 'write', 'confirm'];
+
+// ── 外发副作用声明 ───────────────────────────────────────────────────────────
+// G3 原本靠"工具名里不许出现 send/email/notify"的静态扫描守住。那是个名字启发式：
+// apply_to_demand 会给雇主发邮件，名字却完全扫不出来——守卫会在毫不知情的情况下放行。
+// 所以外发必须【显式声明】：任何有外发副作用的工具都要写 sideEffects，且守卫测试强制
+// 这类工具只能是 tier='confirm'（必须人点过确认）。名字扫描继续保留，两道互补：
+// 一道防"直接给 agent 一个发消息的能力"，一道防"外发藏在别的动作里悄悄发生"。
+const VALID_SIDE_EFFECTS = ['email', 'notification', 'push'];
 
 // G1 机械防线：parameters（含嵌套）里禁止出现的字段名。
 // 这些名字意味着"调用方自报身份"，一旦放进参数，模型/外部 Agent 就能冒充任意用户。
@@ -100,11 +121,12 @@ function assertNoIdentityParams(schema, path = []) {
  * 注册一个工具。注册期即校验形状与 G1 红线——坏定义在启动时炸掉（fail-fast），
  * 而不是等到运行时被模型调用才发现。
  * @param {object} tool { name, description, parameters(JSON Schema object),
- *                        roles(⊆ public/employer/engineer/admin), handler(async (args, ctx) => data) }
+ *                        roles(⊆ public/engineer/employer/admin), tier(read|write|confirm),
+ *                        handler(async (args, ctx) => data) }
  */
 function register(tool) {
   if (!tool || typeof tool !== 'object') throw new Error('register: tool must be an object');
-  const { name, description, parameters, roles, handler } = tool;
+  const { name, description, parameters, roles, tier, sideEffects, handler } = tool;
   if (typeof name !== 'string' || !name.trim()) throw new Error('register: tool.name is required');
   if (tools.has(name)) throw new Error(`register: duplicate tool name "${name}"`);
   if (typeof description !== 'string' || !description.trim()) {
@@ -116,6 +138,20 @@ function register(tool) {
   if (!Array.isArray(roles) || roles.length === 0 || roles.some((r) => !VALID_ROLES.includes(r))) {
     throw new Error(`register(${name}): roles must be a non-empty subset of ${VALID_ROLES.join('/')}`);
   }
+  // tier 强制显式声明，不给默认值：默认成 read 的话，某天有人加写工具忘了写 tier，
+  // 它就会绕过 write-ahead 审计静默执行——审计有缺口比没有审计更糟（会误以为查得全）。
+  if (!VALID_TIERS.includes(tier)) {
+    throw new Error(`register(${name}): tier must be one of ${VALID_TIERS.join('/')}`);
+  }
+  const effects = sideEffects || [];
+  if (!Array.isArray(effects) || effects.some((e) => !VALID_SIDE_EFFECTS.includes(e))) {
+    throw new Error(`register(${name}): sideEffects must be a subset of ${VALID_SIDE_EFFECTS.join('/')}`);
+  }
+  // 有外发就必须过人手：注册期就挡住，不等守卫测试才发现。read/write 都是"不用点确认
+  // 就会执行"的层，把邮件/推送挂在那上面等于把外发能力直接交给模型。
+  if (effects.length > 0 && tier !== 'confirm') {
+    throw new Error(`register(${name}): tools with outbound side effects must be tier "confirm", got "${tier}"`);
+  }
   if (typeof handler !== 'function') throw new Error(`register(${name}): handler must be a function`);
 
   assertNoIdentityParams(parameters); // G1
@@ -125,6 +161,8 @@ function register(tool) {
     description,
     parameters,
     roles: [...roles],
+    tier,
+    sideEffects: [...effects],
     handler,
     validator: buildObjectValidator(parameters), // 预编译，call 时零转换开销
   });
@@ -140,16 +178,21 @@ function list(role) {
   const r = role || 'public';
   return [...tools.values()]
     .filter((t) => t.roles.includes('public') || t.roles.includes(r))
-    .map((t) => ({ name: t.name, description: t.description, parameters: t.parameters, roles: [...t.roles] }));
+    .map((t) => ({
+      name: t.name, description: t.description, parameters: t.parameters,
+      roles: [...t.roles], tier: t.tier, sideEffects: [...t.sideEffects],
+    }));
 }
 
 /**
- * 调用工具：存在性 → 角色门控（ctx.user?.role || 'public'）→ zod 参数校验 → handler。
+ * 调用工具：存在性 → 角色门控 → zod 参数校验 → 按 tier 分流 → handler。
  * 永远返回 { ok:true, data } 或 { ok:false, error:string }，绝不向上抛裸异常
  * （handler 抛错被捕获包装；真实错误 console.error 留给日志/Sentry，error 文案给模型看）。
+ * tier='confirm' 且未确认时另有一种返回：{ ok:false, needsConfirmation:true, tool, args, confirmToken }。
  * @param {string} name 工具名
  * @param {object} args 模型/调用方传入的参数（未知键被剥离）
- * @param {object} ctx { user: {userId,email,role}|null, supabase }
+ * @param {object} ctx { user: {userId,email,role}|null, supabase, confirmed?:boolean,
+ *                       source?:'agent'|'mcp', ip?:string }
  */
 async function call(name, args, ctx = {}) {
   try {
@@ -167,9 +210,71 @@ async function call(name, args, ctx = {}) {
       const where = issue.path?.length ? issue.path.join('.') : '(arguments)';
       return { ok: false, error: `Invalid arguments: ${where} — ${issue.message}` };
     }
+    const safeArgs = parsed.data;
 
-    const data = await tool.handler(parsed.data, ctx);
-    return { ok: true, data };
+    // ── 读工具：无副作用，直接执行 ─────────────────────────────────────────
+    if (tool.tier === 'read') {
+      const data = await tool.handler(safeArgs, ctx);
+      return { ok: true, data };
+    }
+
+    // ── 以下是写路径。两个硬前提 ───────────────────────────────────────────
+    // 身份：匿名不许写（handler 内的 scope 全靠 ctx.user.userId，没有它就无从限定范围）
+    if (!ctx.user?.userId) return { ok: false, error: 'Please sign in to perform this action.' };
+    // 数据库：审计写不进去就不许执行，没有 client 连审计都无从谈起
+    if (!ctx.supabase) return { ok: false, error: 'This action is temporarily unavailable. Please try again later.' };
+
+    // ── T2：未经用户确认 → 只回提案 + 令牌，绝不执行 ───────────────────────
+    // 令牌绑死 (user, tool, argsHash)，保证用户点确认时执行的就是他看到的那份，见 confirmToken.js
+    if (tool.tier === 'confirm' && ctx.confirmed !== true) {
+      return {
+        ok: false,
+        needsConfirmation: true,
+        tool: name,
+        args: safeArgs,
+        confirmToken: issueConfirmToken({ userId: ctx.user.userId, tool: name, args: safeArgs }),
+      };
+    }
+
+    const argsHash = audit.hashArgs(safeArgs);
+
+    // 近重复防护：防 agent 循环把同一个动作重试两遍。如实告知而不是假装成功——
+    // 回 {ok:true} 会让模型以为又做了一次，然后对用户说"已经帮你做了两次"。
+    const isDup = await audit.findRecentDuplicate(ctx.supabase, {
+      userId: ctx.user.userId, tool: name, argsHash,
+    });
+    if (isDup) {
+      return { ok: false, error: 'This exact action was just performed moments ago, so it was not repeated.' };
+    }
+
+    // ── write-ahead 审计：先记账，记不上就不执行 ───────────────────────────
+    let auditId;
+    try {
+      auditId = await audit.begin(ctx.supabase, {
+        userId: ctx.user.userId,
+        role,
+        tool: name,
+        tier: tool.tier,
+        args: safeArgs,
+        argsHash,
+        confirmed: ctx.confirmed === true,
+        source: ctx.source || 'agent',
+        ip: ctx.ip,
+      });
+    } catch (err) {
+      console.error(`[toolRegistry] audit begin failed for "${name}":`, err);
+      return { ok: false, error: 'This action is temporarily unavailable. Please try again later.' };
+    }
+
+    try {
+      const data = await tool.handler(safeArgs, ctx);
+      await audit.complete(ctx.supabase, auditId, { ok: true });
+      return { ok: true, data };
+    } catch (err) {
+      // 先把失败落到审计行，再交给外层 catch 统一包装成 {ok:false}
+      await audit.complete(ctx.supabase, auditId, { ok: false, error: err?.message });
+      throw err;
+    }
   } catch (err) {
     console.error(`[toolRegistry] tool "${name}" failed:`, err);
     return { ok: false, error: err?.message || 'Tool execution failed' };
