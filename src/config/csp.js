@@ -8,7 +8,10 @@ const directives = {
   // challenges.cloudflare.com：Turnstile 真人验证（脚本 + 它自己的 iframe 挑战框），
   // 挂在注册/忘记密码页，见 src/utils/turnstile.js
   scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com', 'https://challenges.cloudflare.com', ...(process.env.NODE_ENV !== 'production' ? ["'unsafe-eval'"] : [])],
-  styleSrc: ["'self'", "'unsafe-inline'"],
+  // fonts.googleapis.com：_document.jsx 引的 Archivo / IBM Plex 样式表。
+  // 少了它浏览器会直接拦掉这张表（style-src 兜底管 style-src-elem），@font-face 根本没注册，
+  // 全站悄悄退回系统字体——页面照常显示，所以这个 bug 藏了很久。字体文件本身走 fontSrc 的 https:。
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
   imgSrc: ["'self'", 'data:', 'blob:', 'https://*.supabase.co'],
   connectSrc: ["'self'", 'https://*.supabase.co', 'https://api.stripe.com', 'wss:', 'https://*.ingest.sentry.io'],
   frameSrc: ['https://js.stripe.com', 'https://checkout.stripe.com', 'https://challenges.cloudflare.com'],
