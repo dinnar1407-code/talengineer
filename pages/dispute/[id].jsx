@@ -123,7 +123,7 @@ export default function DisputePage() {
   return (
     <>
       <Head>
-        <title>Dispute #{id} | Talengineer</title>
+        <title>{`Dispute #${id} | Talengineer`}</title>
       </Head>
 
       {/* 全站共享导航（菜单/语言/主题切换）；原自带 logo 与 Navbar 重复，仅保留返回链接条 */}

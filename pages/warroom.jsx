@@ -265,7 +265,7 @@ export default function WarRoom() {
   return (
     <>
       <Head>
-        <title>{d.pageTitle} | Talengineer</title>
+        <title>{`${d.pageTitle} | Talengineer`}</title>
       </Head>
 
       {!joined && (

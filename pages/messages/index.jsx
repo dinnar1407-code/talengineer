@@ -61,7 +61,7 @@ export default function MessagesInbox() {
   return (
     <>
       <Head>
-        <title>{d.title} | Talengineer</title>
+        <title>{`${d.title} | Talengineer`}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
