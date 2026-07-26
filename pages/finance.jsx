@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useLang } from '../hooks/useLang';
 import { DICT } from '../lib/i18n/finance';
 import { useTheme } from '../hooks/useTheme';
+import { DEMO_LEDGER } from '../lib/demoData';
 import styles from './finance.module.css';
 
 
@@ -23,6 +24,7 @@ export default function Finance() {
   const [authMode, setAuthMode]     = useState('signin');
   const [currentUser, setCurrentUser] = useState(null);
   const [ledger, setLedger]         = useState(null); // null = loading
+  const [ledgerIsDemo, setLedgerIsDemo] = useState(false); // 真实台账加载完但零条 → 退回 DEMO_LEDGER
   const [myDemands, setMyDemands]   = useState(null); // employer's own projects
   const [metrics, setMetrics]       = useState({ escrow: 0, released: 0, active: 0 });
 
@@ -84,15 +86,30 @@ export default function Finance() {
     return (await r.json()).data || [];
   }, [currentUser]);
   const { data: ledgerData, offline: financeOffline, syncedAt: financeSyncedAt, refresh: refreshLedger } = useOfflineData('transactions-fin', ledgerFetch, [currentUser]);
-  // 镜像/最新数据到手 → 落 ledger + 重算指标；离线且无镜像 → 空表（收起骨架屏）
+  // 镜像/最新数据到手 → 落 ledger + 重算指标；离线且无镜像 → 空表（收起骨架屏）；
+  // 真实台账加载完但零条（新账号/演示账号还没有真实托管记录）→ 退回 DEMO_LEDGER
+  // （lib/demoData，与 Dashboard/Projects 页共用同一份 DEMO_PROJECTS 派生，三屏数字对得上），
+  // 并打 ledgerIsDemo 供渲染层加「🧪 Demo」徽标、禁用演示行上的操作按钮。
+  // DEMO_LEDGER 用 project_milestones 的状态词汇（funded/completed/released/locked），
+  // 与真实台账的 pending/released 判据不同源，两段计算分开写，互不影响。
   useEffect(() => {
     if (ledgerData != null) {
-      setLedger(ledgerData);
-      const escrow   = ledgerData.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
-      const released = ledgerData.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
-      setMetrics({ escrow, released, active: ledgerData.length });
+      if (ledgerData.length === 0) {
+        setLedger(DEMO_LEDGER);
+        setLedgerIsDemo(true);
+        const escrow   = DEMO_LEDGER.filter(r => ['funded', 'completed'].includes(r.status)).reduce((s, r) => s + (r.total_amount || 0), 0);
+        const released = DEMO_LEDGER.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
+        setMetrics({ escrow, released, active: DEMO_LEDGER.length });
+      } else {
+        setLedger(ledgerData);
+        setLedgerIsDemo(false);
+        const escrow   = ledgerData.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
+        const released = ledgerData.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
+        setMetrics({ escrow, released, active: ledgerData.length });
+      }
     } else if (financeOffline) {
       setLedger([]);
+      setLedgerIsDemo(false);
     }
   }, [ledgerData, financeOffline]);
 
@@ -638,6 +655,7 @@ export default function Finance() {
           )}
 
           {/* Metrics */}
+          {ledgerIsDemo && <div style={{ marginBottom: 8 }}><span className={styles.demoBadge}>🧪 {d.demoData} · Demo</span></div>}
           <div className={styles.metrics}>
             {ledger === null
               ? [0, 1, 2].map(i => <div key={i} className={styles.metricCardSkeleton} />)
@@ -754,14 +772,19 @@ export default function Finance() {
                   ? <tr><td colSpan={5} className={styles.emptyCell}>No active projects found.</td></tr>
                   : ledger.map(item => (
                     <tr key={item.id}>
-                      <td style={{ fontWeight: 600 }}>#{item.demand_id || item.id}</td>
+                      <td style={{ fontWeight: 600 }}>{item.project_title || `#${item.demand_id || item.id}`}</td>
                       <td style={{ color: 'var(--muted)' }}>{currentUser.role === 'employer' ? item.engineer_email : item.employer_email || 'Pending Match'}</td>
                       <td style={{ fontWeight: 600 }}>${(item.total_amount || 0).toLocaleString()}</td>
                       <td><span className={`${styles.statusBadge} ${styles['status_' + item.status]}`}>{item.status.toUpperCase()}</span></td>
                       <td style={{ display: 'flex', gap: 8 }}>
-                        <button className={styles.btnAction} onClick={() => openMilestones(item.demand_id)}>Milestones</button>
-                        <a href={`/messages/${item.demand_id}`} className={styles.btnAction} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>💬 Chat</a>
-                        {currentUser?.role === 'employer' && <button className={styles.btnAction} style={{ background: '#6b7280' }} onClick={() => loadApplicants(item.demand_id)}>Applicants</button>}
+                        {/* 演示行（ledgerIsDemo）禁用操作按钮——demo-* 这类假 id 打到真实接口只会 404/报错，
+                            不是安全问题，是体验问题；照抄 console.jsx 对 projectsDemo 的处理方式，
+                            禁用态加 title 提示，而不是让按钮看起来能点却点了没反应。 */}
+                        <button className={styles.btnAction} disabled={ledgerIsDemo} title={ledgerIsDemo ? d.demoReadonly : undefined} onClick={() => openMilestones(item.demand_id)}>Milestones</button>
+                        {ledgerIsDemo
+                          ? <span className={styles.btnAction} style={{ opacity: 0.5, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center' }} title={d.demoReadonly}>💬 Chat</span>
+                          : <a href={`/messages/${item.demand_id}`} className={styles.btnAction} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>💬 Chat</a>}
+                        {currentUser?.role === 'employer' && <button className={styles.btnAction} style={{ background: '#6b7280' }} disabled={ledgerIsDemo} title={ledgerIsDemo ? d.demoReadonly : undefined} onClick={() => loadApplicants(item.demand_id)}>Applicants</button>}
                       </td>
                     </tr>
                   ))

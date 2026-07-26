@@ -61,6 +61,8 @@
 .status_released { background:rgba(0,86,179,0.1); color:var(--primary); }
 .btnAction { background:var(--primary); color:#fff; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600; }
 .btnAction:hover { background:var(--primary-hover); }
+.btnAction:disabled { opacity:0.5; cursor:not-allowed; }
+.btnAction:disabled:hover { background:var(--primary); }
 
 /* ── Modal ─────────────────────────────────────────────────────────── */
 .modal { display:flex; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
@@ -115,4 +117,20 @@
   .roleModal { margin:16px; padding:24px 20px; }
   .headerBlock h1 { font-size:22px; }
   .container { margin:20px auto; padding:0 16px; }
+}
+
+/* ── 演示数据徽标（测试阶段：真实托管数据为空时兜底展示演示数据，此徽标标明来源；
+   与 console.module.css 的同名类保持样式一致）── */
+.demoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
 }

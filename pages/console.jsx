@@ -9,6 +9,7 @@ import ConsoleShell from '../components/ConsoleShell';
 import OfflineBanner from '../components/OfflineBanner';
 import { useOfflineData } from '../lib/offline/useOfflineData';
 import { DICT } from '../lib/i18n/console';
+import { demoAgo, DEMO_PROJECTS } from '../lib/demoData';
 import styles from './console.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -23,10 +24,8 @@ const ENGINEERS_PLACEHOLDER = [
 ];
 
 // ── 测试阶段演示数据：仅当对应真实数据为空 / 请求失败时兜底展示，且必带「🧪 测试数据 · Demo」徽标。
-//    字段结构已重塑为当前渲染所需（来源：git a9fa494 的占位常量）。真实数据永远优先。────────────
-const DEMO_TS = Date.now();
-const demoAgo = (min) => new Date(DEMO_TS - min * 60000).toISOString();
-
+//    真实数据永远优先。DEMO_PROJECTS/demoAgo 现从 lib/demoData 引入（Finance 页共用同一份，
+//    见该文件头注释）；本页私有的通知/待办演示数据留在这里。────────────────────────────
 // 活动流 + 铃铛面板（对应 /api/notifications 的字段形状）
 const DEMO_NOTIFICATIONS = [
   { id: 'demo-n1', type: 'engineer_assigned', title: 'M2 · SCADA integration — approved', body: 'Line-3 Retrofit · Priya K. · $8,000', created_at: demoAgo(35), read: false },
@@ -40,42 +39,6 @@ const DEMO_TODOS = [
   { icon: '💬', title: 'Reply to Minh N.', sub: '2 messages · auto-translated' },
   { icon: '💰', title: 'Fund M4 milestone', sub: 'Line-3 Retrofit · $5,000' },
 ];
-
-// 项目 + 里程碑：归一化后与真实 projects 同结构（demandId/name/meta/budget/milestones[]/派生字段）。
-// milestones 字段对齐 /api/finance/milestones：id/phase_name/status/amount/created_at。
-// 一处定义、三屏共用：Dashboard 指标卡、Escrow 交易表、Projects 时间线都从这里派生。
-const DEMO_PROJECTS = [
-  {
-    demandId: 'demo-p1', name: 'Line-3 SCADA Retrofit', meta: '🇮🇳 Priya K. · Ignition SCADA', budget: '$22,000',
-    milestones: [
-      { id: 'demo-p1-m1', phase_name: 'M1 · Requirements & tag database', status: 'released', amount: 8000, created_at: demoAgo(60 * 24 * 20) },
-      { id: 'demo-p1-m2', phase_name: 'M2 · SCADA integration', status: 'released', amount: 8000, created_at: demoAgo(60 * 24 * 12) },
-      { id: 'demo-p1-m3', phase_name: 'M3 · FAT documentation', status: 'completed', amount: 6000, created_at: demoAgo(60 * 24 * 3) },
-    ],
-  },
-  {
-    demandId: 'demo-p2', name: 'Weld-cell #4 Integration', meta: '🇲🇽 Diego R. · Fanuc Robotics', budget: '$18,500',
-    milestones: [
-      { id: 'demo-p2-m1', phase_name: 'M1 · Cell layout & safety', status: 'released', amount: 6000, created_at: demoAgo(60 * 24 * 14) },
-      { id: 'demo-p2-m2', phase_name: 'M2 · Robot programming', status: 'funded', amount: 7500, created_at: demoAgo(60 * 24 * 5) },
-      { id: 'demo-p2-m3', phase_name: 'M3 · Commissioning & FAT', status: 'locked', amount: 5000, created_at: demoAgo(60 * 24 * 2) },
-    ],
-  },
-  {
-    demandId: 'demo-p3', name: 'Packaging Line VN', meta: '🇻🇳 Minh N. · Siemens TIA', budget: '$31,000',
-    milestones: [
-      { id: 'demo-p3-m1', phase_name: 'M1 · PLC migration', status: 'funded', amount: 12000, created_at: demoAgo(60 * 24 * 4) },
-      { id: 'demo-p3-m2', phase_name: 'M2 · HMI development', status: 'locked', amount: 9000, created_at: demoAgo(60 * 24 * 1) },
-      { id: 'demo-p3-m3', phase_name: 'M3 · Line integration', status: 'locked', amount: 10000, created_at: demoAgo(60 * 12) },
-    ],
-  },
-].map((p) => {
-  // 与组件内真实 projects 的派生保持一致：msCount/doneCount/pct/needsReview
-  const ms = p.milestones;
-  const doneCount = ms.filter((m) => m.status === 'released').length;
-  const needsReview = ms.some((m) => ['funded', 'completed'].includes(m.status));
-  return { ...p, msCount: ms.length, doneCount, pct: ms.length ? Math.round((doneCount / ms.length) * 100) : 0, needsReview };
-});
 
 // 会话列表（对应 /api/messages/inbox 的字段形状）
 const DEMO_CONVERSATIONS = [
