@@ -58,11 +58,11 @@ describe('工具注册表：G1 静态检查（参数 schema 无身份字段）',
 
   // Wave B 变化：employer 9→10（+update_demand_draft）、engineer 6→8（+update_my_profile
   // +apply_to_demand）。public 保持 4——未登录永远只看得到只读工具，这条别动。
-  it('角色可见性符合契约：public=4、employer=10、engineer=8、admin=8', () => {
+  it('角色可见性符合契约：public=4、employer=12、engineer=8、admin=10', () => {
     assert.equal(registry.list('public').length, 4);
-    assert.equal(registry.list('employer').length, 10);
+    assert.equal(registry.list('employer').length, 12);
     assert.equal(registry.list('engineer').length, 8);
-    assert.equal(registry.list('admin').length, 8);
+    assert.equal(registry.list('admin').length, 10);
   });
 
   it('public 视角里没有任何非 read 工具（未登录不该看见写能力）', () => {

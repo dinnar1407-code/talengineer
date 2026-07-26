@@ -1,4 +1,4 @@
-// ── 只读工具（首批 6 个，Phase 1）────────────────────────────────────────────
+// ── 只读工具（8 个：Phase 1 首批 6 个 + Wave C 的两个 admin 报表工具）──────────
 // 本文件只定义 {name, description, parameters, roles} 元数据（已定稿，实现者勿改形状）
 // + handler 桩（throw NOT_IMPLEMENTED，由实现 agent 填充）。
 // 每个 handler 的实现要点写在工具定义上方注释里——那是契约的一部分。
@@ -363,5 +363,101 @@ register({
     const { data, error } = await ctx.supabase.rpc('admin_analytics_summary');
     if (error) throw error;
     return data;
+  },
+});
+
+// ── 14. get_platform_stats（admin，只读）─────────────────────────────────────
+// admin agent 的第一步刻意只做只读报表：价值立刻兑现，风险为零。写操作要等 T2 确认卡
+// 铺过来，而且永远不给批量（"把所有 pending 的都通过"这种一句话毁库的能力不提供）。
+//
+// ⚠️ 刻意不返回任何营收数字。GET /api/admin/stats 是用 `supabase.from('ledgers')`
+// 算营收的，而生产库里根本没有 ledgers 这张表（只有 financial_ledgers，且它本身也是
+// 死表）——那个数恒为 0。与其在这里复刻一个来源不明的钱数，不如不给：数字纪律。
+// 真要报营收，得先把 financial_ledgers 的历史问题定了（见 Obsidian / 记忆里的记录）。
+register({
+  name: 'get_platform_stats',
+  description:
+    'Platform-wide counts for admins: users by role, projects by status, engineers, applications, '
+    + 'and open disputes. Read-only. Does not include revenue figures.',
+  parameters: { type: 'object', properties: {}, required: [] },
+  roles: ['admin'],
+  tier: 'read',
+  handler: async (_args, ctx) => {
+    const supabase = ctx.supabase;
+    // head:true + count:'exact' 只取计数不拉行，几张表并发查
+    const countOf = async (table, apply) => {
+      let q = supabase.from(table).select('id', { count: 'exact', head: true });
+      if (apply) q = apply(q);
+      const { count, error } = await q;
+      if (error) {
+        console.error(`[readTools] get_platform_stats count(${table}) failed:`, error);
+        return null; // 单表查失败不拖垮整份报表，如实回 null 而不是编个 0
+      }
+      return count || 0;
+    };
+
+    const [
+      users, employers, engineers, talents,
+      demandsOpen, demandsInProgress, demandsDraft,
+      applications, disputesOpen,
+    ] = await Promise.all([
+      countOf('users'),
+      countOf('users', (q) => q.eq('role', 'employer')),
+      countOf('users', (q) => q.eq('role', 'engineer')),
+      countOf('talents'),
+      countOf('demands', (q) => q.eq('status', 'open')),
+      countOf('demands', (q) => q.eq('status', 'in_progress')),
+      countOf('demands', (q) => q.eq('status', 'draft')),
+      countOf('demand_applications'),
+      countOf('disputes', (q) => q.eq('status', 'open')),
+    ]);
+
+    return {
+      users: { total: users, employers, engineers },
+      engineer_profiles: talents,
+      projects: { open: demandsOpen, in_progress: demandsInProgress, draft: demandsDraft },
+      applications,
+      disputes_open: disputesOpen,
+      // 刻意不返回任何钱数字段——理由见本工具头注释。工具 description 里已向模型说明这一点，
+      // 不必再在每次响应里塞一句说明（那句话本身还会被"响应里不许出现营收字段"的测试扫到）。
+    };
+  },
+});
+
+// ── 15. list_pending_kyc（admin，只读）───────────────────────────────────────
+// 镜像 GET /api/admin/kyc。返回的是企业实名信息（含邮箱），仅 admin 可见——
+// requireAdmin 之后属可信上下文，人工复核本来就要能看到联系方式。
+// 字段白名单，勿 select('*')：kyc_note 之类内部备注也在需要范围内，但别把整行透出去。
+register({
+  name: 'list_pending_kyc',
+  description:
+    'List company KYC submissions awaiting admin review (or another status). Read-only — '
+    + 'approving or rejecting KYC is not available to the assistant and must be done in the admin UI.',
+  parameters: {
+    type: 'object',
+    properties: {
+      status: {
+        type: 'string',
+        enum: ['pending', 'verified', 'rejected', 'unverified'],
+        description: 'Which KYC status to list. Defaults to pending.',
+      },
+      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Max rows (default 20).' },
+    },
+    required: [],
+  },
+  roles: ['admin'],
+  tier: 'read',
+  handler: async (args, ctx) => {
+    const { data, error } = await ctx.supabase
+      .from('users')
+      .select('id, email, role, company_name, company_website, kyc_status, kyc_submitted_at, kyc_note')
+      .eq('kyc_status', args.status || 'pending')
+      .order('kyc_submitted_at', { ascending: false })
+      .limit(args.limit || 20);
+    if (error) {
+      console.error('[readTools] list_pending_kyc failed:', error);
+      throw new Error('Could not load KYC submissions. Please try again.');
+    }
+    return { status: args.status || 'pending', count: (data || []).length, submissions: data || [] };
   },
 });

@@ -30,9 +30,9 @@ describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工�
   const tools = allRegisteredTools();
 
   // 精确数字是有意的绊线：加工具必须顺手改这里，逼你重读一遍下面几条红线再决定 tier。
-  // 10（Phase 1 首批）→ 13（Wave B 加了 update_my_profile / update_demand_draft / apply_to_demand）
+  // 10（Phase 1）→ 13（Wave B）→ 17（Wave C 加了 publish_demand_draft / assign_engineer / get_platform_stats / list_pending_kyc）
   it('注册表规模符合预期（改动数量必须是有意识的）', () => {
-    assert.equal(tools.length, 13);
+    assert.equal(tools.length, 17);
   });
 
   it('G2：不存在资金类工具名（注资/放款/退款/托管转账）', () => {
@@ -107,13 +107,18 @@ describe('写面收口：分层纪律（Wave B 起 G2 由 tier 体系承担）',
     assert.ok(confirmTools.length > 0, '至少应有一个 confirm 层工具，否则本条形同虚设');
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-guardrails';
     for (const t of confirmTools) {
-      const res = await registry.call(t.name, { demand_id: 1 }, {
-        user: { userId: 1, email: 'e@x.com', role: 'engineer' },
+      // 用该工具自己允许的角色调用，否则会先被角色门挡掉，测不到分流这一层
+      const role = t.roles.find((r) => r !== 'public') || 'employer';
+      // 覆盖所有必填参数：参数校验不过同样走不到分流，会得到假绿
+      const args = {};
+      for (const key of t.parameters.required || []) args[key] = 1;
+      const res = await registry.call(t.name, args, {
+        user: { userId: 1, email: 'e@x.com', role },
         // supabase 故意给一个会炸的对象：真执行了就会抛错暴露出来，
         // 而正确行为是压根走不到 handler
         supabase: { from() { throw new Error('handler 不该被执行'); } },
       });
-      assert.equal(res.ok, false);
+      assert.equal(res.ok, false, `${t.name} 未确认时不能返回成功`);
       assert.equal(res.needsConfirmation, true, `${t.name} 未确认时必须回 needsConfirmation`);
       assert.ok(res.confirmToken, `${t.name} 必须签发确认令牌`);
     }

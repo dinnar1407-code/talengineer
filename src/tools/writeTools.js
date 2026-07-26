@@ -1,4 +1,4 @@
-// ── 写工具（Wave B 起 4 个：3 个 T1 write + 1 个 T2 confirm）──────────────────
+// ── 写工具（6 个：3 个 T1 write + 3 个 T2 confirm）───────────────────────────
 // 通用约束同 readTools.js 顶部注释（ctx 形状 / G1 身份 scope / 错误处理）。
 // 分层含义与红线见 src/tools/registry.js 的 VALID_TIERS 注释——简言之：
 //   write   可逆、只动自己的东西 → 直接执行 + write-ahead 审计
@@ -333,5 +333,179 @@ register({
     }
 
     return { demand_id: Number(args.demand_id), project_title: demand.title, applied: true };
+  },
+});
+
+// ── 14. publish_demand_draft（employer，T2 状态迁移——必须用户确认）──────────
+// 把自己的一份草稿上架。为什么是 confirm：上架后全站工程师都能看到并投递，
+// 撤回不了已经看过的人。属主与状态两个条件都写进 where，理由同 update_demand_draft。
+//
+// 顺带补一个真实缺口：create_demand_draft 不写 contact 列，而 apply_to_demand /
+// POST /api/demand/apply 都是靠 demand.contact 决定给谁发"有人投递了"的通知——
+// 草稿直接上架的话，雇主永远收不到投递通知。这里上架时把 contact 补成雇主自己的邮箱。
+register({
+  name: 'publish_demand_draft',
+  description:
+    'Publish one of the current employer\'s own drafts so engineers can see and apply to it. '
+    + 'Once published it is visible platform-wide, so this always requires explicit user confirmation.',
+  parameters: {
+    type: 'object',
+    properties: {
+      demand_id: { type: 'integer', minimum: 1, description: 'Which draft to publish.' },
+    },
+    required: ['demand_id'],
+  },
+  roles: ['employer'],
+  tier: 'confirm',
+  handler: async (args, ctx) => {
+    const supabase = ctx.supabase;
+
+    const { data: draft, error: findErr } = await supabase
+      .from('demands')
+      .select('id, title, status, contact')
+      .eq('id', args.demand_id)
+      .eq('employer_id', ctx.user.userId) // G1 属主门禁
+      .maybeSingle();
+    if (findErr) {
+      console.error('[writeTools] publish_demand_draft lookup failed:', findErr);
+      throw new Error('Could not load that draft. Please try again.');
+    }
+    // 不存在 / 不是你的 合并成一句话，避免帮人探测别人的单号
+    if (!draft) throw new Error('No draft found with that id, or it is not yours.');
+    if (draft.status !== 'draft') throw new Error(`That project is already ${draft.status}, so there is nothing to publish.`);
+
+    const updates = { status: 'open' };
+    // contact 缺失就补雇主自己的邮箱，否则上架后收不到任何投递通知
+    if (!draft.contact) updates.contact = ctx.user.email || null;
+
+    const { data, error } = await supabase
+      .from('demands')
+      .update(updates)
+      .eq('id', args.demand_id)
+      .eq('employer_id', ctx.user.userId)
+      .eq('status', 'draft') // 并发防护：两次确认同时到达时，第二次会匹配不到行
+      .select('id, title, status')
+      .maybeSingle();
+    if (error) {
+      console.error('[writeTools] publish_demand_draft failed:', error);
+      throw new Error('Could not publish the draft. Please try again.');
+    }
+    if (!data) throw new Error('That draft was already published.');
+    return data;
+  },
+});
+
+// ── 15. assign_engineer（employer，T2 状态迁移——必须用户确认）───────────────
+// 指派是本批里后果最重的一个动作：项目转 in_progress、被选中的申请置 accepted、
+// **其余所有待处理申请一律置 rejected**。最后这条从参数上完全看不出来，所以确认卡
+// 上专门有一行后果说明（ChatBot 的 confirmNote），别把它删了。
+//
+// 三道门禁与 POST /api/demand/assign 完全一致，一条都不能少：
+//   属主校验（防 IDOR）→ 该工程师确实投过这个项目（防自指派成收款方）→ 认证门禁。
+// 认证门禁复用 certService.checkAssignEligibility，不在这里重写规则。
+register({
+  name: 'assign_engineer',
+  description:
+    'Assign an engineer who applied to one of the current employer\'s projects. This starts the '
+    + 'project, accepts that engineer, and REJECTS all other pending applicants. Always requires '
+    + 'explicit user confirmation.',
+  parameters: {
+    type: 'object',
+    properties: {
+      demand_id: { type: 'integer', minimum: 1, description: 'The employer\'s own project.' },
+      engineer_id: { type: 'integer', minimum: 1, description: 'talents.id of an engineer who already applied.' },
+    },
+    required: ['demand_id', 'engineer_id'],
+  },
+  roles: ['employer'],
+  tier: 'confirm',
+  sideEffects: ['email', 'notification'],
+  handler: async (args, ctx) => {
+    const supabase = ctx.supabase;
+    const { checkAssignEligibility } = require('../services/certService');
+
+    // 门禁 1：属主（防 IDOR——指派别人项目里的工程师）
+    const { data: demand, error: dErr } = await supabase
+      .from('demands')
+      .select('id, employer_id, title, contact, required_cert_track, status')
+      .eq('id', args.demand_id)
+      .maybeSingle();
+    if (dErr) {
+      console.error('[writeTools] assign_engineer demand lookup failed:', dErr);
+      throw new Error('Could not load that project. Please try again.');
+    }
+    if (!demand || demand.employer_id !== ctx.user.userId) {
+      throw new Error('No project found with that id, or it is not yours.');
+    }
+
+    // 门禁 2：该工程师确实投过这个项目（防把没投过的人设成收款方）
+    const { data: application, error: aErr } = await supabase
+      .from('demand_applications')
+      .select('id')
+      .eq('demand_id', args.demand_id)
+      .eq('engineer_id', args.engineer_id)
+      .maybeSingle();
+    if (aErr) {
+      console.error('[writeTools] assign_engineer application lookup failed:', aErr);
+      throw new Error('Could not check applications. Please try again.');
+    }
+    if (!application) throw new Error('That engineer has not applied to this project.');
+
+    // 门禁 3：认证（现场正式工作授权）——规则在 certService，这里只转述结论
+    const eligibility = await checkAssignEligibility(supabase, args.engineer_id, demand.required_cert_track || null);
+    if (!eligibility.allowed) {
+      throw new Error(eligibility.reason === 'missing_required_track'
+        ? `That engineer does not hold the required "${demand.required_cert_track}" platform certification for on-site work.`
+        : 'That engineer has not earned a platform certification yet, which is required before on-site assignment. They can get certified at /training.');
+    }
+
+    const { error: upErr } = await supabase
+      .from('demands')
+      .update({ assigned_engineer_id: args.engineer_id, status: 'in_progress' })
+      .eq('id', args.demand_id)
+      .eq('employer_id', ctx.user.userId);
+    if (upErr) {
+      console.error('[writeTools] assign_engineer update failed:', upErr);
+      throw new Error('Could not assign the engineer. Please try again.');
+    }
+
+    // 申请状态流转：中选的 accepted，其余待处理的 rejected（与路由同款）
+    await supabase.from('demand_applications')
+      .update({ status: 'accepted' })
+      .eq('demand_id', args.demand_id).eq('engineer_id', args.engineer_id);
+    await supabase.from('demand_applications')
+      .update({ status: 'rejected' })
+      .eq('demand_id', args.demand_id).neq('engineer_id', args.engineer_id).eq('status', 'pending');
+
+    // 通知工程师（fire-and-forget，同 apply_to_demand 的理由：指派已落库，
+    // 通知发不出去是可补救的，把成功的指派报成失败才是错的）
+    const { data: talent } = await supabase
+      .from('talents').select('name, contact').eq('id', args.engineer_id).maybeSingle();
+    if (talent?.contact && demand.title) {
+      const { emailEngineerAssigned } = require('../services/email');
+      const { createNotification } = require('../services/notificationService');
+      emailEngineerAssigned({
+        engineerEmail: talent.contact,
+        engineerName: talent.name,
+        projectTitle: demand.title,
+        clientContact: demand.contact,
+      }).catch((e) => console.error('[writeTools] assign notify email failed:', e));
+      createNotification({
+        user_email: talent.contact,
+        type: 'engineer_assigned',
+        title: `You've been assigned to "${demand.title}"`,
+        body: 'Congratulations! You have been selected for this project.',
+        link: '/engineer/profile',
+        demand_id: Number(args.demand_id),
+      });
+    }
+
+    return {
+      demand_id: Number(args.demand_id),
+      engineer_id: Number(args.engineer_id),
+      project_title: demand.title,
+      engineer_name: talent?.name || null,
+      status: 'in_progress',
+    };
   },
 });
