@@ -147,7 +147,10 @@ export default function LoginPage() {
     // 回到 /login 本身完成兑换，再由 finishLogin 送去 next——OAuth 回跳落点必须是本页，
     // 否则每个目标页都得各写一遍会话兑换逻辑（那正是这次要收敛掉的东西）。
     const redirectTo = `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`;
-    supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
+    // Azure 默认只请求 openid，不带 email——Supabase 要求 Azure 必须返回邮箱才能登录成功，
+    // 不显式加 email/profile 范围，微软账号授权后会因为拿不到邮箱直接登录失败。Google 默认已带这两项，不用管。
+    const options = provider === 'azure' ? { redirectTo, scopes: 'openid email profile' } : { redirectTo };
+    supabase.auth.signInWithOAuth({ provider, options })
       .catch((err) => {
         console.error('[Login] signInWithOAuth failed:', err);
         setError(u.errOAuth);
