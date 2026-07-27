@@ -66,6 +66,7 @@ const REQUIRED_LANGS = {
   'messages-demandid': ALL_LANGS, // /messages/[demandId] 消息详情页（2026-07-25）
   'workorder-id': ALL_LANGS, // /workorder/[id] 现场执行工单页（2026-07-25 九语新增迁移）
   login: ALL_LANGS, // /login 统一登录页（2026-07-25 Wave A/A3 入口收敛新建）
+  compare: ALL_LANGS, // /compare 对比页（2026-07-26；另导出 COMPARISONS，见 EXTRA_LANG_EXPORTS）
 };
 
 // ── 顶层可缺键豁免清单（模块名 → 允许 7 语（es/vi/hi/fr/de/ja/ko）缺失的顶层键）──
@@ -79,6 +80,7 @@ const OPTIONAL_TOP_KEYS = {};
 // 语言嵌在内层，TRACKS 还混有语言无关的 serviceType/skills），套不进这套
 // lang→en 比对，用文件末尾的专属测试守护。
 const EXTRA_LANG_EXPORTS = {
+  compare: ['COMPARISONS'],
   talscore: ['RULES'],
   certification: ['FUNNEL', 'ANTICHEAT'],
 };

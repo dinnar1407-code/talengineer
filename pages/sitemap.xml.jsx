@@ -2,6 +2,7 @@
 // Generates XML sitemap including engineer profile pages and project pages
 import { getAllPlaybookMeta } from '../lib/playbook';
 import { getMatrixPaths } from '../lib/hireMatrix';
+import { SLUGS as COMPARE_SLUGS } from '../lib/i18n/compare';
 import { getGuidePaths } from '../lib/regionGuides';
 import { getOccupationPaths } from '../lib/occupations';
 import { getLegalDoc } from '../lib/legal';
@@ -65,6 +66,10 @@ export async function getServerSideProps({ res }) {
     { url: '/how-it-works', priority: '0.8', changefreq: 'monthly' },
     { url: '/hire',         priority: '0.8', changefreq: 'monthly' },
     { url: '/resources',    priority: '0.7', changefreq: 'weekly' },
+    // 对比页（2026-07-26）：接决策期问题（中介/通用平台/直雇/点名竞对）。
+    // slug 枚举复用页面同一数据源 lib/i18n/compare.js 的 SLUGS，防漂移。
+    { url: '/compare',      priority: '0.7', changefreq: 'monthly' },
+    ...COMPARE_SLUGS.map((s) => ({ url: `/compare/${s}`, priority: '0.7', changefreq: 'monthly' })),
     { url: '/guides',       priority: '0.7', changefreq: 'monthly' },
     { url: '/occupations',  priority: '0.7', changefreq: 'monthly' },
     { url: '/about',        priority: '0.6', changefreq: 'monthly' },
