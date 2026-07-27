@@ -6,8 +6,19 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { DICT } from '../lib/i18n/training';
+import { pageJsonLd } from '../lib/jsonLd';
 // 复用 onboarding 的向导样式（卡片/进度条/按钮），保证视觉一致，不重复造 CSS
 import styles from './onboarding.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/training',
+  type: 'WebPage',
+  name: DICT.en.title,
+  description: DICT.en.subtitle,
+});
+
 
 const LS_USER_KEY = 'tal_user';
 
@@ -249,7 +260,10 @@ export default function Training() {
 
   return (
     <>
-      <Head><title>{`${d.title} | TalEngineer`}</title></Head>
+      <Head>
+        <title>{`${d.title} | TalEngineer`}</title>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      </Head>
       <Navbar />
       <div className={styles.layout}>
         <div className={styles.card} style={{ maxWidth: 860 }}>

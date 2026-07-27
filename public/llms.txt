@@ -15,6 +15,8 @@ Positioning — two parallel lines:
 - [Certification](https://talengineer.us/certification): 4 tracks (PLC / Robotics / Machine Vision / Electrical) × levels L1–L3. Timed 40-minute exam (10 questions: multiple-choice + scenario + deep analysis), AI-graded then human-reviewed before any certificate is issued. Only certified engineers can be assigned to projects — certification is an assignment gate, not a badge.
 - [TalScore](https://talengineer.us/talscore): public quality-score algorithm (0–100): AI screening 25 + platform certification 25 + client ratings 30 (Bayesian-averaged to resist rating manipulation) + reliability 20 (dispute rate above 10% zeroes the dimension). Badge tiers: platinum ≥85, gold ≥70, silver ≥55, bronze below.
 - [Trust Center](https://talengineer.us/trust): milestone escrow flow, refund path back to the employer, evidence-based dispute process, KYC / W-9 / insurance (COI) verification, GPS-geofenced check-ins and photo QC as an on-site delivery evidence chain.
+- [Certification Center](https://talengineer.us/training): where engineers actually study and get certified — study paths and lessons per track, practice quizzes, and the timed certification exam itself. /certification explains the system; /training is where it happens.
+- [Certified talent pools](https://talengineer.us/pools): employers build reusable private shortlists of platform-certified engineers, filtered by track, minimum level, TalScore, and region. Members are snapshotted with their score and certification status at the time they were added.
 - [Cost calculator](https://talengineer.us/calculator): free interactive tool — pick a specialty, region, and estimated hours to compare platform-certified engineer costs (live rate data) against local full-time hiring.
 - [Case studies](https://talengineer.us/case-studies): delivery case studies from founding-cohort projects (published as each order completes).
 - [How it works](https://talengineer.us/how-it-works): end-to-end walkthrough — employer flow, engineer flow, the three quality gates (AI screening / certification-gated assignment / TalScore), and the evidence-based dispute path.
@@ -32,6 +34,8 @@ Positioning — two parallel lines:
 ## For AI agents & developers
 
 - [Developer API](https://talengineer.us/developers): enterprise REST API v1 (API-key auth + HMAC-signed webhooks) to search certified engineers, create demands, and track project status programmatically.
+- MCP server: `POST https://talengineer.us/api/mcp` — Model Context Protocol endpoint (JSON-RPC 2.0), authenticated with the same API key as the REST API. Supports `initialize`, `tools/list`, and `tools/call`. Exposed tools: `search_engineers`, `get_rates`, `get_certification_info`, `parse_demand`, `get_my_projects`, `get_milestone_status`, `create_demand_draft`. Write access is limited to saving a private draft — publishing a project, funding a milestone, issuing a certification, and resolving a dispute are never available to an agent and must be done by a human in the UI. Docs: https://talengineer.us/developers
+- In-product assistant: every page carries a conversational assistant that reads live platform data (engineer search, rate benchmarks, certification rules, your own projects and milestones) and can draft a project scope for you. Actions with consequences for other people are never executed by the assistant — it produces a confirmation card that a human has to approve.
 
 ## Facts
 

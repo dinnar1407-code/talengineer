@@ -7,7 +7,18 @@ import { useLang } from '../../hooks/useLang';
 import { getAllPlaybookMeta } from '../../lib/playbook';
 import { selectGroupVariants } from '../../lib/playbookGroups';
 import { DICT } from '../../lib/i18n/playbook-index';
+import { pageJsonLd } from '../../lib/jsonLd';
 import styles from './playbook.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/playbook',
+  type: 'CollectionPage',
+  name: DICT.en.title,
+  description: DICT.en.sub,
+});
+
 
 // 站点根 URL：canonical / OG 用。构建期从环境变量读，回退线上域名。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
@@ -76,6 +87,7 @@ export default function PlaybookIndex({ articles }) {
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDesc} />
         <meta name="twitter:image" content={`${SITE}/og.png`} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

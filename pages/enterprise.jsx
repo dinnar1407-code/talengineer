@@ -7,7 +7,18 @@ import { useToast } from '../components/Toast';
 import { useLang } from '../hooks/useLang';
 // 九语 UI 字典已抽到 lib/i18n/enterprise.js（2026-07-24 原样搬移），页面只管合并兜底与渲染
 import { DICT } from '../lib/i18n/enterprise';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './enterprise.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/enterprise',
+  type: 'WebPage',
+  name: DICT.en.metaTitle,
+  description: DICT.en.heroSub,
+});
+
 
 const LS_USER_KEY = 'tal_user';
 
@@ -116,6 +127,7 @@ export default function Enterprise() {
         <meta property="og:description" content={d.metaDescription} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

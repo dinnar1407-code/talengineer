@@ -12,7 +12,18 @@ import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
 // 九语 UI 字典已抽到 lib/i18n/talent.js（2026-07-24 原样搬移），页面只管取值渲染
 import { DICT } from '../lib/i18n/talent';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './talent.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/talent',
+  type: 'CollectionPage',
+  name: DICT.en.hubTitle,
+  description: DICT.en.hubSub,
+});
+
 
 const PAGE_SIZE = 12;
 
@@ -606,6 +617,7 @@ export default function Talent() {
         <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
         <meta name="twitter:description" content={d.metaDescription} />
         <meta name="twitter:image" content="https://talengineer.us/og.png" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
       <ChatBot lang={lang} />
 

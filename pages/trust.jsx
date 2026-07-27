@@ -4,7 +4,18 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { DICT as UI } from '../lib/i18n/trust';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './trust.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/trust',
+  type: 'WebPage',
+  name: UI.en.metaTitle,
+  description: UI.en.metaDesc,
+});
+
 
 // 站点根 URL：canonical / OG 用（与 /hire/[track]、/pricing 等页统一口径）。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
@@ -53,6 +64,7 @@ export default function Trust() {
         <meta name="twitter:title" content={t.metaTitle} />
         <meta name="twitter:description" content={t.metaDesc} />
         <meta name="twitter:image" content={ogImage} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

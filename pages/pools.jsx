@@ -15,7 +15,18 @@ import { useLang } from '../hooks/useLang';
 import { useTheme } from '../hooks/useTheme';
 // 页内文案字典：已迁至 lib/i18n/pools.js（2026-07-24 机械搬移）
 import { DICT } from '../lib/i18n/pools';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './pools.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/pools',
+  type: 'WebPage',
+  name: DICT.en.metaTitle,
+  description: DICT.en.metaDescription,
+});
+
 
 const LS_USER_KEY = 'tal_user';
 
@@ -204,6 +215,7 @@ export default function Pools() {
       <meta name="description" content={d.metaDescription} />
       {/* 登录态控制台页：不进 sitemap/llms.txt，也不让搜索引擎收录 */}
       <meta name="robots" content="noindex" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
     </Head>
   );
 

@@ -4,7 +4,18 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { DICT as UI, RULES } from '../lib/i18n/talscore';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './talscore.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/talscore',
+  type: 'WebPage',
+  name: UI.en.title,
+  description: UI.en.sub,
+});
+
 
 // 站点根 URL：canonical / OG 用。
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://talengineer.us';
@@ -273,6 +284,7 @@ export default function TalScore() {
         <meta name="twitter:title" content="TalScore — the engineer quality score, explained" />
         <meta name="twitter:description" content={u.sub} />
         <meta name="twitter:image" content={ogImage} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />

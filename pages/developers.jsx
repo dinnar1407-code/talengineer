@@ -4,7 +4,18 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useLang } from '../hooks/useLang';
 import { DICT } from '../lib/i18n/developers';
+import { pageJsonLd } from '../lib/jsonLd';
 import styles from './developers.module.css';
+
+// 结构化数据（schema.org）。固定取 en 文案——JSON-LD 是给机器读的单一事实源，
+// 跟着 UI 语言变会让同一个 @id 在不同语言下出现互相矛盾的描述。见 lib/jsonLd.js。
+const JSON_LD = pageJsonLd({
+  path: '/developers',
+  type: 'WebPage',
+  name: DICT.en.metaTitle,
+  description: DICT.en.heroSub,
+});
+
 
 // 页面文案（中英双套）已迁至 lib/i18n/developers.js（2026-07-24，架构 B 迁移）。
 // 代码块/端点路径/事件名是语言无关的常量，仍内联在 DICT 之外。
@@ -90,6 +101,7 @@ export default function Developers() {
         <meta property="og:title" content={`${d.metaTitle} | Talengineer`} />
         <meta property="og:description" content={d.metaDescription} />
         <meta name="twitter:title" content={`${d.metaTitle} | Talengineer`} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       </Head>
 
       <Navbar lang={lang} onLangChange={setLang} />
