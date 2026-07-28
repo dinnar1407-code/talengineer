@@ -220,6 +220,11 @@ async function evaluateVesting(supabase, referralRows) {
 
     // ③ 一次 .in() 查出这些 demand 下所有 released 里程碑（升序取"第一个"作证据），
     // 带上 amount——奖励金额的计算基础。
+    //
+    // 计费基数依赖的不变量（与 src/routes/admin.js 营收口径同一条）：
+    // project_milestones.amount = 这条里程碑「最终真正计费的金额」。纠纷分账（resolved_split）
+    // 时 src/routes/disputes.js 已把 amount 改写为判给工程师的毛额，故此处无需为纠纷做特例。
+    // 这一点在这里比在 admin 更要紧：下面的 reward_usd 是一次性快照，算错了永远不会自我纠正。
     const { data: released, error: mErr } = await supabase
       .from('project_milestones')
       .select('id, demand_id, amount')

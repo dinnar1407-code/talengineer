@@ -10,6 +10,7 @@ import OfflineBanner from '../components/OfflineBanner';
 import { useOfflineData } from '../lib/offline/useOfflineData';
 import { DICT } from '../lib/i18n/console';
 import { demoAgo, DEMO_PROJECTS } from '../lib/demoData';
+import { buildEngineerProjects } from '../lib/consoleProjects';
 import styles from './console.module.css';
 
 const LS_USER_KEY = 'tal_user';
@@ -401,15 +402,20 @@ export default function Console() {
   // ── 归一化项目模型（两种来源，同一渲染结构）──────────────────────────────────
   // 雇主/管理员：/api/demand/my（含标题/预算/状态）；工程师：/api/finance/ledger（参与方账本反推）。
   // 里程碑一律取 milestonesByDemand（真实明细，含日期/金额/状态）。
+  //
+  // ⚠️ 工程师侧必须先按 demand_id 去重：/api/finance/ledger 现在是「一里程碑一行」，
+  // 直接 1:1 映射会让一个 3 里程碑的项目变出 3 张同 demandId 的卡，
+  // 下面 allMs 的 flatMap 就会把里程碑数 3 遍，托管/已放款金额直接翻 3 倍。
+  // 去重 + 预算聚合的逻辑在 lib/consoleProjects.js（纯函数，有单测）。
   const titleByDemand = {};
   (threads || []).forEach(t => { if (t.title) titleByDemand[t.demand_id] = t.title; });
 
   const projects = (isEngineer
-    ? (ledger || []).map(l => ({
-        demandId: l.demand_id,
-        name: titleByDemand[l.demand_id] || `Project #${l.demand_id}`,
-        meta: l.employer_email || '',
-        budget: money(l.total_amount),
+    ? buildEngineerProjects(ledger, { titleByDemand, milestonesByDemand }).map(p => ({
+        demandId: p.demandId,
+        name: p.name,
+        meta: p.meta,
+        budget: money(p.budgetAmount),
       }))
     : (myDemands || []).map(dm => ({
         demandId: dm.id,

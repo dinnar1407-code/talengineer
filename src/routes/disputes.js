@@ -371,7 +371,30 @@ router.put('/:id/resolve', requireAdmin, async (req, res) => {
     // Update milestone + dispute（先落盘 transfer/refund id；带 releasing 条件，只有持有守卫的请求能终结状态）
     // 终态：全额退回雇主 → refunded；其余（工程师全拿/分账）→ released
     const finalStatus = engineerGross === 0 && employerRefund > 0 ? 'refunded' : 'released';
-    await supabase.from('project_milestones').update({ status: finalStatus, ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }) }).eq('id', ms.id).eq('status', 'releasing');
+
+    // ── 分账裁决必须把 amount 改写成 engineerGross ────────────────────────────
+    // 不改会怎样：$10,000 的里程碑判 split（判给工程师 $4,000、退雇主 $6,000）之后，
+    // status 变成 released 但 amount 仍是 10000。而下游所有"平台收入"口径都是
+    // 「status='released' 的里程碑 amount × 费率」——于是 admin 营收把 $600 报成 $1,500，
+    // referralService 的推荐奖励也会按 10000 而不是 4000 快照进 vest_evidence
+    // （那是一次性不可逆的写入，错了永远不会自我纠正）。
+    //
+    // 为什么在这里改、而不是让每个下游各自去 join disputes 表做修正：
+    // amount 的语义统一为「这条里程碑最终真正计费的金额」，写入点只有这一处，
+    // 下游（admin 营收 / 推荐兑现 / 工单 PDF / 未来任何读者）零特例即可正确。
+    // 只有 resolved_split 需要改：resolved_engineer 的 engineerGross 恒等于原托管额，
+    // resolved_employer 走 refunded 终态、本就被两条营收口径排除在外。
+    //
+    // 审计追溯：原始托管额并未丢失——Stripe 那笔 payment_intent（ms.stripe_payment_intent）
+    // 与本次部分退款记录都留在 Stripe 侧，那才是资金的权威账本；
+    // 且 disputes 行同时记下了裁决结果与 resolution_amount（工程师净到手）。
+    const splitCorrection = resolution === 'resolved_split' ? { amount: engineerGross } : null;
+
+    await supabase.from('project_milestones').update({
+      status: finalStatus,
+      ...(splitCorrection || {}),
+      ...(stripeTransferId && { stripe_transfer_id: stripeTransferId }),
+    }).eq('id', ms.id).eq('status', 'releasing');
     await supabase.from('disputes').update({
       status: resolution, admin_decision, resolution_amount: engineerPayout,
       ...(stripeRefundId && { stripe_refund_id: stripeRefundId }),

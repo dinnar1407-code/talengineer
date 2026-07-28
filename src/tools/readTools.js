@@ -370,10 +370,12 @@ register({
 // admin agent 的第一步刻意只做只读报表：价值立刻兑现，风险为零。写操作要等 T2 确认卡
 // 铺过来，而且永远不给批量（"把所有 pending 的都通过"这种一句话毁库的能力不提供）。
 //
-// ⚠️ 刻意不返回任何营收数字。GET /api/admin/stats 是用 `supabase.from('ledgers')`
-// 算营收的，而生产库里根本没有 ledgers 这张表（只有 financial_ledgers，且它本身也是
-// 死表）——那个数恒为 0。与其在这里复刻一个来源不明的钱数，不如不给：数字纪律。
-// 真要报营收，得先把 financial_ledgers 的历史问题定了（见 Obsidian / 记忆里的记录）。
+// ⚠️ 刻意不返回任何营收数字——这是设计决定，与下面那个已修的 bug 无关，别顺手加回来。
+// 背景更新：GET /api/admin/stats 过去查的是根本不存在的 `ledgers` 表，营收恒为 0；
+// 现已改为按 project_milestones 里 status='released' 的里程碑 × feeFor(demand) 计算。
+// 即便如此，营收仍只从 admin 网页端出口给出：钱数要有唯一权威出口，
+// 不在这个对话工具里复刻第二份口径不同的数字（数字纪律）。
+// （financial_ledgers 依旧是死表——没有任何用户可见路径读它，只有 matchmaker 往里写。）
 register({
   name: 'get_platform_stats',
   description:

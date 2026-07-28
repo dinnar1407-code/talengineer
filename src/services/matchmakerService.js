@@ -153,22 +153,31 @@ async function runMatchmaker(demandId) {
         const htmlBody = emailBody.split('\n').map(line => `<p>${line}</p>`).join('');
 
         // 4b. Create pending ledger entry (idempotent — skip if already exists)
-        const { error: ledgerErr } = await supabase
-          .from('ledgers')
-          .insert([{
-            demand_id: demand.id,
-            employer_id: demand.employer_id || 1,
-            employer_email: demand.contact,
-            engineer_id: engineer.id,
-            engineer_email: engineer.contact,
-            total_amount: parseFloat((demand.budget || '0').toString().replace(/[^0-9.]/g, '')) || 1000,
-            status: 'pending',
-          }])
-          .select()
-          .maybeSingle(); // won't throw if duplicate
+        // 表名此前写的是 `ledgers`——生产库没有这张表，所以这条 insert 从上线起就每次都失败；
+        // 失败只被 warn 掉、不挡外联邮件，于是谁也没发现。真表名是 financial_ledgers，
+        // 且它只有 employer_email / engineer_email 两个邮箱列，没有 employer_id / engineer_id，
+        // 那两个键即使表名改对了也会让整条 insert 报错，一并删掉。
+        const parsedBudget = parseFloat((demand.budget || '').toString().replace(/[^0-9.]/g, ''));
+        if (!Number.isFinite(parsedBudget)) {
+          // 预算栏是自由文本（"面议"/"TBD"/空），解析不出金额时【跳过】这条台账。
+          // 旧代码在这里兜底成 1000——凭空捏造一个金额写进财务表，是最不该做的事。
+          console.warn(`⚠️ [Matchmaker] Budget "${demand.budget}" not parseable — skipping ledger row for ${engineer.name}.`);
+        } else {
+          const { error: ledgerErr } = await supabase
+            .from('financial_ledgers')
+            .insert([{
+              demand_id: demand.id,
+              employer_email: demand.contact,
+              engineer_email: engineer.contact,
+              total_amount: parsedBudget,
+              status: 'pending',
+            }])
+            .select()
+            .maybeSingle(); // won't throw if duplicate
 
-        if (ledgerErr && ledgerErr.code !== '23505') {
-          console.warn(`⚠️ [Matchmaker] Ledger insert failed for ${engineer.name}:`, ledgerErr.message);
+          if (ledgerErr && ledgerErr.code !== '23505') {
+            console.warn(`⚠️ [Matchmaker] Ledger insert failed for ${engineer.name}:`, ledgerErr.message);
+          }
         }
 
         // 4c. Send email (with retry)

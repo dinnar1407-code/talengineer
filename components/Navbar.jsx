@@ -227,7 +227,12 @@ export default function Navbar({ lang: langProp, onLangChange }) {
     if (onLangChange) onLangChange(l);
   }
 
+  // 退出：先清离线镜像，再登出 supabase + 清本地登录态（与 ConsoleShell.handleLogout 同一套动作）。
+  // 少这一步的后果：/finance 台账现在会返回真实的项目标题/金额/对方邮箱并镜像进 IndexedDB，
+  // 共享设备上 A 从公共导航栏登出、B 登录后离线打开 /finance，看到的是 A 的财务数据。
+  // mirrorClearAll 用 fire-and-forget 包 try/catch，不阻塞登出主流程。
   async function handleLogout() {
+    try { require('../lib/offline/idb').mirrorClearAll().catch(() => {}); } catch { /* 离线库不可用/同步抛错时忽略 */ }
     await supabase.auth.signOut().catch(() => {});
     localStorage.removeItem(LS_USER_KEY);
     setUser(null);

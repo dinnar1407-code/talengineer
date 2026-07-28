@@ -7,7 +7,6 @@ import ConsoleShell from '../components/ConsoleShell';
 import OfflineBanner from '../components/OfflineBanner';
 import { useOfflineData } from '../lib/offline/useOfflineData';
 import { useToast } from '../components/Toast';
-import { supabase } from '../lib/supabaseClient';
 import { useLang } from '../hooks/useLang';
 import { DICT } from '../lib/i18n/finance';
 import { useTheme } from '../hooks/useTheme';
@@ -75,8 +74,11 @@ export default function Finance() {
   // 真实台账加载完但零条（新账号/演示账号还没有真实托管记录）→ 退回 DEMO_LEDGER
   // （lib/demoData，与 Dashboard/Projects 页共用同一份 DEMO_PROJECTS 派生，三屏数字对得上），
   // 并打 ledgerIsDemo 供渲染层加「🧪 Demo」徽标、禁用演示行上的操作按钮。
-  // DEMO_LEDGER 用 project_milestones 的状态词汇（funded/completed/released/locked），
-  // 与真实台账的 pending/released 判据不同源，两段计算分开写，互不影响。
+  // 状态词汇：两个分支现在同源——/api/finance/ledger 已改为直接读 project_milestones
+  // （locked/funded/releasing/completed/released/payment_failed/disputed），DEMO_LEDGER 本来
+  // 用的就是这套词汇。此前真实分支按 status==='pending' 算托管额，那是废弃的 financial_ledgers
+  // 词汇，project_milestones 里根本没有 'pending' 这个值 → 真钱进来后"托管中资金"会恒显示 $0。
+  // 故两段用同一判据：funded/completed = 钱已进托管但还没放款。
   useEffect(() => {
     if (ledgerData != null) {
       if (ledgerData.length === 0) {
@@ -88,7 +90,7 @@ export default function Finance() {
       } else {
         setLedger(ledgerData);
         setLedgerIsDemo(false);
-        const escrow   = ledgerData.filter(r => r.status === 'pending').reduce((s, r) => s + (r.total_amount || 0), 0);
+        const escrow   = ledgerData.filter(r => ['funded', 'completed'].includes(r.status)).reduce((s, r) => s + (r.total_amount || 0), 0);
         const released = ledgerData.filter(r => r.status === 'released').reduce((s, r) => s + (r.total_amount || 0), 0);
         setMetrics({ escrow, released, active: ledgerData.length });
       }
@@ -208,15 +210,6 @@ export default function Finance() {
       const data = await res.json();
       if (res.ok) setAnalytics(data);
     } catch {}
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut().catch(() => {});
-    localStorage.removeItem(LS_USER_KEY);
-    setCurrentUser(null);
-    setLedger(null);
-    setMetrics({ escrow: 0, released: 0, active: 0 });
-    toast.info('Signed out.');
   }
 
   async function loadConnectStatus(token) {

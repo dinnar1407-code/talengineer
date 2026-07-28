@@ -3,7 +3,7 @@ const router  = express.Router();
 const { getClient } = require('../config/db');
 // 管理员口令校验已提炼为共享中间件（已移除 query.pwd 通道，仅接受 header：SHA-256 恒时比较 + 未配置 503 fail-closed）
 const { requireAdmin } = require('../middleware/adminAuth');
-const { PLATFORM_FEE } = require('../config/fees'); // 抽佣比例单一来源（营收估算与真实放款用同一费率）
+const { feeFor } = require('../config/fees'); // 抽佣比例单一来源（营收估算与真实放款用同一费率；含 demands.fee_pct 单需求覆盖）
 const { clampPagination } = require('../utils/pagination'); // 分页钳制（与 talent 列表同口径的可测纯函数）
 
 // ── admin 写操作审计中间件 ────────────────────────────────────────────────────
@@ -31,18 +31,33 @@ function auditLog(req, res, next) {
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
     const supabase = getClient();
-    const [users, demands, talents, ledgers, notifCount] = await Promise.all([
+    const [users, demands, talents, ledgers, releasedMs, notifCount] = await Promise.all([
       supabase.from('users').select('id, email, role, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
       supabase.from('demands').select('id, title, status, budget, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
       supabase.from('talents').select('id, name, region, verified_score, created_at', { count: 'exact' }).order('verified_score', { ascending: false }).limit(10),
-      supabase.from('ledgers').select('id, demand_id, total_amount, status, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
+      // 台账 = project_milestones（真正的资金系统之实）。此前这里查的是 `ledgers`——
+      // 生产库压根没有这张表，supabase-js 遇到不存在的表不抛异常、只把 error 放进返回值，
+      // 于是 data 恒为 null、count 恒为 null、营收恒为 0，且全程没有任何报错可见。
+      supabase.from('project_milestones').select('id, demand_id, amount, status, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
+      // 营收必须扫全量已放款里程碑，不能复用上面那条 limit(10) 的最近列表——
+      // 否则"平台总营收"会悄悄变成"最近 10 条里的营收"，那是比恒为 0 更危险的错数。
+      // 带出 demands(fee_pct) 是为了对 founding 客户按其单独费率计佣。
+      //
+      // 计费基数依赖的不变量：project_milestones.amount = 这条里程碑「最终真正计费的金额」。
+      // 纠纷分账（resolved_split）时 src/routes/disputes.js 会把 amount 改写成判给工程师的毛额，
+      // 所以这里无需为纠纷做任何特例——直接 amount × 费率即是平台实收。
+      // （同一不变量被 src/services/referralService.js 的推荐奖励快照复用，两处口径必须一致。）
+      supabase.from('project_milestones').select('amount, demands(fee_pct)').eq('status', 'released'),
       supabase.from('notifications').select('*', { count: 'exact', head: true }),
     ]);
 
-    // 费率取自集中配置（审计残留修复：此前硬编码 0.15，Railway 调 PLATFORM_FEE_PCT 后这里会漂移）
-    const totalRevenue = (ledgers.data || [])
-      .filter(l => l.status === 'released')
-      .reduce((s, l) => s + (l.total_amount || 0) * PLATFORM_FEE, 0);
+    // 单表查询失败不该再像 `ledgers` 那样静默变 0：如实记日志，便于下次一眼看见。
+    if (releasedMs.error) console.error('[admin] revenue query failed:', releasedMs.error);
+
+    // 费率经 feeFor 取：demands.fee_pct 合法时优先（founding 让利单不能按标准费率计营收），
+    // 否则回退全局 PLATFORM_FEE——与 payment/workorder/disputes 三条真实放款路径同一口径。
+    const totalRevenue = (releasedMs.data || [])
+      .reduce((s, m) => s + (m.amount || 0) * feeFor(m.demands), 0);
 
     res.json({
       status: 'ok',
@@ -58,7 +73,11 @@ router.get('/stats', requireAdmin, async (req, res) => {
         users:   users.data   || [],
         demands: demands.data || [],
         talents: talents.data || [],
-        ledgers: ledgers.data || [],
+        // 前端 pages/admin.jsx 读的是 total_amount，而里程碑表的列名是 amount → 这里映射。
+        ledgers: (ledgers.data || []).map(m => ({
+          id: m.id, demand_id: m.demand_id, total_amount: m.amount,
+          status: m.status, created_at: m.created_at,
+        })),
       },
     });
   } catch (err) {
