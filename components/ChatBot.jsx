@@ -196,9 +196,28 @@ const DICT = {
   },
 };
 
-// 从 localStorage 的 tal_user 取登录 token（登录态与全站 REST 请求同源，见 pages/finance.jsx）。
+// JWT 的 exp 是否还没到期。**只用来在两枚令牌之间做选择，不是安全判断**——
+// 这里不验签也验不了签，真正的校验在服务端 jwt.verify。解不开一律当过期（返回 false），
+// 让调用方安全退回普通令牌。
+function notExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now();
+  } catch { return false; }
+}
+
+// 取本次请求要用的 token。
+// 优先用 tal_admin_token（过了 TOTP 的 admin 令牌，带 adm2fa）：registry 里 admin 工具要求
+// adm2fa=true（见 src/tools/registry.js 的角色门），而 tal_user 那枚普通登录令牌按设计永远
+// 不带这个声明——不优先取它，admin 在聊天里就永远调不到 admin 工具。
+// ⚠️ 过期检查不能删：过期令牌照发会让 jwt.verify 失败 → 后端 optionalUser 返回 null →
+// 用户被静默降级成【匿名】，连他本来的普通工具都没了。退回 tal_user 才是对的。
 // 未登录/隐私模式取不到时返回空串——聊天仍可用（后端降级为 public 只读工具）。
 function getToken() {
+  try {
+    const adminToken = localStorage.getItem('tal_admin_token');
+    if (adminToken && notExpired(adminToken)) return adminToken;
+  } catch { /* 隐私模式等取不到 localStorage：照常退回下面的普通令牌 */ }
   try { return JSON.parse(localStorage.getItem('tal_user') || '{}').token || ''; } catch { return ''; }
 }
 

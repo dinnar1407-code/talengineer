@@ -552,8 +552,11 @@ router.post('/admin-2fa', requireAuth, async (req, res) => {
       await supabase.from('users').update({ totp_enabled: true }).eq('id', user.id);
     }
 
-    // 带 adm2fa 声明的短期 admin 令牌：adminAuth 中间件的主通道凭证
-    const token = jwt.sign({ email: user.email, role: 'admin', adm2fa: true }, JWT_SECRET, { expiresIn: '12h' });
+    // 带 adm2fa 声明的短期 admin 令牌：adminAuth 中间件的主通道凭证。
+    // userId 必须带上：registry 的写路径硬性要求 ctx.user.userId（它是 agent_actions 的审计身份），
+    // 缺了它，过了 2FA 的 admin 反而一个写工具都跑不了。加这一项是补齐，不放宽任何权限——
+    // 它只是让这枚令牌也能被 requireAuth 当普通用户令牌用，而那正是同一个人本来就有的权限。
+    const token = jwt.sign({ userId: user.id, email: user.email, role: 'admin', adm2fa: true }, JWT_SECRET, { expiresIn: '12h' });
     res.json({ token });
   } catch (err) {
     console.error('[Auth] admin-2fa error:', err);

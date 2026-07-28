@@ -190,8 +190,10 @@ describe('get_platform_stats：admin 只读，且不报任何钱数', () => {
       demand_applications: { count: 0, error: null },
       disputes: { count: 0, error: null },
     });
+    // adm2fa:true 是必须的——admin 工具要求过了 TOTP 的令牌（见 registry 的 admin 门），
+    // 普通登录令牌只有 role 没有这个声明。
     const res = await registry.call('get_platform_stats', {}, {
-      user: { userId: 1, email: 'a@b.c', role: 'admin' }, supabase: client,
+      user: { userId: 1, email: 'a@b.c', role: 'admin', adm2fa: true }, supabase: client,
     });
     assert.equal(res.ok, true);
     // 数字纪律：/api/admin/stats 的营收算自一张不存在的表（ledgers），这里刻意不复刻

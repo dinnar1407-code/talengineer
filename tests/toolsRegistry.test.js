@@ -98,7 +98,7 @@ describe('工具注册表：角色门控', () => {
 
   it('admin 可调 get_admin_analytics（rpc 结果原样返回）', async () => {
     const res = await registry.call('get_admin_analytics', {}, {
-      user: { userId: 1, email: 'x@y.z', role: 'admin' },
+      user: { userId: 1, email: 'x@y.z', role: 'admin', adm2fa: true },
       supabase: { rpc: async (name) => {
         assert.equal(name, 'admin_analytics_summary');
         return { data: { total_users: 5 }, error: null };
@@ -110,11 +110,68 @@ describe('工具注册表：角色门控', () => {
 
   it('handler 抛错被包装成 {ok:false}，绝不向上抛裸异常', async () => {
     const res = await registry.call('get_admin_analytics', {}, {
-      user: { userId: 1, email: 'x@y.z', role: 'admin' },
+      user: { userId: 1, email: 'x@y.z', role: 'admin', adm2fa: true },
       supabase: { rpc: async () => { throw new Error('db exploded'); } },
     });
     assert.equal(res.ok, false);
     assert.equal(res.error, 'db exploded');
+  });
+});
+
+// ── 2b. admin 工具的第二因子门（2026-07-27 修复的真实漏洞的回归测试）──────────
+// 曾经的漏洞：HTTP 后台（middleware/adminAuth.js）要求 role='admin' 且 adm2fa=true，
+// 但 registry 只看 role。而三个普通登录出口（密码/第二登录路径/OAuth）签出的令牌都带
+// role 不带 adm2fa —— 于是 admin 用普通登录（甚至 Google 一键登录）就能在 ChatBot 里
+// 调 admin 工具，把后台的 TOTP 整个绕过去。两边的 admin 门槛必须一样高。
+describe('工具注册表：admin 工具要求 2FA（绕过漏洞回归）', () => {
+  // 这就是普通登录签出的载荷形状：有 role，没有 adm2fa
+  const ADMIN_NO_2FA = { userId: 1, email: 'admin@t.com', role: 'admin' };
+  const ADMIN_2FA = { userId: 1, email: 'admin@t.com', role: 'admin', adm2fa: true };
+
+  // 三个 admin 专属工具全覆盖：两个是 read 层，这点很关键——read 在 registry 里有
+  // early return，门要是放到 tier 分流之后，恰好就把这两个漏在外面。
+  for (const tool of ['get_admin_analytics', 'get_platform_stats', 'list_pending_kyc']) {
+    it(`${tool}：普通登录令牌（无 adm2fa）被拒`, async () => {
+      const res = await registry.call(tool, {}, {
+        user: ADMIN_NO_2FA,
+        // 真跑到 handler 就会炸，用来证明它压根没被执行
+        supabase: {
+          rpc: async () => { throw new Error('handler 不该被执行'); },
+          from() { throw new Error('handler 不该被执行'); },
+        },
+      });
+      assert.equal(res.ok, false, `${tool} 不该对无 adm2fa 的令牌放行`);
+      assert.match(res.error, /two-factor/i);
+    });
+  }
+
+  it('带 adm2fa 的令牌放行（门没有把合法 admin 一起挡掉）', async () => {
+    const res = await registry.call('get_admin_analytics', {}, {
+      user: ADMIN_2FA,
+      supabase: { rpc: async () => ({ data: { total_users: 5 }, error: null }) },
+    });
+    assert.equal(res.ok, true);
+  });
+
+  it('不过度拦截：admin 无 adm2fa 仍可用 public 层工具', async () => {
+    const { client } = makeSupabase({ talents: { data: [], error: null } });
+    const res = await registry.call('search_engineers', {}, { user: ADMIN_NO_2FA, supabase: client });
+    assert.equal(res.ok, true, 'public 工具不该被 admin 2FA 门波及');
+  });
+
+  it('不影响其他角色：employer 无 adm2fa 照常用自己的工具', async () => {
+    const { client } = makeSupabase({ demands: { data: [], error: null } });
+    const res = await registry.call('get_my_projects', {}, {
+      user: { userId: 7, email: 'e@t.com', role: 'employer' }, supabase: client,
+    });
+    assert.equal(res.ok, true, 'employer 不该被 admin 2FA 门波及');
+  });
+
+  it('admin 用共享 roles 的工具（get_milestone_status）同样要 2FA——admin 走它能看任意项目', () => {
+    // 该工具 roles 含 employer/engineer/admin，但 assertDemandParticipant 对 admin 无条件放行，
+    // 所以 admin 用它是特权用法（可读任意项目里程碑），必须同样受第二因子约束。
+    const visible = registry.list('admin').map((t) => t.name);
+    assert.ok(visible.includes('get_milestone_status'), '前提：该工具确实对 admin 可见');
   });
 });
 
@@ -136,8 +193,10 @@ describe('工具注册表：zod 参数校验', () => {
 
   it('get_milestone_status：缺必填 demandId 被拒（不会打到 handler）', async () => {
     const { client, calls } = makeSupabase({});
+    // 这条测的是参数校验，与 admin 无关；用 employer 调，免得被 admin 的 2FA 门先挡下来，
+    // 那样就测不到 zod 这一层了（admin 走这个工具能看任意项目，属特权用法，故要求 adm2fa）。
     const res = await registry.call('get_milestone_status', {}, {
-      user: { userId: 1, email: 'x@y.z', role: 'admin' }, supabase: client,
+      user: { userId: 1, email: 'x@y.z', role: 'employer' }, supabase: client,
     });
     assert.equal(res.ok, false);
     assert.match(res.error, /Invalid arguments: demandId/);

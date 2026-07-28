@@ -208,6 +208,23 @@ async function call(name, args, ctx = {}) {
       return { ok: false, error: `Tool "${name}" is not available for role "${role}"` };
     }
 
+    // ── admin 工具必须过 2FA ───────────────────────────────────────────────
+    // HTTP 后台（middleware/adminAuth.js）要求 JWT 同时满足 role='admin' 且 adm2fa=true，
+    // 注释写明是为了"堵住拿普通 token 冒充 admin"。这里必须用同一条杠：普通登录（含 OAuth）
+    // 签出的 token 带 role 但不带 adm2fa，若此处只看 role，agent 就成了同一批数据更弱的入口，
+    // 后台辛苦加的 TOTP 被一条聊天绕过。两边的 admin 门槛必须一样高。
+    //
+    // 只卡"因为 admin 才被放行"的工具：public 层工具 admin 照常可用，不需要第二因子。
+    // 位置必须在 tier 分流【之前】——read 层有 early return，放到后面等于只保护写工具，
+    // 而现存的两个 admin 工具（get_platform_stats / list_pending_kyc）恰好都是 read。
+    const admittedAsAdmin = role === 'admin' && !tool.roles.includes('public');
+    if (admittedAsAdmin && ctx.user?.adm2fa !== true) {
+      return {
+        ok: false,
+        error: 'Admin actions need two-factor sign-in. Please sign in through the admin console (/admin) first.',
+      };
+    }
+
     const parsed = tool.validator.safeParse(args || {});
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
