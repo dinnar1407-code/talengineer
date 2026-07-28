@@ -1,10 +1,11 @@
-// ── 写工具（6 个：3 个 T1 write + 3 个 T2 confirm）───────────────────────────
+// ── 写工具（7 个：3 个 T1 write + 4 个 T2 confirm）───────────────────────────
 // 通用约束同 readTools.js 顶部注释（ctx 形状 / G1 身份 scope / 错误处理）。
 // 分层含义与红线见 src/tools/registry.js 的 VALID_TIERS 注释——简言之：
 //   write   可逆、只动自己的东西 → 直接执行 + write-ahead 审计
 //   confirm 有对外后果、收不回来 → agent 只能提案，用户点确认才执行
 // 注册表里永远不会有资金/发证/纠纷裁决/封号类工具，那条红线不随本文件增长而松动。
 const { register } = require('./registry');
+const { sendMessage, MAX_CONTENT_LENGTH } = require('../services/messageService');
 
 // ── 10. create_demand_draft（employer）───────────────────────────────────────
 // 实现要点：
@@ -506,6 +507,50 @@ register({
       project_title: demand.title,
       engineer_name: talent?.name || null,
       status: 'in_progress',
+    };
+  },
+});
+
+// ── 16. send_project_message（双方，T2——必须用户确认）───────────────────────
+// ⚠️ 这一条明确越过了 apply_to_demand 注释划的那条线：那里的外发是"用户亲手确认的业务
+// 动作的副作用，不是给 agent 一个裸的发消息能力"，而本工具【就是】那个裸能力，是有意加的。
+// Terry 2026-07-27 拍板：安全等级与 apply_to_demand 一致即可——确认卡会把每一个参数
+// （含完整正文）原样摆给用户看过之后才发得出去，那张卡就是设计上的防线；不加关键词/内容过滤。
+// 逻辑本身不在这里实现：与 POST /api/messages 共用 services/messageService.js 的唯一实现，
+// 归属校验与邮件防轰炸两段永远不会在两条路径上分叉。
+register({
+  name: 'send_project_message',
+  description:
+    'Send a message in an ongoing project\'s chat thread to the other party (employer ↔ engineer — '
+    + 'either the assigned engineer or an applicant already party to this project\'s thread). The '
+    + 'other party sees it immediately and it cannot be unsent, so this always requires explicit '
+    + 'user confirmation before it runs.',
+  parameters: {
+    type: 'object',
+    properties: {
+      demand_id: { type: 'integer', minimum: 1, description: 'The project whose thread to post in.' },
+      content: { type: 'string', minLength: 1, maxLength: MAX_CONTENT_LENGTH, description: 'The message text to send.' },
+    },
+    required: ['demand_id', 'content'],
+  },
+  // 线程两端都可能想发：雇主发给被指派的工程师，工程师发给雇主。谁是这单的当事方由
+  // messageService 里的 assertDemandParticipant 判定，不靠角色本身放行。
+  roles: ['employer', 'engineer'],
+  tier: 'confirm',
+  sideEffects: ['email', 'notification'],
+  handler: async (args, ctx) => {
+    // clientMsgId 不传：agent 调用永远是"在线"的，没有离线重放场景（幂等靠 registry 的
+    // 近重复防护 + 确认令牌绑死 argsHash）。因此返回里的 deduped 结构上不可能为 true。
+    const { message } = await sendMessage({
+      supabase: ctx.supabase,
+      user: ctx.user,
+      demandId: args.demand_id,
+      content: args.content,
+    });
+    return {
+      demand_id: Number(args.demand_id),
+      message_id: message?.id ?? null,
+      sent: true,
     };
   },
 });

@@ -10,7 +10,11 @@
 //      handler 内所有查询必须显式 scope 到 ctx.user.userId（service key 无 RLS 兜底）。
 //   G2 注册表里永远不存在 资金（注资/放款/退款）、发证、纠纷裁决 类工具；
 //      唯一写工具 create_demand_draft 只落 status='draft'。
-//   G3 无任何外发（邮件/推送/SMS）工具。
+//   G3 外发（邮件/推送/SMS）能力必须显式声明 sideEffects 且只能是 tier='confirm'。
+//      原文是"无任何外发工具"，2026-07-27 由 Terry 拍板收窄为本条：send_project_message
+//      有意提供了"在项目线程里发消息"这个裸外发能力，防线改由确认卡承担（用户看过完整
+//      参数后亲手点确认才发得出去）。守卫测试的名字扫描保留，新增外发工具仍会被挡下，
+//      要放行必须同样走一次产品拍板并在测试里显式登记。
 //
 // ctx 约定（由路由层构造，registry 不负责组装）：
 //   ctx = { user: {userId, email, role}|null, supabase }

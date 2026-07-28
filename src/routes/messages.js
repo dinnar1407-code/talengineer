@@ -3,8 +3,7 @@ const router  = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { assertDemandParticipant } = require('../middleware/ownership');
-const { createNotification } = require('../services/notificationService');
-const { emailNewMessage } = require('../services/email');
+const { sendMessage, MessageError } = require('../services/messageService');
 
 // ── Get thread for a demand ───────────────────────────────────────────────────
 router.get('/thread/:demandId', requireAuth, async (req, res) => {
@@ -55,107 +54,36 @@ router.get('/thread/:demandId', requireAuth, async (req, res) => {
 });
 
 // ── Send message ──────────────────────────────────────────────────────────────
+// 全部逻辑（归属校验 → 邮件防轰炸判定 → 落库 → 异步通知）都在 services/messageService.js，
+// 与 agent 的 send_project_message 工具共用同一份实现——防轰炸那段一旦分叉成两份，
+// 其中一份把统计写到插入之后就会永久停发邮件且不报错（详见该文件头注释）。
+// 本路由只负责 HTTP 层：解析 body、把服务层错误按 code 映射成既有状态码与文案。
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const supabase = getClient();
     const { demand_id, content, client_msg_id } = req.body;
 
-    if (!demand_id || !content?.trim()) {
-      return res.status(400).json({ error: 'demand_id and content are required' });
-    }
-    if (content.length > 2000) {
-      return res.status(400).json({ error: 'Message too long (max 2000 chars)' });
-    }
+    const result = await sendMessage({
+      supabase:    getClient(),
+      user:        req.user,
+      demandId:    demand_id,
+      content,
+      clientMsgId: client_msg_id,
+    });
 
-    // ── 归属校验：与"读消息"是同一孪生漏洞 ────────────────────────────────────
-    // 不校验写侧的当事方，任意登录用户可向他人项目的消息线程写入消息（骚扰/钓鱼），
-    // 也会让 inbox 里出现非当事方的消息，破坏消息可见性模型。
-    const { allowed } = await assertDemandParticipant(supabase, demand_id, req.user);
-    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+    // 离线重放命中唯一约束：静默幂等返回，不当作错误（响应形状与重构前一致）
+    if (result.deduped) return res.json({ ok: true, deduped: true });
 
-    // ── 邮件防轰炸：判断这条是否"新一轮对话的第一条" ─────────────────────────
-    // 仅当我此前在本 demand 发出的消息对方都已读（未读=0）时，这条才发邮件；
-    // 否则对方本就有未读、只需站内通知，避免连发轰炸收件箱。
-    // 必须在插入前统计——新插入的这条也是 read=false，若插入后再查会恒 >0。
-    const { count: unreadFromMe } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('demand_id', demand_id)
-      .eq('sender_email', req.user.email)
-      .eq('read', false);
-    const startsNewRound = (unreadFromMe || 0) === 0;
-
-    const insertRow = {
-      demand_id,
-      sender_email: req.user.email,
-      sender_name:  req.user.name || req.user.email.split('@')[0],
-      sender_role:  req.user.role,
-      content:      content.trim(),
-    };
-    // 离线重放幂等：客户端带 client_msg_id 时一并写入（online 正常发消息不带，行为不变）。
-    // 依赖 (demand_id, client_msg_id) 唯一约束把重复重放挡在数据库层，见下方 23505 处理。
-    if (client_msg_id) insertRow.client_msg_id = client_msg_id;
-
-    const { data, error } = await supabase.from('messages').insert(insertRow).select().single();
-
-    if (error) {
-      // 23505 = 唯一约束冲突：同一条离线消息被重放了两次，静默幂等返回，不当作错误
-      if (error.code === '23505') return res.json({ ok: true, deduped: true });
-      throw error;
-    }
-
-    // Notify the other party (fire-and-forget, don't block response)
-    ;(async () => {
-      try {
-        const { data: demand } = await supabase
-          .from('demands')
-          .select('title, contact, assigned_engineer_id')
-          .eq('id', demand_id)
-          .single();
-        if (!demand) return;
-
-        let recipientEmail;
-        if (req.user.role === 'employer') {
-          // Notify the assigned engineer
-          if (demand.assigned_engineer_id) {
-            const { data: eng } = await supabase
-              .from('talents')
-              .select('contact')
-              .eq('id', demand.assigned_engineer_id)
-              .single();
-            recipientEmail = eng?.contact;
-          }
-        } else {
-          // Notify the employer
-          recipientEmail = demand.contact;
-        }
-
-        if (recipientEmail && recipientEmail !== req.user.email) {
-          // 站内通知：每条消息都发（不轰炸，只是红点计数）
-          createNotification({
-            user_email: recipientEmail,
-            type: 'new_message',
-            title: `New message on "${demand.title}"`,
-            body: content.trim().slice(0, 120),
-            link: `/messages/${demand_id}`,
-            demand_id: parseInt(demand_id),
-          });
-          // 邮件：仅新一轮对话的第一条才发（防轰炸），fire-and-forget 不阻塞响应
-          if (startsNewRound) {
-            emailNewMessage({
-              recipientEmail,
-              senderName:     req.user.name || req.user.email.split('@')[0],
-              projectTitle:   demand.title,
-              messagePreview: content.trim(),
-              threadUrl:      `${process.env.DOMAIN || 'https://talengineer.us'}/messages/${demand_id}`,
-            }).catch(console.error);
-          }
-        }
-      } catch {}
-    })();
-
-    res.json({ status: 'ok', data });
+    res.json({ status: 'ok', data: result.message });
   } catch (err) {
+    // 只按 code 分派、不透传服务层文案：路由的响应体是既有对外契约，
+    // 服务层文案是给 agent/模型看的人话，两者刻意解耦（见 messageService 的错误契约注释）。
+    if (err instanceof MessageError) {
+      if (err.code === 'invalid_input') return res.status(400).json({ error: 'demand_id and content are required' });
+      if (err.code === 'too_long')      return res.status(400).json({ error: 'Message too long (max 2000 chars)' });
+      if (err.code === 'forbidden')     return res.status(403).json({ error: 'Forbidden' });
+      // db_error：真实的 supabase 错误已由服务层记进日志，这里直接落到通用 500
+      return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
     // 真实错误记录到日志，客户端只收到通用文案
     console.error('[messages]', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });

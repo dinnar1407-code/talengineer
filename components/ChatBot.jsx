@@ -19,9 +19,9 @@ const DICT = {
     loginNeeded: `Please sign in as an employer to publish this draft.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Sign In</a>`,
     publishFail: '<span style="color:#ef4444;">Publish failed. Please try again.</span>',
     confirmTitle: 'Confirm before I do this',
-    confirmTool: { apply_to_demand: 'Apply to this project', publish_demand_draft: 'Publish this draft', assign_engineer: 'Assign this engineer' },
+    confirmTool: { apply_to_demand: 'Apply to this project', publish_demand_draft: 'Publish this draft', assign_engineer: 'Assign this engineer', send_project_message: 'Send this message' },
     confirmNote: { assign_engineer: 'This starts the project and rejects every other pending applicant.', publish_demand_draft: 'Once published, every engineer on the platform can see it and apply.' },
-    confirmArg: { engineer_id: 'Engineer ID', demand_id: 'Project ID', message: 'Your note', quoted_rate: 'Your rate', quoted_days: 'Estimated days', quote_amount: 'Total quote' },
+    confirmArg: { engineer_id: 'Engineer ID', demand_id: 'Project ID', message: 'Your note', quoted_rate: 'Your rate', quoted_days: 'Estimated days', quote_amount: 'Total quote', content: 'Message' },
     confirmBtn: 'Confirm', confirming: 'Working…', confirmedBtn: 'Done ✓',
     confirmDone: '<b>✅ Done.</b>',
     confirmFail: '<span style="color:#ef4444;">Could not complete that. Please try again.</span>',
@@ -40,9 +40,9 @@ const DICT = {
     loginNeeded: `请先以雇主身份登录后再发布草稿。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">去登录</a>`,
     publishFail: '<span style="color:#ef4444;">发布失败，请稍后再试。</span>',
     confirmTitle: '执行前请确认',
-    confirmTool: { apply_to_demand: '投递这个项目', publish_demand_draft: '发布这份草稿', assign_engineer: '指派这位工程师' },
+    confirmTool: { apply_to_demand: '投递这个项目', publish_demand_draft: '发布这份草稿', assign_engineer: '指派这位工程师', send_project_message: '发送这条消息' },
     confirmNote: { assign_engineer: '项目将开始执行，其余待处理的申请会被一并拒绝。', publish_demand_draft: '发布后全站工程师都能看到并投递。' },
-    confirmArg: { engineer_id: '工程师编号', demand_id: '项目编号', message: '附言', quoted_rate: '报价费率', quoted_days: '预计工期（天）', quote_amount: '报价总额' },
+    confirmArg: { engineer_id: '工程师编号', demand_id: '项目编号', message: '附言', quoted_rate: '报价费率', quoted_days: '预计工期（天）', quote_amount: '报价总额', content: '消息内容' },
     confirmBtn: '确认执行', confirming: '处理中…', confirmedBtn: '已完成 ✓',
     confirmDone: '<b>✅ 已完成。</b>',
     confirmFail: '<span style="color:#ef4444;">操作未能完成，请重试。</span>',
@@ -61,9 +61,9 @@ const DICT = {
     loginNeeded: `Inicia sesión como empleador para publicar este borrador.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Iniciar sesión</a>`,
     publishFail: '<span style="color:#ef4444;">Error al publicar. Intenta de nuevo.</span>',
     confirmTitle: 'Confirme antes de que lo haga',
-    confirmTool: { apply_to_demand: 'Postularse a este proyecto', publish_demand_draft: 'Publicar este borrador', assign_engineer: 'Asignar a este ingeniero' },
+    confirmTool: { apply_to_demand: 'Postularse a este proyecto', publish_demand_draft: 'Publicar este borrador', assign_engineer: 'Asignar a este ingeniero', send_project_message: 'Enviar este mensaje' },
     confirmNote: { assign_engineer: 'El proyecto inicia y se rechazan todas las demás postulaciones pendientes.', publish_demand_draft: 'Una vez publicado, todos los ingenieros podrán verlo y postularse.' },
-    confirmArg: { engineer_id: 'ID del ingeniero', demand_id: 'ID del proyecto', message: 'Su nota', quoted_rate: 'Su tarifa', quoted_days: 'Días estimados', quote_amount: 'Monto cotizado' },
+    confirmArg: { engineer_id: 'ID del ingeniero', demand_id: 'ID del proyecto', message: 'Su nota', quoted_rate: 'Su tarifa', quoted_days: 'Días estimados', quote_amount: 'Monto cotizado', content: 'Mensaje' },
     confirmBtn: 'Confirmar', confirming: 'Procesando…', confirmedBtn: 'Listo ✓',
     confirmDone: '<b>✅ Listo.</b>',
     confirmFail: '<span style="color:#ef4444;">No se pudo completar. Intente de nuevo.</span>',
@@ -82,9 +82,9 @@ const DICT = {
     loginNeeded: `Vui lòng đăng nhập với tư cách nhà tuyển dụng để đăng bản nháp này.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Đăng nhập</a>`,
     publishFail: '<span style="color:#ef4444;">Đăng thất bại. Vui lòng thử lại.</span>',
     confirmTitle: 'Xác nhận trước khi tôi thực hiện',
-    confirmTool: { apply_to_demand: 'Ứng tuyển dự án này', publish_demand_draft: 'Đăng bản nháp này', assign_engineer: 'Chỉ định kỹ sư này' },
+    confirmTool: { apply_to_demand: 'Ứng tuyển dự án này', publish_demand_draft: 'Đăng bản nháp này', assign_engineer: 'Chỉ định kỹ sư này', send_project_message: 'Gửi tin nhắn này' },
     confirmNote: { assign_engineer: 'Dự án sẽ bắt đầu và mọi hồ sơ ứng tuyển đang chờ khác sẽ bị từ chối.', publish_demand_draft: 'Sau khi đăng, mọi kỹ sư trên nền tảng đều thấy và có thể ứng tuyển.' },
-    confirmArg: { engineer_id: 'Mã kỹ sư', demand_id: 'Mã dự án', message: 'Lời nhắn của bạn', quoted_rate: 'Đơn giá của bạn', quoted_days: 'Số ngày dự kiến', quote_amount: 'Tổng báo giá' },
+    confirmArg: { engineer_id: 'Mã kỹ sư', demand_id: 'Mã dự án', message: 'Lời nhắn của bạn', quoted_rate: 'Đơn giá của bạn', quoted_days: 'Số ngày dự kiến', quote_amount: 'Tổng báo giá', content: 'Nội dung tin nhắn' },
     confirmBtn: 'Xác nhận', confirming: 'Đang xử lý…', confirmedBtn: 'Hoàn tất ✓',
     confirmDone: '<b>✅ Hoàn tất.</b>',
     confirmFail: '<span style="color:#ef4444;">Không thể hoàn tất. Vui lòng thử lại.</span>',
@@ -103,9 +103,9 @@ const DICT = {
     loginNeeded: `इस ड्राफ्ट को प्रकाशित करने के लिए कृपया नियोक्ता के रूप में साइन इन करें।<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">साइन इन</a>`,
     publishFail: '<span style="color:#ef4444;">प्रकाशन विफल। कृपया पुनः प्रयास करें।</span>',
     confirmTitle: 'करने से पहले पुष्टि करें',
-    confirmTool: { apply_to_demand: 'इस प्रोजेक्ट के लिए अप्लाई करें', publish_demand_draft: 'यह ड्राफ्ट प्रकाशित करें', assign_engineer: 'इस इंजीनियर को असाइन करें' },
+    confirmTool: { apply_to_demand: 'इस प्रोजेक्ट के लिए अप्लाई करें', publish_demand_draft: 'यह ड्राफ्ट प्रकाशित करें', assign_engineer: 'इस इंजीनियर को असाइन करें', send_project_message: 'यह संदेश भेजें' },
     confirmNote: { assign_engineer: 'प्रोजेक्ट शुरू हो जाएगा और बाकी सभी पेंडिंग एप्लिकेशन रिजेक्ट हो जाएंगी।', publish_demand_draft: 'प्रकाशित होने के बाद प्लेटफ़ॉर्म के सभी इंजीनियर इसे देख और अप्लाई कर सकेंगे।' },
-    confirmArg: { engineer_id: 'इंजीनियर ID', demand_id: 'प्रोजेक्ट ID', message: 'आपका संदेश', quoted_rate: 'आपकी दर', quoted_days: 'अनुमानित दिन', quote_amount: 'कुल कोट' },
+    confirmArg: { engineer_id: 'इंजीनियर ID', demand_id: 'प्रोजेक्ट ID', message: 'आपका संदेश', quoted_rate: 'आपकी दर', quoted_days: 'अनुमानित दिन', quote_amount: 'कुल कोट', content: 'संदेश' },
     confirmBtn: 'पुष्टि करें', confirming: 'प्रोसेस हो रहा है…', confirmedBtn: 'हो गया ✓',
     confirmDone: '<b>✅ हो गया।</b>',
     confirmFail: '<span style="color:#ef4444;">पूरा नहीं हो सका। कृपया फिर कोशिश करें।</span>',
@@ -124,9 +124,9 @@ const DICT = {
     loginNeeded: `Connectez-vous en tant qu'employeur pour publier ce brouillon.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Connexion</a>`,
     publishFail: '<span style="color:#ef4444;">Échec de la publication. Veuillez réessayer.</span>',
     confirmTitle: 'Confirmez avant que je le fasse',
-    confirmTool: { apply_to_demand: 'Postuler à ce projet', publish_demand_draft: 'Publier ce brouillon', assign_engineer: 'Affecter cet ingénieur' },
+    confirmTool: { apply_to_demand: 'Postuler à ce projet', publish_demand_draft: 'Publier ce brouillon', assign_engineer: 'Affecter cet ingénieur', send_project_message: 'Envoyer ce message' },
     confirmNote: { assign_engineer: 'Le projet démarre et toutes les autres candidatures en attente sont rejetées.', publish_demand_draft: 'Une fois publié, tous les ingénieurs de la plateforme peuvent le voir et postuler.' },
-    confirmArg: { engineer_id: 'ID de l’ingénieur', demand_id: 'ID du projet', message: 'Votre message', quoted_rate: 'Votre taux', quoted_days: 'Jours estimés', quote_amount: 'Montant total' },
+    confirmArg: { engineer_id: 'ID de l’ingénieur', demand_id: 'ID du projet', message: 'Votre message', quoted_rate: 'Votre taux', quoted_days: 'Jours estimés', quote_amount: 'Montant total', content: 'Message' },
     confirmBtn: 'Confirmer', confirming: 'Traitement…', confirmedBtn: 'Terminé ✓',
     confirmDone: '<b>✅ Terminé.</b>',
     confirmFail: '<span style="color:#ef4444;">Impossible de terminer. Veuillez réessayer.</span>',
@@ -145,9 +145,9 @@ const DICT = {
     loginNeeded: `Bitte melden Sie sich als Arbeitgeber an, um diesen Entwurf zu veröffentlichen.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">Anmelden</a>`,
     publishFail: '<span style="color:#ef4444;">Veröffentlichung fehlgeschlagen. Bitte erneut versuchen.</span>',
     confirmTitle: 'Bitte bestätigen Sie, bevor ich das ausführe',
-    confirmTool: { apply_to_demand: 'Auf dieses Projekt bewerben', publish_demand_draft: 'Diesen Entwurf veröffentlichen', assign_engineer: 'Diesen Ingenieur beauftragen' },
+    confirmTool: { apply_to_demand: 'Auf dieses Projekt bewerben', publish_demand_draft: 'Diesen Entwurf veröffentlichen', assign_engineer: 'Diesen Ingenieur beauftragen', send_project_message: 'Diese Nachricht senden' },
     confirmNote: { assign_engineer: 'Das Projekt startet und alle übrigen offenen Bewerbungen werden abgelehnt.', publish_demand_draft: 'Nach der Veröffentlichung können alle Ingenieure es sehen und sich bewerben.' },
-    confirmArg: { engineer_id: 'Ingenieur-ID', demand_id: 'Projekt-ID', message: 'Ihre Nachricht', quoted_rate: 'Ihr Satz', quoted_days: 'Geschätzte Tage', quote_amount: 'Gesamtangebot' },
+    confirmArg: { engineer_id: 'Ingenieur-ID', demand_id: 'Projekt-ID', message: 'Ihre Nachricht', quoted_rate: 'Ihr Satz', quoted_days: 'Geschätzte Tage', quote_amount: 'Gesamtangebot', content: 'Nachricht' },
     confirmBtn: 'Bestätigen', confirming: 'Wird verarbeitet…', confirmedBtn: 'Erledigt ✓',
     confirmDone: '<b>✅ Erledigt.</b>',
     confirmFail: '<span style="color:#ef4444;">Konnte nicht abgeschlossen werden. Bitte erneut versuchen.</span>',
@@ -166,9 +166,9 @@ const DICT = {
     loginNeeded: `このドラフトを公開するには、雇用主としてサインインしてください。<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">サインイン</a>`,
     publishFail: '<span style="color:#ef4444;">公開に失敗しました。もう一度お試しください。</span>',
     confirmTitle: '実行前にご確認ください',
-    confirmTool: { apply_to_demand: 'この案件に応募する', publish_demand_draft: 'このドラフトを公開する', assign_engineer: 'このエンジニアをアサインする' },
+    confirmTool: { apply_to_demand: 'この案件に応募する', publish_demand_draft: 'このドラフトを公開する', assign_engineer: 'このエンジニアをアサインする', send_project_message: 'このメッセージを送信する' },
     confirmNote: { assign_engineer: '案件が開始され、他の応募はすべて不採用になります。', publish_demand_draft: '公開すると、プラットフォーム上のすべてのエンジニアが閲覧・応募できます。' },
-    confirmArg: { engineer_id: 'エンジニアID', demand_id: '案件ID', message: 'メッセージ', quoted_rate: '希望単価', quoted_days: '想定日数', quote_amount: '見積総額' },
+    confirmArg: { engineer_id: 'エンジニアID', demand_id: '案件ID', message: 'メッセージ', quoted_rate: '希望単価', quoted_days: '想定日数', quote_amount: '見積総額', content: 'メッセージ本文' },
     confirmBtn: '確認して実行', confirming: '処理中…', confirmedBtn: '完了 ✓',
     confirmDone: '<b>✅ 完了しました。</b>',
     confirmFail: '<span style="color:#ef4444;">実行できませんでした。もう一度お試しください。</span>',
@@ -187,9 +187,9 @@ const DICT = {
     loginNeeded: `이 초안을 게시하려면 고용주로 로그인하세요.<br/><a href="/login?next=%2Ffinance" style="${LINK_BTN}">로그인</a>`,
     publishFail: '<span style="color:#ef4444;">게시 실패. 다시 시도해 주세요.</span>',
     confirmTitle: '실행 전에 확인해 주세요',
-    confirmTool: { apply_to_demand: '이 프로젝트에 지원하기', publish_demand_draft: '이 초안 게시하기', assign_engineer: '이 엔지니어 배정하기' },
+    confirmTool: { apply_to_demand: '이 프로젝트에 지원하기', publish_demand_draft: '이 초안 게시하기', assign_engineer: '이 엔지니어 배정하기', send_project_message: '이 메시지 보내기' },
     confirmNote: { assign_engineer: '프로젝트가 시작되고 다른 대기 중인 지원은 모두 거절됩니다.', publish_demand_draft: '게시하면 플랫폼의 모든 엔지니어가 보고 지원할 수 있습니다.' },
-    confirmArg: { engineer_id: '엔지니어 ID', demand_id: '프로젝트 ID', message: '메시지', quoted_rate: '희망 요율', quoted_days: '예상 일수', quote_amount: '견적 총액' },
+    confirmArg: { engineer_id: '엔지니어 ID', demand_id: '프로젝트 ID', message: '메시지', quoted_rate: '희망 요율', quoted_days: '예상 일수', quote_amount: '견적 총액', content: '메시지 내용' },
     confirmBtn: '확인 후 실행', confirming: '처리 중…', confirmedBtn: '완료 ✓',
     confirmDone: '<b>✅ 완료되었습니다.</b>',
     confirmFail: '<span style="color:#ef4444;">완료하지 못했습니다. 다시 시도해 주세요.</span>',
@@ -421,9 +421,13 @@ export default function ChatBot({ lang = 'en' }) {
                     {t.confirmNote[m.confirm.tool]}
                   </div>
                 )}
+                {/* 上限 2000 = 所有工具自由文本参数的 maxLength，也就是这里【永远不会截断】。
+                    确认卡是 confirm 层唯一的防线：用户点确认前必须看到将要发出去的完整内容。
+                    原来截到 200 字，send_project_message 的正文（≤2000 字）会被悄悄切掉一截，
+                    用户确认的与实际发出的就不是同一份东西了。pre-wrap 保留换行，长正文照样可读。 */}
                 {Object.entries(m.confirm.args || {}).map(([k, v]) => (
-                  <div key={k} style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
-                    {t.confirmArg[k] || k}: {String(v).slice(0, 200)}
+                  <div key={k} style={{ fontSize: 12, opacity: 0.85, marginTop: 2, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {t.confirmArg[k] || k}: {String(v).slice(0, 2000)}
                   </div>
                 ))}
                 <button

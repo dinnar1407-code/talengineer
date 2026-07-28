@@ -26,13 +26,24 @@ function allRegisteredTools() {
   return [...byName.values()];
 }
 
+// ── G3 名字扫描的显式豁免名单 ────────────────────────────────────────────────
+// 名字扫描原本的含义是"注册表里不存在任何外发工具"。send_project_message 有意打破了它：
+// 那【就是】一个裸的发消息能力，Terry 2026-07-27 拍板加的，防线改由确认卡承担
+// （用户看过完整参数——包括整段正文——亲手点确认才发得出去），并明确不加内容/关键词过滤。
+//
+// 为什么用豁免名单而不是放宽正则：放宽正则等于把这道网整个撤掉，下一个 notify_xxx /
+// send_xxx 工具就会毫无阻力地混进来。留一个只有一项的名单，新增外发工具仍然会打红，
+// 要放行必须同样走一次产品拍板并在这里显式登记——绊线还在，只是记名放行了一个。
+const OUTBOUND_NAME_ALLOWLIST = new Set(['send_project_message']);
+
 describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工具永不存在）', () => {
   const tools = allRegisteredTools();
 
   // 精确数字是有意的绊线：加工具必须顺手改这里，逼你重读一遍下面几条红线再决定 tier。
-  // 10（Phase 1）→ 13（Wave B）→ 17（Wave C 加了 publish_demand_draft / assign_engineer / get_platform_stats / list_pending_kyc）
+  // 10（Phase 1）→ 13（Wave B）→ 17（Wave C 加了 publish_demand_draft / assign_engineer /
+  // get_platform_stats / list_pending_kyc）→ 18（2026-07-27 加了 send_project_message）
   it('注册表规模符合预期（改动数量必须是有意识的）', () => {
-    assert.equal(tools.length, 17);
+    assert.equal(tools.length, 18);
   });
 
   it('G2：不存在资金类工具名（注资/放款/退款/托管转账）', () => {
@@ -58,10 +69,23 @@ describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工�
     }
   });
 
-  it('G3：不存在外发类工具名（邮件/推送/SMS/通知/邀约）', () => {
+  it('G3：不存在外发类工具名（邮件/推送/SMS/通知/邀约），豁免名单除外', () => {
     const outboundPattern = /(send|email|mail|sms|push|notify|notification|broadcast|invite|outreach)/i;
     for (const t of tools) {
-      assert.equal(outboundPattern.test(t.name), false, `外发类工具名不允许存在: ${t.name}`);
+      if (OUTBOUND_NAME_ALLOWLIST.has(t.name)) continue;
+      assert.equal(outboundPattern.test(t.name), false,
+        `外发类工具名不允许存在: ${t.name}（确需放行请走产品拍板并登记进 OUTBOUND_NAME_ALLOWLIST）`);
+    }
+  });
+
+  it('豁免名单本身不许长草：每一项都必须真的注册着，且必须是 confirm 层 + 声明了外发', () => {
+    // 名单只有登记作用，没有豁免"外发必须过人手"这条。工具被删掉后名单也要跟着清，
+    // 否则会留下一个谁都不认识的名字，下次有人拿它当"这类工具本来就允许"的先例。
+    for (const name of OUTBOUND_NAME_ALLOWLIST) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `豁免名单里的 ${name} 并未注册，请从名单里删掉`);
+      assert.equal(tool.tier, 'confirm', `${name} 被豁免了名字扫描，就更必须是 confirm 层`);
+      assert.ok((tool.sideEffects || []).length > 0, `${name} 必须显式声明外发副作用`);
     }
   });
 });
@@ -74,7 +98,7 @@ describe('写面收口：分层纪律（Wave B 起 G2 由 tier 体系承担）',
   // 意义在于静态可扫：registry 不暴露 handler，外部只能看名字，所以写操作必须用写动词
   // 开头才逃不过扫描；反过来带写动词却标成 read 的，就是漏标 tier（会绕过 write-ahead 审计）。
   it('写动词工具集合 === 非 read 层工具集合（两边对不上就是 tier 标错了）', () => {
-    const writeVerb = /^(create|update|delete|remove|set|write|insert|add|post|submit|publish|assign|approve|reject|cancel|upsert|apply)_/i;
+    const writeVerb = /^(create|update|delete|remove|set|write|insert|add|post|submit|publish|assign|approve|reject|cancel|upsert|apply|send)_/i;
     const byName = tools.filter((t) => writeVerb.test(t.name)).map((t) => t.name).sort();
     const byTier = tools.filter((t) => t.tier !== 'read').map((t) => t.name).sort();
     assert.deepEqual(byName, byTier);
@@ -109,9 +133,14 @@ describe('写面收口：分层纪律（Wave B 起 G2 由 tier 体系承担）',
     for (const t of confirmTools) {
       // 用该工具自己允许的角色调用，否则会先被角色门挡掉，测不到分流这一层
       const role = t.roles.find((r) => r !== 'public') || 'employer';
-      // 覆盖所有必填参数：参数校验不过同样走不到分流，会得到假绿
+      // 覆盖所有必填参数：参数校验不过同样走不到分流（会先撞 Invalid arguments），会得到假绿。
+      // 占位值必须按声明类型给——早先一律给 1，字符串参数一进来就静默失效了。
       const args = {};
-      for (const key of t.parameters.required || []) args[key] = 1;
+      for (const key of t.parameters.required || []) {
+        const type = t.parameters.properties?.[key]?.type;
+        const kind = Array.isArray(type) ? type[0] : type;
+        args[key] = kind === 'string' ? 'x' : kind === 'boolean' ? true : 1;
+      }
       const res = await registry.call(t.name, args, {
         user: { userId: 1, email: 'e@x.com', role },
         // supabase 故意给一个会炸的对象：真执行了就会抛错暴露出来，
