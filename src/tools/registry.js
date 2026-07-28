@@ -216,7 +216,9 @@ async function call(name, args, ctx = {}) {
     //
     // 只卡"因为 admin 才被放行"的工具：public 层工具 admin 照常可用，不需要第二因子。
     // 位置必须在 tier 分流【之前】——read 层有 early return，放到后面等于只保护写工具，
-    // 而现存的两个 admin 工具（get_platform_stats / list_pending_kyc）恰好都是 read。
+    // 而 admin 工具里有一半是 read（get_platform_stats / list_pending_kyc /
+    // list_pipeline_leads），那样它们会整批漏在门外。放在这里，新加的 admin 工具无论
+    // 哪一层都自动继承这道门（回归测试见 tests/toolsRegistry.test.js 的 2FA 套件）。
     const admittedAsAdmin = role === 'admin' && !tool.roles.includes('public');
     if (admittedAsAdmin && ctx.user?.adm2fa !== true) {
       return {

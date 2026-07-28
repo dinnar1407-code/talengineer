@@ -1,11 +1,35 @@
-// ── 写工具（7 个：3 个 T1 write + 4 个 T2 confirm）───────────────────────────
+// ── 写工具（9 个：5 个 T1 write + 4 个 T2 confirm）───────────────────────────
 // 通用约束同 readTools.js 顶部注释（ctx 形状 / G1 身份 scope / 错误处理）。
 // 分层含义与红线见 src/tools/registry.js 的 VALID_TIERS 注释——简言之：
 //   write   可逆、只动自己的东西 → 直接执行 + write-ahead 审计
 //   confirm 有对外后果、收不回来 → agent 只能提案，用户点确认才执行
 // 注册表里永远不会有资金/发证/纠纷裁决/封号类工具，那条红线不随本文件增长而松动。
+//
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║ 永久不可入册的 admin 端点（2026-07-27 全量审计 9 个 admin 写端点后定稿） ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+// 这段放在本文件头，是因为下一个人要加"能改东西的 admin 工具"时，第一个打开的就是
+// 这里（read 层的 admin 工具只会读，从来不是问题）。边界在他动手之前就已经画好。
+// 以下七个端点【永远不做成工具，连确认卡也不行】——不是"暂缓"，是不提供这个能力：
+//
+//   1. PUT  /api/admin/demands/:id/fee     设定平台抽佣比例 —— 资金。
+//   2. PUT  /api/disputes/:id/resolve      纠纷裁决，经 Stripe 真的搬钱 —— 资金 + 裁决。
+//   3. PUT  /api/certifications/:id/review  外部资质核验 —— 发证。
+//   4. POST /api/training/admin/:id/review  写 platform_certifications —— 发证。
+//   5. PUT  /api/admin/kyc/:userId         企业实名通过/驳回 —— 合规裁决，驳回=不能开工。
+//   6. PUT  /api/bgcheck/admin/:id         背调通过/失败（'failed' 不写 expires_at，永久）。
+//   7. POST /api/tax/admin/:id/review      W-9 受理/驳回 —— 驳回=收不到钱。
+//
+// 5/6/7 是对【真实的人】的合规裁决：一次驳回就让人无法开工或无法收款，与封号同一族。
+// 它们还有最糟糕的提示词注入形状——agent 要读的材料正是由"希望被通过的那一方"提交的，
+// 一句藏在备注里的指令就可能换来一个通过。排除它们是有意为之，不是漏了。
+// （只读镜像不在此列：list_pending_kyc 就是只读的，看得见、批不了。）
+//
+// 同理不做：DELETE /api/pipeline/:id 的删除工具——删除不可逆，而真实工作流是把线索
+// 推进到 stage='lost'（记录还在、能复盘）。删除留在 UI 上由人手点。
 const { register } = require('./registry');
 const { sendMessage, MAX_CONTENT_LENGTH } = require('../services/messageService');
+const { STAGES, PATCHABLE_FIELDS, createLead, updateLead } = require('../services/pipelineService');
 
 // ── 10. create_demand_draft（employer）───────────────────────────────────────
 // 实现要点：
@@ -552,5 +576,124 @@ register({
       message_id: message?.id ?? null,
       sent: true,
     };
+  },
+});
+
+// ── 17/18. 撮合看板 create/update_pipeline_lead（admin，T1 可逆写）────────────
+// 为什么是 write 而不是 confirm——这是本批最需要讲清楚的一条：
+// 改的是【平台自己的内部销售线索笔记】（matchmaking_pipeline，迁移 020，人工撮合 PMF
+// 实验的看板）。没有任何平台用户受影响，不发任何东西给任何人，写错了再改回来就是了。
+// 按 registry 的分层定义（VALID_TIERS 注释）这就是 write：直接执行 + write-ahead 审计。
+// 因此两者都【不声明 sideEffects】。
+// 反过来说：给每条 CRM 备注配一张确认卡，会把"边聊边记"这件事本身毁掉（对话价值全在
+// 顺手），却换不来任何安全性——被改坏的只有平台自己的笔记，而且每一次改动都在
+// agent_actions 里留着账。真正有后果的 admin 动作在本文件头部的红线里，一个都不入册。
+//
+// 访问控制不在这里实现：roles:['admin'] 之外，registry.call 还强制 ctx.user.adm2fa===true
+// （与后台 TOTP 同一条杠），普通登录签出的 admin 令牌调不动这两个工具。
+
+register({
+  name: 'create_pipeline_lead',
+  description:
+    'Add a company to the internal matchmaking pipeline board (the platform\'s own admin-only '
+    + 'sales-lead notes). The new lead always starts at stage "lead". Nothing is sent to the '
+    + 'company — this only writes an internal note.',
+  parameters: {
+    type: 'object',
+    properties: {
+      company: { type: 'string', minLength: 1, maxLength: 200, description: 'Company name for this lead.' },
+      line: {
+        type: 'string',
+        enum: ['cn', 'us'],
+        description: 'Which line this lead belongs to: "cn" (Chinese manufacturers going abroad) or "us" (US domestic). Defaults to "cn".',
+      },
+      // ⚠️ 列名叫 contact，参数【不能】也叫 contact：registry 的 G1 机械防线
+      // （FORBIDDEN_PARAM_NAMES）在注册期就会把 contact 判成"调用方自报身份"并拒绝注册。
+      // 这里存的其实是【客户公司那边的】联系人，与调用者身份毫无关系，但那道正则是机械的，
+      // 按 G1 注记的要求改名而不是放宽正则——放宽一次，真正的身份字段下次就混进来了。
+      contact_person: {
+        type: 'string',
+        maxLength: 200,
+        description: 'Who to talk to at that company (name and/or how to reach them). Stored in the board\'s contact column.',
+      },
+      note: { type: 'string', maxLength: 4000, description: 'Free-form internal note about this lead.' },
+    },
+    required: ['company'],
+  },
+  roles: ['admin'],
+  tier: 'write',
+  handler: async (args, ctx) => createLead({
+    supabase: ctx.supabase,
+    company: args.company,
+    line: args.line,
+    contact: args.contact_person, // 参数名 → 列名的唯一映射点（改名理由见上）
+    note: args.note,
+  }),
+});
+
+register({
+  name: 'update_pipeline_lead',
+  description:
+    'Update one lead on the internal matchmaking pipeline board: move it to another stage, '
+    + 'edit the internal note or next action, or link/unlink a project. '
+    + 'ONLY the fields you actually pass are changed — anything you leave out keeps its current '
+    + 'value. To deliberately clear a field, pass it as an empty string. '
+    + 'Leads are never deleted; a lead that goes nowhere is moved to stage "lost".',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: { type: 'integer', minimum: 1, description: 'Which lead to update (id from list_pipeline_leads).' },
+      stage: { type: 'string', enum: STAGES, description: 'Move the lead to this stage.' },
+      // ── 部分更新语义怎么在 schema 里表达 ────────────────────────────────────
+      // 三种意图必须彼此可分，而且不能靠 null（本 schema 里根本没有 null 这个类型，
+      // 见下方 demand_id 注释）：
+      //   不传这个键        → 该列不动（zod 对缺省 optional 不会造键；服务层再用
+      //                        `!== undefined` 兜一道，两种形状都安全）
+      //   传空串 ''         → 显式清空成 NULL（服务层 `x || null`，与路由逐字同源）
+      //   传有内容的字符串   → 写入
+      // 所以这几个字段【绝不能】加 minLength:1——加了就再也表达不出"清空"，
+      // 模型只能改成别的内容或者干脆不动它。
+      note: { type: 'string', maxLength: 4000, description: 'Internal note. Empty string clears it.' },
+      next_action: { type: 'string', maxLength: 500, description: 'What to do next. Empty string clears it.' },
+      next_action_at: {
+        type: 'string',
+        maxLength: 40,
+        description: 'When to do it, ISO 8601 (e.g. "2026-08-01T09:00:00Z"). Empty string clears it.',
+      },
+      // demand_id 同时收整数与字符串，与路由的 Number(demand_id) 一致（路由本来就接受
+      // "5" 这种字符串），并让空串 '' 表达"解除关联"。为什么不用 type:['integer','null']：
+      // registry 的 JSON Schema→zod 转换没有 'null' 分支，会退化成 z.any()，等于整个字段
+      // 不再校验——为了表达一个"清空"把类型校验整个废掉，代价远大于收益。
+      //
+      // ⚠️ union 里【string 必须排在前面】，且不能带 minimum：agentService 的
+      // toGeminiSchema 不支持 union，一律取 value[0] 降级（见那里的注释），所以模型看到的
+      // 就是第一项。写成 ['integer','string'] + minimum:1 的话，模型拿到的是
+      // "integer, minimum 1"——它根本发不出 '' 这个值，"解除关联"在对话里就是死路一条，
+      // 而这恰恰是这批工具存在的意义。仓库里其他 union（如 budget:['string','number']）
+      // 也都是把宽松那一项放在前面，同一个道理。
+      // 顺带：maxLength 挂在 integer 上是全注册表唯一一处类型/约束错配，而 Gemini v1beta
+      // 对非法键是整个请求 400（不是忽略该字段）——那会打挂 admin 的每一轮对话，不止这个工具。
+      // 数值合法性不靠 schema：0/-3/2.5 由 pipelineService 拒掉，错误文案还更像人话。
+      demand_id: {
+        type: ['string', 'integer'],
+        maxLength: 20,
+        description: 'Link this lead to a project id. Empty string unlinks it.',
+      },
+    },
+    required: ['id'],
+  },
+  roles: ['admin'],
+  tier: 'write',
+  handler: async (args, ctx) => {
+    // 工具侧前置条件（与 update_my_profile / update_demand_draft 同款）：一个字段都没给
+    // 就别浪费一次审计写入 + 一次 UPDATE 去空转 updated_at。注意这【不是】部分更新逻辑
+    // 的一部分——patch 怎么建仍然只有 pipelineService.buildUpdatePatch 一份实现，
+    // 这里只判断"你到底想改什么"。
+    if (!PATCHABLE_FIELDS.some((k) => args[k] !== undefined)) {
+      throw new Error('Tell me what to change on that lead (stage, note, next action, when, or which project it is linked to).');
+    }
+    // args 整个交给服务层：**键的有无就是意图**。在这里先解构再重组，正是把
+    // "没传"变成 "undefined→null" 的那一步——所以这里一个字段都不摘。
+    return updateLead({ supabase: ctx.supabase, id: args.id, fields: args });
   },
 });

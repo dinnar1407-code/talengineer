@@ -1,4 +1,4 @@
-// ── 只读工具（8 个：Phase 1 首批 6 个 + Wave C 的两个 admin 报表工具）──────────
+// ── 只读工具（9 个：Phase 1 首批 6 个 + Wave C 的两个 admin 报表工具 + 撮合看板列表）──
 // 本文件只定义 {name, description, parameters, roles} 元数据（已定稿，实现者勿改形状）
 // + handler 桩（throw NOT_IMPLEMENTED，由实现 agent 填充）。
 // 每个 handler 的实现要点写在工具定义上方注释里——那是契约的一部分。
@@ -12,6 +12,7 @@ const { register } = require('./registry');
 const { getValidCertifications } = require('../services/certService');
 const { assertDemandParticipant } = require('../middleware/ownership');
 const TRAINING = require('../config/training');
+const { STAGES, listLeads } = require('../services/pipelineService');
 
 // 公开工程师字段白名单——照抄 src/routes/entV1.js 的 PUBLIC_TALENT_FIELDS（PII 脱敏思路一致）：
 // 绝不泄露 contact(邮箱)/stripe_account_id/user_id 等敏感列。
@@ -461,5 +462,43 @@ register({
       throw new Error('Could not load KYC submissions. Please try again.');
     }
     return { status: args.status || 'pending', count: (data || []).length, submissions: data || [] };
+  },
+});
+
+// ── 16. list_pipeline_leads（admin，只读）────────────────────────────────────
+// 镜像 GET /api/pipeline，逻辑共用 services/pipelineService.js 的 listLeads——
+// 白名单与取数口径永远只有一份（详见该文件头注释）。
+//
+// 这张表（matchmaking_pipeline，迁移 020）是平台自己的内部销售笔记，不是任何用户的
+// 数据：人工撮合 PMF 实验里 admin 手工推进的线索板。返回整行（含内部备注 note /
+// 下一步 next_action）是本工具的全部意义，且只对 admin 可见——RLS deny-all，
+// 唯一到达路径是服务端 service key，入口再由 roles:['admin'] + registry 的 2FA 门把住。
+//
+// stage 参数用 enum: STAGES（服务层同一个数组）而不是自由字符串：路由那边非法 stage
+// 是【被忽略、返回全部】的（前端笔误不该给出空看板），可同一份宽松放到模型身上就危险了——
+// 模型问 "signd" 会静默拿到全量看板，然后当成"signed 这一列"汇报给用户。schema 层
+// 直接报错，模型才知道自己拼错了。服务层的忽略逻辑仍在，两层互不冲突。
+register({
+  name: 'list_pipeline_leads',
+  description:
+    'List the internal matchmaking pipeline board — the platform\'s own admin-only sales leads '
+    + 'for the manual-matchmaking experiment (company, contact, stage, notes, next action). '
+    + 'Read-only. Optionally filter by stage.',
+  parameters: {
+    type: 'object',
+    properties: {
+      stage: {
+        type: 'string',
+        enum: STAGES,
+        description: 'Only return leads in this stage. Omit to get the whole board.',
+      },
+    },
+    required: [],
+  },
+  roles: ['admin'],
+  tier: 'read',
+  handler: async (args, ctx) => {
+    const leads = await listLeads({ supabase: ctx.supabase, stage: args.stage });
+    return { stage: args.stage || null, count: leads.length, leads };
   },
 });

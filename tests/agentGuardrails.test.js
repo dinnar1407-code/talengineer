@@ -42,8 +42,10 @@ describe('G2/G3 注册表静态扫描（红线：资金/发证/裁决/外发工�
   // 精确数字是有意的绊线：加工具必须顺手改这里，逼你重读一遍下面几条红线再决定 tier。
   // 10（Phase 1）→ 13（Wave B）→ 17（Wave C 加了 publish_demand_draft / assign_engineer /
   // get_platform_stats / list_pending_kyc）→ 18（2026-07-27 加了 send_project_message）
+  // → 21（2026-07-27 撮合看板三件套：list/create/update_pipeline_lead，全部 admin；
+  //   同批次审计过的 7 个 admin 写端点【永久不入册】，名单在 src/tools/writeTools.js 头部）
   it('注册表规模符合预期（改动数量必须是有意识的）', () => {
-    assert.equal(tools.length, 18);
+    assert.equal(tools.length, 21);
   });
 
   it('G2：不存在资金类工具名（注资/放款/退款/托管转账）', () => {

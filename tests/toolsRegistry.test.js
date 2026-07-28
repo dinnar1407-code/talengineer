@@ -59,11 +59,13 @@ describe('工具注册表：G1 静态检查（参数 schema 无身份字段）',
   // Wave B 变化：employer 9→10（+update_demand_draft）、engineer 6→8（+update_my_profile
   // +apply_to_demand）。public 保持 4——未登录永远只看得到只读工具，这条别动。
   // 2026-07-27：employer 12→13、engineer 8→9（+send_project_message，线程两端都可用）。
-  it('角色可见性符合契约：public=4、employer=13、engineer=9、admin=10', () => {
+  // 2026-07-27：admin 10→13（+撮合看板三件套 list/create/update_pipeline_lead）——
+  // 只加在 admin 一侧，其余三个角色的可见面必须一个都没动。
+  it('角色可见性符合契约：public=4、employer=13、engineer=9、admin=13', () => {
     assert.equal(registry.list('public').length, 4);
     assert.equal(registry.list('employer').length, 13);
     assert.equal(registry.list('engineer').length, 9);
-    assert.equal(registry.list('admin').length, 10);
+    assert.equal(registry.list('admin').length, 13);
   });
 
   it('public 视角里没有任何非 read 工具（未登录不该看见写能力）', () => {
@@ -128,9 +130,12 @@ describe('工具注册表：admin 工具要求 2FA（绕过漏洞回归）', () 
   const ADMIN_NO_2FA = { userId: 1, email: 'admin@t.com', role: 'admin' };
   const ADMIN_2FA = { userId: 1, email: 'admin@t.com', role: 'admin', adm2fa: true };
 
-  // 三个 admin 专属工具全覆盖：两个是 read 层，这点很关键——read 在 registry 里有
-  // early return，门要是放到 tier 分流之后，恰好就把这两个漏在外面。
-  for (const tool of ['get_admin_analytics', 'get_platform_stats', 'list_pending_kyc']) {
+  // admin 专属工具全覆盖：其中 read 层的那几个尤其关键——read 在 registry 里有
+  // early return，门要是放到 tier 分流之后，恰好就把它们漏在外面。
+  // 撮合看板三件套（2026-07-27 新增，含两个 write 层）一并列入：这道门必须自动覆盖
+  // 后来加的每一个 admin 工具，写在这里就是它没被落下的证据。
+  for (const tool of ['get_admin_analytics', 'get_platform_stats', 'list_pending_kyc',
+    'list_pipeline_leads', 'create_pipeline_lead', 'update_pipeline_lead']) {
     it(`${tool}：普通登录令牌（无 adm2fa）被拒`, async () => {
       const res = await registry.call(tool, {}, {
         user: ADMIN_NO_2FA,
