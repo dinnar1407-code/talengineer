@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto'); // 用于生成 Stripe 幂等键的随机后缀
+const { z } = require('zod'); // 宪法 W2：裸 req.body 必须先过形状校验再消费
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
@@ -12,6 +13,20 @@ const stripe = require('../config/stripe').getStripe();
 const { PLATFORM_FEE, feeFor } = require('../config/fees'); // 全局费率 + 单需求覆盖（founding 让利经 demands.fee_pct）
 const { sendPayout } = require('../services/payout'); // 放款 provider 抽象（stripe/manual/payoneer）
 const { settleMilestoneFunding } = require('../services/settlementService'); // 入账结算唯一实现（webhook 与 confirm-funding 共用）
+
+// ── Input validation schemas（宪法 W2：Zod 管形状，DB 管归属，两道都不能省）──────
+// id 允许数字或非空字符串：前端与企业 API 两种调用方的序列化习惯不同
+const idLike = z.union([z.number(), z.string().min(1)]);
+const fundMilestoneSchema    = z.object({ milestone_id: idLike, demand_id: idLike, phase_name: z.string().max(200).optional() });
+const releaseMilestoneSchema = z.object({ milestone_id: idLike, demand_id: idLike });
+const confirmFundingSchema   = z.object({ session_id: z.string().min(1), milestone_id: idLike });
+
+// webhook 事件 metadata 形状校验：milestone_id 必须是非空字符串（Stripe metadata 恒为字符串），
+// 形状不符视为与平台托管无关的事件，跳过处理（返回 200 received，Stripe 不重试）
+function metaMilestoneId(obj) {
+  const r = z.string().min(1).safeParse(obj?.metadata?.milestone_id);
+  return r.success ? r.data : null;
+}
 
 // ── Get platform fee rate (public) ────────────────────────────────────────────
 // 返回当前平台抽佣比例，供前端透明展示"抽佣后到手金额"。
@@ -27,11 +42,11 @@ router.get('/fee-rate', (req, res) => {
 router.post('/fund-milestone', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { milestone_id, demand_id, phase_name } = req.body;
-
-    if (!milestone_id || !demand_id) {
+    const parsed = fundMilestoneSchema.safeParse(req.body);
+    if (!parsed.success) {
       return res.status(400).json({ error: 'Missing milestone_id or demand_id' });
     }
+    const { milestone_id, demand_id, phase_name } = parsed.data;
 
     // ── Idempotency check: already funded? ──────────────────────────────────
     const { data: existing, error: fetchErr } = await supabase
@@ -117,11 +132,11 @@ router.post('/fund-milestone', requireAuth, async (req, res) => {
 router.post('/release-milestone', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { milestone_id, demand_id } = req.body;
-
-    if (!milestone_id || !demand_id) {
+    const parsed = releaseMilestoneSchema.safeParse(req.body);
+    if (!parsed.success) {
       return res.status(400).json({ error: 'Missing milestone_id or demand_id' });
     }
+    const { milestone_id, demand_id } = parsed.data;
 
     // ── Idempotency check: already released? ────────────────────────────────
     const { data: milestone, error: msErr } = await supabase
@@ -293,7 +308,10 @@ router.post('/webhook', async (req, res) => {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody || req.body, sig, secret);
+    // req.body 是 express.raw 给出的原始 Buffer（app.js 在 express.json 之前单独挂载）——
+    // 验签只能用原始字节；此处曾有 `req.rawBody ||` 回退，但 rawBody 从未被任何中间件设置，
+    // 是误导后人的死代码（会让人误以为挪走 express.raw 还有兜底），已移除。
+    event = stripe.webhooks.constructEvent(req.body, sig, secret);
   } catch (err) {
     console.error('[Webhook] Signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -303,7 +321,7 @@ router.post('/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session    = event.data.object;
-    const milestoneId = session.metadata?.milestone_id;
+    const milestoneId = metaMilestoneId(session);
 
     if (milestoneId) {
       const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
@@ -325,29 +343,39 @@ router.post('/webhook', async (req, res) => {
   // ── Payment failed ──────────────────────────────────────────────────────────
   if (event.type === 'payment_intent.payment_failed') {
     const intent      = event.data.object;
-    const milestoneId = intent.metadata?.milestone_id;
-    const demandId    = intent.metadata?.demand_id;
+    const milestoneId = metaMilestoneId(intent);
 
     if (milestoneId) {
-      await supabase
+      // 条件更新并取回真实 demand_id（宪法 W1：demands 归属以 DB 行为准，
+      // 不消费 intent.metadata.demand_id——此前本分支直接信任 metadata，与 checkout 分支双标）
+      const { data: failedRows, error: failErr } = await supabase
         .from('project_milestones')
         .update({ status: 'payment_failed' })
         .eq('id', milestoneId)
-        .eq('status', 'locked');
+        .eq('status', 'locked')
+        .select('id, demand_id');
+      // fail-closed（宪法 W1 三态）：落库失败返回 500 让 Stripe 重试，不再静默吞错
+      if (failErr) {
+        console.error(`[Webhook] Failed to mark milestone ${milestoneId} as payment_failed:`, failErr.message);
+        return res.status(500).json({ error: 'Failed to update milestone status' });
+      }
 
       console.warn(`[Webhook] Payment failed for milestone ${milestoneId}. Reason: ${intent.last_payment_error?.message}`);
-    }
 
-    if (demandId) {
-      await supabase
-        .from('demands')
-        .update({ status: 'payment_failed' })
-        .eq('id', demandId)
-        .eq('status', 'open');
-    }
+      const realDemandId = Array.isArray(failedRows) && failedRows[0] ? failedRows[0].demand_id : null;
+      if (realDemandId) {
+        const { error: demandErr } = await supabase
+          .from('demands')
+          .update({ status: 'payment_failed' })
+          .eq('id', realDemandId)
+          .eq('status', 'open');
+        if (demandErr) {
+          console.error(`[Webhook] Failed to mark demand ${realDemandId} as payment_failed:`, demandErr.message);
+          return res.status(500).json({ error: 'Failed to update demand status' });
+        }
+      }
 
-    // Notify employer
-    if (milestoneId) {
+      // Notify employer
       const { data: ms } = await supabase.from('project_milestones').select('phase_name, demand_id').eq('id', milestoneId).single();
       if (ms) {
         const { data: demand } = await supabase.from('demands').select('title, contact').eq('id', ms.demand_id).single();
@@ -361,15 +389,21 @@ router.post('/webhook', async (req, res) => {
   // ── Dispute (chargeback) created ────────────────────────────────────────────
   if (event.type === 'charge.dispute.created') {
     const dispute     = event.data.object;
-    const milestoneId = dispute.metadata?.milestone_id;
+    const milestoneId = metaMilestoneId(dispute);
 
     // Freeze any funded milestone tied to this charge
     if (milestoneId) {
-      await supabase
+      const { error: freezeErr } = await supabase
         .from('project_milestones')
         .update({ status: 'disputed' })
         .eq('id', milestoneId)
         .in('status', ['funded', 'locked']);
+      // fail-closed（宪法 W1 三态）：冻结失败必须 500 让 Stripe 重试——此前静默吞错并回 200，
+      // 拒付到达却冻结失败时里程碑仍可放款，且 Stripe 不再重试，是直接涉钱的洞
+      if (freezeErr) {
+        console.error(`[Webhook] CRITICAL: dispute arrived but failed to freeze milestone ${milestoneId}:`, freezeErr.message);
+        return res.status(500).json({ error: 'Failed to freeze disputed milestone' });
+      }
     }
 
     console.error(`[Webhook] Dispute created — charge ${dispute.charge}, amount $${(dispute.amount / 100).toFixed(2)}, reason: ${dispute.reason}`);
@@ -378,15 +412,21 @@ router.post('/webhook', async (req, res) => {
   // ── Transfer failed (engineer payout failed) ────────────────────────────────
   if (event.type === 'transfer.failed') {
     const transfer    = event.data.object;
-    const milestoneId = transfer.metadata?.milestone_id;
+    const milestoneId = metaMilestoneId(transfer);
 
     if (milestoneId) {
       // Roll back to funded so it can be retried
-      await supabase
+      const { error: rollbackErr } = await supabase
         .from('project_milestones')
         .update({ status: 'funded', stripe_transfer_id: null })
         .eq('id', milestoneId)
         .eq('status', 'released');
+      // fail-closed：回滚失败即里程碑卡在 released 但钱没到工程师手里，必须 500 让 Stripe
+      // 重试并 CRITICAL 告警（后果等同 release 路径的人工修库场景，此前这里零检查零日志）
+      if (rollbackErr) {
+        console.error(`[Webhook] CRITICAL: transfer failed but could not roll back milestone ${milestoneId} to funded:`, rollbackErr.message);
+        return res.status(500).json({ error: 'Failed to roll back milestone after transfer failure' });
+      }
     }
 
     console.error(`[Webhook] Transfer failed — ${transfer.id}, milestone ${milestoneId || 'unknown'}`);
@@ -399,8 +439,9 @@ router.post('/webhook', async (req, res) => {
 router.post('/confirm-funding', requireAuth, async (req, res) => {
   try {
     const supabase = getClient();
-    const { session_id, milestone_id } = req.body;
-    if (!session_id || !milestone_id) return res.status(400).json({ error: 'Missing params' });
+    const parsed = confirmFundingSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Missing params' });
+    const { session_id, milestone_id } = parsed.data;
 
     // 必须向 Stripe 核实该 session 真实存在且已支付，杜绝凭 milestone_id 伪造托管状态
     let session;

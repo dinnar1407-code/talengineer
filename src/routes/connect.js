@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const { z } = require('zod'); // 宪法 W2：裸 req.body 必须先过形状校验再消费
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
@@ -113,8 +114,10 @@ router.post('/instant-payout', requireAuth, async (req, res) => {
       .single();
     if (!talent?.stripe_account_id) return res.status(400).json({ error: 'No Stripe account connected.' });
 
-    const amt = parseFloat(req.body?.amount);
-    if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: 'Invalid amount.' });
+    // z.coerce.number()：接受数字或数字字符串（两类前端调用方），非法值/负数/NaN 一律 400
+    const parsed = z.object({ amount: z.coerce.number().positive().finite() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid amount.' });
+    const amt = parsed.data.amount;
 
     try {
       const payout = await stripe.payouts.create({

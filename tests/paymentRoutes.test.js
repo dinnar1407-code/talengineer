@@ -174,15 +174,16 @@ describe('POST /api/payment/webhook', () => {
     assert.equal(deps.notify.calls.length, 0, '重复事件不应重复站内通知');
   });
 
-  it('payment_intent.payment_failed → locked→payment_failed', async () => {
+  it('payment_intent.payment_failed → locked→payment_failed，demand_id 以 DB 行为准（不信 metadata）', async () => {
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
     deps.stripe.webhooks.constructEvent.impl = () => ({
       type: 'payment_intent.payment_failed',
-      data: { object: { metadata: { milestone_id: '1', demand_id: '5' }, last_payment_error: { message: 'declined' } } },
+      // metadata.demand_id 故意投毒为 999：W1 治理后该值必须被无视，demands 更新只认 DB 返回的 5
+      data: { object: { metadata: { milestone_id: '1', demand_id: '999' }, last_payment_error: { message: 'declined' } } },
     });
     const calls = deps.setDb({
       project_milestones: [
-        { data: {}, error: null },                                     // update 结果
+        { data: [{ id: 1, demand_id: 5 }], error: null },              // update...select 返回真实归属
         { data: { phase_name: 'P1', demand_id: 5 }, error: null },     // 通知查询
       ],
       demands: [
@@ -196,6 +197,43 @@ describe('POST /api/payment/webhook', () => {
     assert.equal(upd.args[0].status, 'payment_failed');
     const guard = findCall(calls, 'project_milestones', 'eq', (c) => c.args[0] === 'status' && c.args[1] === 'locked');
     assert.ok(guard, '必须带 .eq(status, locked) 守卫，只有 locked 才转 payment_failed');
+    // 零信任断言：demands 更新的 id 过滤必须是 DB 返回的 5，绝不能是 metadata 里的 999
+    const demandEq = findCall(calls, 'demands', 'eq', (c) => c.args[0] === 'id');
+    assert.equal(demandEq.args[1], 5, 'demands 更新必须用 DB 返回的 demand_id，不能信任 metadata');
+  });
+
+  // ── fail-closed 回归（P1 治理：此前三个分支静默吞 DB 错误并回 200，Stripe 不再重试）──
+  it('payment_failed 分支落库失败 → 500（让 Stripe 重试）', async () => {
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+    deps.stripe.webhooks.constructEvent.impl = () => ({
+      type: 'payment_intent.payment_failed',
+      data: { object: { metadata: { milestone_id: '1' }, last_payment_error: { message: 'declined' } } },
+    });
+    deps.setDb({ project_milestones: { data: null, error: { message: 'db down' } } });
+    const res = await postWebhook();
+    assert.equal(res.status, 500);
+  });
+
+  it('charge.dispute.created 冻结失败 → 500（拒付期间绝不能保持可放款）', async () => {
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+    deps.stripe.webhooks.constructEvent.impl = () => ({
+      type: 'charge.dispute.created',
+      data: { object: { metadata: { milestone_id: '1' }, charge: 'ch_1', amount: 100000, reason: 'fraudulent' } },
+    });
+    deps.setDb({ project_milestones: { data: null, error: { message: 'db down' } } });
+    const res = await postWebhook();
+    assert.equal(res.status, 500);
+  });
+
+  it('transfer.failed 回滚失败 → 500（不能让里程碑卡在 released 而钱未到账）', async () => {
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+    deps.stripe.webhooks.constructEvent.impl = () => ({
+      type: 'transfer.failed',
+      data: { object: { id: 'tr_1', metadata: { milestone_id: '1' } } },
+    });
+    deps.setDb({ project_milestones: { data: null, error: { message: 'db down' } } });
+    const res = await postWebhook();
+    assert.equal(res.status, 500);
   });
 
   it('transfer.failed → released 回滚 funded 且清空 transfer_id', async () => {

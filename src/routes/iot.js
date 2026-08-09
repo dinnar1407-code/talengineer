@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod'); // 宪法 W2：外部回调是伪造重灾区，API Key 鉴权在前、形状校验在后，缺一不可
 const { getClient } = require('../config/db');
 // 复用企业 API Key 守卫（Bearer TE_xxx，SHA-256 哈希比对 api_keys 表）。
 // 此路由原先完全无鉴权——任何人都能向任意项目注入伪造的"硬件故障"消息并经 socket 广播，
@@ -8,11 +9,18 @@ const { requireApiKey } = require('./apikeys');
 
 router.post('/machine-alert', requireApiKey, async (req, res) => {
     try {
-        const { machine_id, project_id, fault_code, fault_description, timestamp, metadata } = req.body;
-
-        if (!machine_id || !project_id || !fault_code) {
+        // 边缘盒子固件的序列化不完全可控：id 类字段兼容数字与非空字符串
+        const alertSchema = z.object({
+            machine_id: z.union([z.number(), z.string().min(1)]),
+            project_id: z.union([z.number(), z.string().min(1)]),
+            fault_code: z.string().min(1),
+            fault_description: z.string().optional(),
+        });
+        const parsed = alertSchema.safeParse(req.body);
+        if (!parsed.success) {
             return res.status(400).json({ error: "Missing required IoT telemetry fields: machine_id, project_id, fault_code" });
         }
+        const { machine_id, project_id, fault_code, fault_description } = parsed.data;
 
         const supabase = getClient();
 

@@ -75,6 +75,10 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
+  // Stripe webhook 豁免 IP 限流：它已有签名验证（伪造请求过不了 constructEvent），
+  // 而 Stripe 故障恢复后的重试风暴可能超过 600/15min——被 429 只会延迟入账、
+  // 极端情况下让 Stripe 把端点标记为故障。验签是它的门禁，限流对它只有害处。
+  skip: (req) => req.originalUrl.startsWith('/api/payment/webhook'),
 });
 
 // Auth endpoints: 30 次失败 / 15 min per IP
