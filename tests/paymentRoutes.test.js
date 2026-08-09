@@ -290,6 +290,33 @@ describe('POST /api/payment/confirm-funding', () => {
     assert.equal(upd.args[0].status, 'funded');
     assert.equal(upd.args[0].stripe_payment_intent, 'pi_confirm');
   });
+
+  // P1 治理（settlementService 收敛）后确立的行为：confirm-funding 赢得竞态时，
+  // 与 webhook 路径一样给被指派工程师发"里程碑已托管"通知（此前该路径静默丢通知）。
+  it('赢家路径 → 给被指派工程师发通知（与 webhook 路径行为一致）', async () => {
+    deps.stripe.checkout.sessions.retrieve.impl = async () => ({ payment_status: 'paid', metadata: { milestone_id: '1' }, amount_total: 100000, payment_intent: 'pi_win' });
+    deps.setDb({
+      project_milestones: [
+        { data: { id: 1, status: 'locked', amount: 1000, demand_id: 5 }, error: null }, // 首次 select
+        { data: [{ id: 1, demand_id: 5 }], error: null },                               // update...select 一行（赢家）
+        { data: { phase_name: 'P1', amount: 1000 }, error: null },                      // 通知用 phase/amount 查询
+      ],
+      demands: [
+        { data: { employer_id: 42 }, error: null },                        // 归属校验
+        { data: {}, error: null },                                         // demands → in_progress
+        { data: { employer_id: 42 }, error: null },                        // 企业 webhook 的 employer 查询
+        { data: { title: 'Proj', assigned_engineer_id: 7 }, error: null }, // 工程师查询
+      ],
+      talents: { data: { name: 'Eng', contact: 'eng@x.com' }, error: null },
+    });
+    const res = await request(app).post('/api/payment/confirm-funding').send({ session_id: 'cs_x', milestone_id: 1 });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, 'ok');
+    assert.equal(deps.email.emailMilestoneFunded.calls.length, 1);
+    assert.equal(deps.email.emailMilestoneFunded.calls[0][0].engineerEmail, 'eng@x.com');
+    assert.equal(deps.notify.calls.length, 1);
+    assert.equal(deps.notify.calls[0][0].type, 'milestone_funded');
+  });
 });
 
 // ── release-milestone ────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ const crypto = require('crypto'); // 用于生成 Stripe 幂等键的随机后�
 const router = express.Router();
 const { getClient } = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
-const { emailMilestoneFunded, emailMilestoneReleased, emailPaymentFailed } = require('../services/email');
+const { emailMilestoneReleased, emailPaymentFailed } = require('../services/email');
 const { createNotification } = require('../services/notificationService');
 
 // 统一 Stripe 工厂（固定 apiVersion，见 src/config/stripe.js）
@@ -11,6 +11,7 @@ const stripe = require('../config/stripe').getStripe();
 
 const { PLATFORM_FEE, feeFor } = require('../config/fees'); // 全局费率 + 单需求覆盖（founding 让利经 demands.fee_pct）
 const { sendPayout } = require('../services/payout'); // 放款 provider 抽象（stripe/manual/payoneer）
+const { settleMilestoneFunding } = require('../services/settlementService'); // 入账结算唯一实现（webhook 与 confirm-funding 共用）
 
 // ── Get platform fee rate (public) ────────────────────────────────────────────
 // 返回当前平台抽佣比例，供前端透明展示"抽佣后到手金额"。
@@ -305,64 +306,18 @@ router.post('/webhook', async (req, res) => {
     const milestoneId = session.metadata?.milestone_id;
 
     if (milestoneId) {
-      // 条件更新：locked 与 payment_failed（付款失败后重试）都是合法的待付款状态；
-      // 同时取回 demand_id，后续以 DB 中的真实归属为准，不信任 metadata.demand_id
-      // 落盘 payment_intent：纠纷判雇主时按它原路退款（refunds.create 需要）
       const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
-      const { data: fundedRows, error: fundErr } = await supabase
-        .from('project_milestones')
-        .update({ status: 'funded', ...(paymentIntentId && { stripe_payment_intent: paymentIntentId }) })
-        .eq('id', milestoneId)
-        .in('status', ['locked', 'payment_failed'])
-        .select('id, demand_id');
-      if (fundErr) {
+      // 结算（条件更新 + demands 状态 + 赢家通知）收敛在 settlementService 唯一实现
+      try {
+        const result = await settleMilestoneFunding({ supabase, milestoneId, paymentIntentId, source: 'stripe-webhook' });
+        if (!result.settled) {
+          // 0 行说明里程碑不在可付款状态（重复事件或状态机异常），告警并跳过通知，防止重复事件重复发信
+          console.error(`[Webhook] checkout.session.completed for milestone ${milestoneId} updated 0 rows — milestone not in locked/payment_failed state.`);
+        }
+      } catch (settleErr) {
         // 落库失败返回 500 让 Stripe 重试，避免已收款但状态未更新
-        console.error(`[Webhook] Failed to mark milestone ${milestoneId} as funded:`, fundErr.message);
+        console.error(`[Webhook] ${settleErr.message}`);
         return res.status(500).json({ error: 'Failed to update milestone status' });
-      }
-      if (!fundedRows || fundedRows.length === 0) {
-        // 0 行说明里程碑不在可付款状态（重复事件或状态机异常），告警并跳过后续通知，防止重复事件重复发信
-        console.error(`[Webhook] checkout.session.completed for milestone ${milestoneId} updated 0 rows — milestone not in locked/payment_failed state.`);
-      } else {
-        // 使用 DB 查出的真实 demand_id 更新需求状态，metadata 可能被构造或与里程碑不符
-        const realDemandId = fundedRows[0].demand_id;
-        if (realDemandId) {
-          await supabase
-            .from('demands')
-            .update({ status: 'in_progress' })
-            .eq('id', realDemandId);
-        }
-
-        console.log(`[Webhook] Milestone ${milestoneId} funded via Stripe webhook.`);
-
-        // fire-and-forget 企业 webhook（惰性 require，绝不影响入账主流程）
-        try {
-          const { data: dOwner } = await supabase.from('demands').select('employer_id').eq('id', realDemandId).single();
-          if (dOwner?.employer_id) {
-            const { dispatchWebhook } = require('../services/webhookService');
-            dispatchWebhook(supabase, { userId: dOwner.employer_id, event: 'milestone.funded', payload: { milestone_id: milestoneId, demand_id: realDemandId } }).catch(() => {});
-          }
-        } catch { /* webhookService 尚未就绪 */ }
-
-        // Notify assigned engineer
-        if (realDemandId) {
-          const { data: demand } = await supabase.from('demands').select('title, assigned_engineer_id').eq('id', realDemandId).single();
-          if (demand?.assigned_engineer_id) {
-            const { data: talent } = await supabase.from('talents').select('name, contact').eq('id', demand.assigned_engineer_id).single();
-            const { data: ms } = await supabase.from('project_milestones').select('phase_name, amount').eq('id', milestoneId).single();
-            if (talent?.contact && ms) {
-              emailMilestoneFunded({ engineerEmail: talent.contact, engineerName: talent.name, projectTitle: demand.title, phaseName: ms.phase_name, amount: ms.amount }).catch(console.error);
-              createNotification({
-                user_email: talent.contact,
-                type: 'milestone_funded',
-                title: `Milestone funded: ${ms.phase_name}`,
-                body: `$${ms.amount} is now held in escrow for "${demand.title}". You can check in to begin work.`,
-                link: `/workorder/${milestoneId}`,
-                demand_id: parseInt(realDemandId),
-              });
-            }
-          }
-        }
       }
     }
   }
@@ -483,20 +438,18 @@ router.post('/confirm-funding', requireAuth, async (req, res) => {
     if (demandErr || !demand) return res.status(404).json({ error: 'Project not found' });
     if (demand.employer_id !== req.user.userId) return res.status(403).json({ error: 'Forbidden' });
 
-    // 条件更新：locked 与 payment_failed（重试）都允许转 funded，并用 .select() 校验实际生效行数
-    // 同步落盘 payment_intent（与 webhook 路径一致），供纠纷判雇主时原路退款
+    // 结算收敛在 settlementService 唯一实现（与 webhook 同一条代码路径）。
+    // 行为变更（P1 已批准）：confirm-funding 赢得竞态时同样发工程师通知 + 企业 webhook
+    // ——此前该路径静默丢通知，恰好在 webhook 延迟/丢失最需要兜底的场景下失联。
     const confirmIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
-    const { data: confirmedRows, error: confirmErr } = await supabase
-      .from('project_milestones')
-      .update({ status: 'funded', ...(confirmIntentId && { stripe_payment_intent: confirmIntentId }) })
-      .eq('id', milestone_id)
-      .in('status', ['locked', 'payment_failed'])
-      .select('id');
-    if (confirmErr) {
-      console.error(`[Payment] confirm-funding DB error for milestone ${milestone_id}:`, confirmErr.message);
+    let result;
+    try {
+      result = await settleMilestoneFunding({ supabase, milestoneId: milestone_id, paymentIntentId: confirmIntentId, source: 'confirm-funding' });
+    } catch (settleErr) {
+      console.error(`[Payment] confirm-funding DB error for milestone ${milestone_id}:`, settleErr.message);
       return res.status(500).json({ error: 'Failed to update milestone status' });
     }
-    if (!confirmedRows || confirmedRows.length === 0) {
+    if (!result.settled) {
       // 竞态兜底：0 行可能是 webhook 已抢先入账，再查一次当前状态区分"已成功"与"非法状态"
       const { data: current } = await supabase
         .from('project_milestones')
@@ -511,7 +464,6 @@ router.post('/confirm-funding', requireAuth, async (req, res) => {
       console.error(`[Payment] confirm-funding for milestone ${milestone_id} updated 0 rows — not in locked/payment_failed state (current: ${current?.status || 'unknown'}).`);
       return res.status(409).json({ error: 'Milestone is not awaiting funding (already funded or in another state).' });
     }
-    await supabase.from('demands').update({ status: 'in_progress' }).eq('id', milestone.demand_id);
 
     res.json({ status: 'ok' });
   } catch (err) {

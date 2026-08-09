@@ -1,5 +1,6 @@
 const { Resend } = require('resend');
 require('dotenv').config();
+const { maskEmail } = require('../services/referralService'); // 日志脱敏：收件人邮箱是 PII，落日志前打码（宪法 P1 红线）
 
 let resendClient = null;
 
@@ -12,7 +13,7 @@ if (process.env.RESEND_API_KEY) {
 
 async function sendOutreachEmail(toEmail, subject, htmlBody) {
     if (!resendClient) {
-        console.log(`\n[Simulated Email to: ${toEmail}]\nSubject: ${subject}\n${htmlBody}\n`);
+        console.log(`\n[Simulated Email to: ${maskEmail(toEmail)}]\nSubject: ${subject}\n${htmlBody}\n`);
         return true;
     }
     
@@ -24,10 +25,10 @@ async function sendOutreachEmail(toEmail, subject, htmlBody) {
             html: htmlBody,
         });
         
-        console.log(`✅ [Email Sent] Successfully delivered to ${toEmail} (ID: ${data.id})`);
+        console.log(`✅ [Email Sent] Successfully delivered to ${maskEmail(toEmail)} (ID: ${data.id})`);
         return data;
     } catch (error) {
-        console.error(`🚨 [Email Error] Failed to send to ${toEmail}:`, error);
+        console.error(`🚨 [Email Error] Failed to send to ${maskEmail(toEmail)}:`, error);
         throw error;
     }
 }
