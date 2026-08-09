@@ -13,6 +13,7 @@
 
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const { z } = require('zod'); // 宪法 W2 精神同样适用于 socket 事件 payload：先过形状再消费
 
 const { getClient } = require('./config/db');
 const { assertDemandParticipant } = require('./middleware/ownership');
@@ -28,16 +29,33 @@ const {
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// 跨域白名单：默认生产域名 + 本地开发；需要额外来源时设 ALLOWED_ORIGINS 环境变量。
-const DEFAULT_ORIGINS = [
-  'https://talengineer.us',
-  'https://www.talengineer.us',
-  'http://localhost:4000',
-  'http://localhost:3000',
-];
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-  : DEFAULT_ORIGINS;
+// 跨域白名单来自 src/config/origins.js 单一来源（与 REST 侧 CORS 同一份，宪法铁律 4）
+const { allowedOrigins } = require('./config/origins');
+
+// chatMessage 事件 payload 形状（W2）：text 上限 4000 字符——除防滥用外，
+// 每条消息都会经 Gemini 翻译，无上限的 text 就是无上限的 API 成本敞口。
+const chatMessageSchema = z.object({
+  projectId: z.union([z.number(), z.string().min(1)]),
+  text: z.string().min(1).max(4000),
+});
+
+/**
+ * socket.io 原生 ack 的幂等守卫（只回执一次），正常路径与 catch 路径不会双重 callback。
+ * 仅离线重发端会带回调（在线正常发送不带，callback=undefined，此时 ack 是 no-op）。
+ */
+function makeAck(callback) {
+  let acked = false;
+  return (ok) => { if (!acked && typeof callback === 'function') { acked = true; callback({ ok }); } };
+}
+
+/**
+ * 服务端权威的显示名（宪法 S2 零信任）：一律从握手 JWT 派生，绝不使用客户端自报的
+ * senderName——此前 chatMessage 信任客户端自报（显示名可冒充任意人），而 uploadQualityImage
+ * 已用 JWT 派生，同一个"我是谁"问题存在两种答案。现统一为唯一实现。
+ */
+function displayNameOf(socket) {
+  return socket.user.email ? socket.user.email.split('@')[0] : socket.user.role;
+}
 
 /**
  * 校验该 socket 是否已加入某项目房间（即 joinRoom 时已通过当事方校验）。
@@ -115,21 +133,26 @@ function attachSocket(server) {
     });
 
     socket.on('chatMessage', async (data, callback) => {
-      // socket.io 原生 ack：仅离线重发端会带回调（在线正常发送不带，callback=undefined）。
       // 语义：落库成功 ok:true / 被拒或落库失败 ok:false。重发端据此决定是否 markDone，杜绝拒收后静默丢队列。
-      // ack 幂等守卫：只回执一次，避免正常路径与 catch 重复 callback。
-      let acked = false;
-      const ack = (ok) => { if (!acked && typeof callback === 'function') { acked = true; callback({ ok }); } };
+      const ack = makeAck(callback);
       try {
-        if (!inProjectRoom(socket, data.projectId)) {
+        // 形状校验先行（W2）：projectId 缺失 / text 为空或超长（>4000）一律拒收
+        const parsed = chatMessageSchema.safeParse(data);
+        if (!parsed.success) {
+          ack(false);
+          return socket.emit('messageError', { error: 'Invalid message payload.' });
+        }
+        const { projectId, text } = parsed.data;
+        if (!inProjectRoom(socket, projectId)) {
           ack(false);
           return socket.emit('messageError', { error: 'Join the project room first.' });
         }
-        // 角色取自 JWT（不信客户端自报），翻译方向由真实角色决定
+        // 角色与显示名均取自 JWT（不信客户端自报），翻译方向由真实角色决定
         const senderRole = socket.user.role;
+        const senderName = displayNameOf(socket);
         const sourceLang = senderRole === 'employer' ? 'Chinese (Mandarin)' : 'Spanish';
         const targetLang = senderRole === 'employer' ? 'Spanish' : 'Chinese (Mandarin)';
-        const translatedText = await translateTechnicalMessage(data.text, sourceLang, targetLang);
+        const translatedText = await translateTechnicalMessage(text, sourceLang, targetLang);
 
         // persisted 标记落库结果供 ack 判定；无 DB 的 dev 路径无需落库，按成功处理。
         // 广播行为保持原样（无论落库成败都广播），只用 insert 的 error 决定 ack。
@@ -137,20 +160,20 @@ function attachSocket(server) {
         const supabase = getClient();
         if (supabase) {
           const { error: insErr } = await supabase.from('project_messages').insert([{
-            demand_id: data.projectId,
+            demand_id: projectId,
             sender_role: senderRole,
-            sender_name: data.senderName,
-            original_text: data.text,
+            sender_name: senderName,
+            original_text: text,
             translated_text: translatedText,
           }]);
           persisted = !insErr;
         }
 
-        io.to(`project_${data.projectId}`).emit('message', {
+        io.to(`project_${projectId}`).emit('message', {
           senderId: socket.id,
           senderRole,
-          senderName: data.senderName || senderRole,
-          originalText: data.text,
+          senderName,
+          originalText: text,
           translatedText,
           timestamp: new Date().toISOString(),
         });
@@ -205,10 +228,8 @@ function attachSocket(server) {
     });
 
     socket.on('uploadQualityImage', async ({ projectId, imageData, context }, callback) => {
-      // socket.io 原生 ack：仅离线重发端带回调（在线上传不带，callback=undefined）。
       // 语义：落库（上传+插标记行）成功 ok:true / 被拒或落库失败 ok:false。重发端据此 markDone，拒收不丢队列。
-      let acked = false;
-      const ack = (ok) => { if (!acked && typeof callback === 'function') { acked = true; callback({ ok }); } };
+      const ack = makeAck(callback);
       let persisted = false; // 落库结果供 ack 判定（上传+插标记行都成功才算落库）
       try {
         if (!inProjectRoom(socket, projectId)) {
@@ -233,7 +254,7 @@ function attachSocket(server) {
             const { error: upErr } = await supabase.storage.from('qc-images').upload(storagePath, jpg, { contentType: 'image/jpeg' });
             if (!upErr) {
               // 消息行字段形状同上方 chatMessage 的 insert；original_text 用契约标记格式，供历史回看识别
-              const uploaderName = socket.user.email ? socket.user.email.split('@')[0] : socket.user.role;
+              const uploaderName = displayNameOf(socket);
               const { error: insErr } = await supabase.from('project_messages').insert([{
                 demand_id: projectId,
                 sender_role: socket.user.role,

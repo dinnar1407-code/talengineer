@@ -167,6 +167,12 @@ export default function WarRoom() {
       addMessage({ type: 'system', text: 'Please sign in first — the War Room is only available to project participants. / 请先登录，作战室仅项目当事方可用。' });
       return;
     }
+    // 先断开上一个 socket 再新建（宪法 S1）：connect_error 后重试 join 时，旧实例若不断开
+    // 会带着监听器继续自动重连，每次重试泄漏一个"野生"连接
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     const socket = io({ auth: { token } });
     socketRef.current = socket;
 
@@ -179,7 +185,11 @@ export default function WarRoom() {
     socket.emit('joinRoom', { projectId });
 
     socket.on('message', (data) => {
-      if (data.senderRole === role && data.senderName === myName) setSending(false);
+      // "是我"判定改用服务端回传的 senderId 与本连接 socket.id 比对（P1 治理）：
+      // 显示名已由服务端从 JWT 派生（不再信任客户端自报），本地输入的 myName 与
+      // 服务端派生名可能不同，按名字比对会误判；socket.id 是本连接的权威身份。
+      const isMine = !!data.senderId && data.senderId === socket.id;
+      if (isMine) setSending(false);
       if (data.isAIPM) {
         addMessage({ type: 'aipm', senderName: data.senderName, originalText: data.originalText, translatedText: data.translatedText });
         return;
@@ -188,7 +198,6 @@ export default function WarRoom() {
         addMessage({ type: 'iot', senderName: data.senderName, originalText: data.originalText, translatedText: data.translatedText });
         return;
       }
-      const isMine = (data.senderRole === role && data.senderName === myName);
       addMessage({ type: isMine ? 'sent' : 'received', senderName: data.senderName, originalText: data.originalText, translatedText: data.translatedText });
     });
 

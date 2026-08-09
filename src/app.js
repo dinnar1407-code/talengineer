@@ -39,9 +39,8 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 // ── CORS: whitelist only known origins ───────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:4000')
-  .split(',')
-  .map(o => o.trim());
+// 白名单来自 src/config/origins.js 单一来源（与 socketServer 同一份，宪法铁律 4）
+const { allowedOrigins } = require('./config/origins');
 
 app.use(cors({
   origin: (origin, callback) => {
