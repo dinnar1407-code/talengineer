@@ -125,6 +125,9 @@ function attachSocket(server) {
           return socket.emit('messageError', { error: 'You are not a participant of this project.' });
         }
         socket.join(`project_${projectId}`);
+        // 入房成功回执：此前加入成功无任何信号，客户端与集成测试只能靠时序猜测；
+        // 该事件向后兼容（老客户端不监听即忽略），是后续事件能否通过闸门的确定性依据
+        socket.emit('joinedRoom', { projectId });
         console.log(`[Socket] ${socket.user.role} (user ${socket.user.userId}) joined room project_${projectId}`);
       } catch (err) {
         console.error('[Socket] joinRoom error:', err);
@@ -323,4 +326,5 @@ function attachSocket(server) {
   return io;
 }
 
-module.exports = { attachSocket };
+// makeAck / displayNameOf 一并导出供集成测试直接断言（幂等守卫、JWT 派生名的唯一实现）
+module.exports = { attachSocket, makeAck, displayNameOf };

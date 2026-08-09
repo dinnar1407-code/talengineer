@@ -161,6 +161,27 @@ describe('POST /api/payment/webhook', () => {
     assert.deepEqual(inFilter.args, ['status', ['locked', 'payment_failed']]);
   });
 
+  // P1 尾账（W1）：demands→in_progress 更新失败时，入账结果与 Stripe 回执不受影响
+  // （里程碑已 funded，重试修不了 demand），但绝不能静默——settlementService 会 CRITICAL 告警
+  it('checkout.session.completed 但 demands 更新失败 → 仍 200 且里程碑已 funded', async () => {
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+    deps.stripe.webhooks.constructEvent.impl = () => ({
+      type: 'checkout.session.completed',
+      data: { object: { metadata: { milestone_id: '1' }, payment_intent: 'pi_abc' } },
+    });
+    const calls = deps.setDb({
+      project_milestones: { data: [{ id: 1, demand_id: 5 }], error: null },
+      demands: [
+        { data: null, error: { message: 'db down' } },                        // demands 更新失败
+        { data: { title: 'Proj', assigned_engineer_id: null }, error: null }, // 通知查询照常
+      ],
+    });
+    const res = await postWebhook();
+    assert.equal(res.status, 200, '入账已成功，必须回 200 阻止 Stripe 无意义重试');
+    const upd = findCall(calls, 'project_milestones', 'update');
+    assert.equal(upd.args[0].status, 'funded');
+  });
+
   it('checkout.session.completed 但 0 行更新（重复事件）→ 不发通知', async () => {
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
     deps.stripe.webhooks.constructEvent.impl = () => ({

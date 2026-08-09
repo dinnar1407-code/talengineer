@@ -38,7 +38,13 @@ async function settleMilestoneFunding({ supabase, milestoneId, paymentIntentId =
   // 赢家路径：demand_id 以条件更新返回的 DB 行为准（metadata 可能被构造或与里程碑不符）
   const realDemandId = fundedRows[0].demand_id;
   if (realDemandId) {
-    await supabase.from('demands').update({ status: 'in_progress' }).eq('id', realDemandId);
+    const { error: demandErr } = await supabase.from('demands').update({ status: 'in_progress' }).eq('id', realDemandId);
+    // CRITICAL 告警而非抛错（与 release 路径"转账已发生但落库失败"的处置一致，payment.js）：
+    // 里程碑此刻已 funded，若在此抛错让 webhook 500，Stripe 重试只会命中 0 行分支、
+    // 修不了卡在 open 的 demand，反而让重试配额空转。人工修库是唯一出路，故必须留下告警。
+    if (demandErr) {
+      console.error(`[Settlement] CRITICAL: milestone ${milestoneId} funded but failed to move demand ${realDemandId} to in_progress: ${demandErr.message} — manual repair required.`);
+    }
   }
 
   console.log(`[Settlement] Milestone ${milestoneId} funded (source: ${source}).`);
