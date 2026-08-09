@@ -3,6 +3,7 @@ const { generateMatchEmail } = require('./aiService');
 const { sendOutreachEmail } = require('../config/email');
 const { createNotification } = require('./notificationService');
 const { MIN_POOL_VERIFIED_SCORE } = require('../config/matching'); // 入网门槛开关（默认 0=关闭）
+const { maskEmail } = require('./referralService'); // 日志脱敏：工程师姓名/邮箱是 PII，落日志前打码
 
 // ── Keyword scorer ────────────────────────────────────────────────────────────
 const STOP_WORDS = new Set(['the','and','or','in','at','to','for','of','a','an',
@@ -190,7 +191,7 @@ async function runMatchmaker(demandId) {
           `sendEmail to ${engineer.contact}`
         );
 
-        console.log(`✉️ [Matchmaker] Email sent → ${engineer.name} <${engineer.contact}>`);
+        console.log(`✉️ [Matchmaker] Email sent → ${maskEmail(engineer.contact)}`);
 
         // In-app notification for engineer
         createNotification({

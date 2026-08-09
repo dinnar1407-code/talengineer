@@ -2,13 +2,11 @@
   "name": "talengineer",
   "version": "1.0.0",
   "description": "Talengineer: AI-Driven Cross-Border Industrial Services",
-  "main": "src/server.js",
+  "main": "src/nextServer.js",
   "scripts": {
     "build": "next build",
     "start": "NODE_ENV=production node src/nextServer.js",
     "dev": "NODE_ENV=development node src/nextServer.js",
-    "start:legacy": "node src/server.js",
-    "dev:legacy": "nodemon src/server.js",
     "test": "node --test \"tests/**/*.test.js\""
   },
   "dependencies": {
@@ -37,7 +35,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "nodemon": "^3.1.0",
     "playwright-core": "^1.61.1",
     "supertest": "^7.2.2"
   }

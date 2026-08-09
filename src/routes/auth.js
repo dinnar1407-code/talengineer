@@ -7,6 +7,7 @@ const { getClient } = require('../config/db');
 const { emailPasswordReset, emailVerifyEmail } = require('../services/email');
 const { requireAuth } = require('../middleware/auth');
 const { authenticator } = require('otplib'); // admin 账号化第二因子（TOTP）
+const { maskEmail } = require('../services/referralService'); // 日志脱敏：邮箱是 PII，落日志前打码
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '24h';
@@ -111,7 +112,7 @@ router.post('/register', async (req, res) => {
           contact: email,
         }]);
       if (talentErr) throw talentErr;
-      console.log(`[Auth] Registered new engineer: ${engName}`);
+      console.log(`[Auth] Registered new engineer: ${maskEmail(email)}`);
     }
 
     // 发送邮箱验证邮件（fire-and-forget：发信失败不阻断注册，可稍后经 /resend-verification 重发）
@@ -175,7 +176,7 @@ router.post('/verify-email', async (req, res) => {
     const { error } = await supabase.from('users').update({ email_verified: true }).eq('email', decoded.email);
     if (error) throw error;
 
-    console.log(`[Auth] Email verified for ${decoded.email}`);
+    console.log(`[Auth] Email verified for ${maskEmail(decoded.email)}`);
     res.json({ status: 'ok' });
   } catch (err) {
     console.error('[Auth] Verify email error:', err);
@@ -247,7 +248,7 @@ router.post('/login', async (req, res) => {
         // Migrate to bcrypt silently
         const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
         await supabase.from('users').update({ password: newHash }).eq('id', user.id);
-        console.log(`[Auth] Migrated legacy password for ${email}`);
+        console.log(`[Auth] Migrated legacy password for ${maskEmail(email)}`);
       }
     }
 
@@ -489,7 +490,7 @@ router.post('/reset-password', async (req, res) => {
     const { error } = await supabase.from('users').update({ password: passwordHash }).eq('email', decoded.email);
     if (error) throw error;
 
-    console.log(`[Auth] Password reset for ${decoded.email}`);
+    console.log(`[Auth] Password reset for ${maskEmail(decoded.email)}`);
     res.json({ status: 'ok' });
   } catch (err) {
     console.error('[Auth] Reset password error:', err);

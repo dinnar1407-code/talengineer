@@ -198,14 +198,8 @@ app.use('/api/pools',           poolsRoutes);
 app.use('/api/bgcheck',         bgcheckRoutes);
 app.use('/api/aiops',           aiopsRoutes);
 
-// 未匹配的 /api/* 统一返回 404 JSON，避免落入下面的 catch-all 被当成页面返回 200 HTML
+// 未匹配的 /api/* 统一返回 404 JSON（页面路由全部由 Next.js 提供，见 nextServer.js）
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
-
-// ── Page routes ───────────────────────────────────────────────────────────────
-app.get('/talent',  (req, res) => res.sendFile(path.join(__dirname, '../public', 'talent.html')));
-app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, '../public', 'finance.html')));
-app.get('/warroom', (req, res) => res.sendFile(path.join(__dirname, '../public', 'warroom.html')));
-app.get('*',        (req, res) => res.sendFile(path.join(__dirname, '../public', 'index.html')));
 
 // ── Sentry error handler (must be before any other error middleware) ──────────
 Sentry.setupExpressErrorHandler(app);
